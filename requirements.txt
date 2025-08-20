@@ -1,0 +1,8 @@
+Flask==2.3.3
+python-dotenv==1.0.0
+requests==2.31.0
+mercadopago==2.2.1
+supabase==1.0.4
+gunicorn==21.2.0
+Werkzeug==2.3.7
+postgrest==0.10.8

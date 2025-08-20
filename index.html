@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspa Brasil - Raspadinha Virtual Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #00b341;
+            --primary-yellow: #ffd700;
+            --primary-blue: #003087;
+            --primary-red: #dc2626;
+            --success-green: #28a745;
+            --gradient-bg: linear-gradient(135deg, #00b341 0%, #ffd700 50%, #003087 100%);
+            --shadow-light: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.15);
+            --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --border-radius: 20px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gradient-bg);
+            min-height: 100vh;
+            color: #1a1a1a;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Background Animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 179, 65, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(0, 48, 135, 0.15) 0%, transparent 50%);
+            animation: backgroundMove 25s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes backgroundMove {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-heavy);
+            margin-top: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Header Moderno */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-yellow));
+            border-radius: var(--border-radius);
+            margin-bottom: 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.8), rgba(255, 215, 0, 0.6));
+            animation: wave 4s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-30px); }
+        }
+
+        .header h1 {
+            font-size: clamp(2.5em, 8vw, 4em);
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: clamp(1em, 4vw, 1.3em);
+            font-weight: 500;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-brasil {
+            margin: 0 auto 20px auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .logo-bandeira {
+            width: clamp(60px, 15vw, 90px);
+            height: clamp(60px, 15vw, 90px);
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            animation: pulse 3s infinite;
+            border: 3px solid #ffd700;
+            cursor: pointer;
+            transition: var(--transition);
+            background-image: url('https://pfst.cf2.poecdn.net/base/image/6334603f4a3905c7fd614b3b09aa286277d7dbe6636795bc8742d06a7e88e5b8?w=980&h=980');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .logo-bandeira:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.08) rotate(5deg); }
+        }
+
+        /* Banner Slider Melhorado */
+        .banner-slider {
+            position: relative;
+            height: clamp(300px, 50vw, 450px);
+            margin-bottom: 40px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-heavy);
+            background-image: url('https://pfst.cf2.poecdn.net/base/image/f5e5ea7363d8a169389771ca089524300491c180be4956341b918e8d3d1c474c?w=626&h=417');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .banner-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.3), rgba(255, 215, 0, 0.2));
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.8), rgba(255, 215, 0, 0.6));
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+        .slide-content {
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.95), rgba(255, 215, 0, 0.9));
+            color: white;
+            padding: clamp(20px, 6vw, 40px);
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            max-width: 90%;
+            animation: slideContentFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes slideContentFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .slide-content h1 {
+            font-size: clamp(2em, 7vw, 4em);
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-content p {
+            font-size: clamp(1em, 4vw, 1.4em);
+            font-weight: 600;
+            opacity: 0.95;
+        }
+
+        /* Botões Modernos */
+        .btn {
+            padding: clamp(14px, 4vw, 18px) clamp(28px, 6vw, 36px);
+            border: none;
+            border-radius: 15px;
+            font-size: clamp(14px, 4vw, 17px);
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: var(--transition);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--primary-yellow), #ffcc00);
+            color: #333;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn-cta {
+            background: linear-gradient(135deg, var(--success-green), #1e7e34);
+            color: white;
+            font-size: clamp(18px, 5vw, 22px);
+            padding: clamp(18px, 5vw, 22px) clamp(36px, 8vw, 45px);
+            animation: ctaPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(40, 167, 69, 0.6);
+        }
+
+        @keyframes ctaPulse {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(40, 167, 69, 0.6);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 50px rgba(40, 167, 69, 0.9);
+            }
+            100% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(40, 167, 69, 0.6);
+            }
+        }
+
+        .btn-cta:hover {
+            animation-play-state: paused;
+            transform: scale(1.08);
+            box-shadow: 0 0 60px rgba(40, 167, 69, 1);
+        }
+
+        /* Seção Principal Melhorada */
+        .main-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .main-section h2 {
+            font-size: clamp(2em, 6vw, 3em);
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-section .subtitle {
+            font-size: clamp(1.1em, 4vw, 1.4em);
+            color: #555;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        /* Informações de segurança lado a lado */
+        .security-info {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .security-item {
+            font-size: clamp(0.85em, 2.5vw, 1em);
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            flex: 1;
+            min-width: 200px;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(40, 167, 69, 0.2);
+        }
+
+        .security-item i {
+            color: var(--success-green);
+            font-size: 1.2em;
+        }
+
+        /* CTA Messages */
+        .cta-message {
+            background: linear-gradient(135deg, var(--primary-red), #ef4444);
+            color: white;
+            padding: clamp(20px, 5vw, 30px);
+            border-radius: var(--border-radius);
+            margin: 30px 0;
+            text-align: center;
+            box-shadow: var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-message.success {
+            background: linear-gradient(135deg, var(--success-green), #1e7e34);
+        }
+
+        .cta-message.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .cta-message::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .cta-message h3 {
+            font-size: clamp(1.3em, 5vw, 1.8em);
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-message p {
+            position: relative;
+            z-index: 1;
+        }
+
+        .urgency-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            margin-top: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Quantidade Selector Melhorado */
+        .quantidade-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(15px, 5vw, 25px);
+            margin: 40px 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            padding: clamp(20px, 5vw, 30px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+            backdrop-filter: blur(10px);
+        }
+
+        .quantidade-btn {
+            width: clamp(45px, 12vw, 60px);
+            height: clamp(45px, 12vw, 60px);
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+            color: white;
+            font-size: clamp(20px, 5vw, 28px);
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-light);
+        }
+
+        .quantidade-btn:hover {
+            transform: scale(1.15);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .quantidade-display {
+            font-size: clamp(2.5em, 8vw, 4em);
+            font-weight: 900;
+            color: var(--primary-green);
+            min-width: clamp(60px, 15vw, 100px);
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .total-display {
+            text-align: center;
+            font-size: clamp(1.5em, 6vw, 2.5em);
+            font-weight: 800;
+            color: var(--primary-blue);
+            margin: 30px 0;
+            padding: clamp(15px, 4vw, 25px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Comentários Slider Melhorado - Loop contínuo infinito */
+        .testimonials-slider {
+            background: linear-gradient(135deg, #e8f5e8, #f0f9f0);
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            margin: 40px 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .testimonials-container {
+            display: flex;
+            gap: 20px;
+            animation: scrollLeft 40s linear infinite;
+            width: max-content;
+        }
+
+        .testimonials-container:hover {
+            animation-play-state: paused;
+        }
+
+        @keyframes scrollLeft {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .testimonial {
+            min-width: 320px;
+            background: white;
+            padding: clamp(20px, 5vw, 30px);
+            border-radius: 15px;
+            box-shadow: var(--shadow-light);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .testimonial p {
+            font-style: italic;
+            margin-bottom: 20px;
+            font-size: clamp(1em, 3.5vw, 1.2em);
+            line-height: 1.6;
+        }
+
+        .testimonial .author {
+            font-weight: 700;
+            color: var(--primary-green);
+            font-size: clamp(0.9em, 3vw, 1.1em);
+        }
+
+        @media (min-width: 768px) {
+            .testimonial {
+                min-width: clamp(280px, 45vw, 350px);
+            }
+        }
+
+        /* Status Bar - Only for Admin */
+        .status-bar {
+            background: linear-gradient(90deg, var(--primary-green), var(--primary-yellow));
+            padding: clamp(15px, 4vw, 20px);
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .status-item {
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .status-item .number {
+            font-size: clamp(1.5em, 5vw, 2em);
+            font-weight: 800;
+            display: block;
+        }
+
+        .status-item .label {
+            font-size: clamp(0.8em, 3vw, 1em);
+            opacity: 0.9;
+        }
+
+        /* Modal Admin */
+        .admin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .admin-modal-content {
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            max-width: 700px;
+            width: 95%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Payment Page Melhorada */
+        .payment-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .qr-container {
+            background: linear-gradient(135deg, #f8f9fa, white);
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: var(--shadow-light);
+        }
+
+        .qr-code img {
+            max-width: min(300px, 90vw);
+            border: 4px solid var(--primary-green);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .pix-code {
+            background: #f8f9fa;
+            padding: clamp(18px, 5vw, 25px);
+            border-radius: var(--border-radius);
+            margin: 25px 0;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(12px, 3.5vw, 16px);
+            border: 3px dashed var(--primary-green);
+        }
+
+        /* Raspadinha Page Melhorada */
+        .raspadinha-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(160px, 40vw), 1fr));
+            gap: clamp(15px, 5vw, 30px);
+            margin: 50px 0;
+            padding: clamp(20px, 5vw, 30px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(248, 249, 250, 0.6));
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(15px);
+        }
+
+        .bandeira {
+            width: min(180px, 40vw);
+            height: min(120px, 28vw);
+            background: linear-gradient(45deg, var(--primary-green) 33%, var(--primary-yellow) 33% 66%, var(--primary-blue) 66%);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+            margin: 0 auto;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .bandeira:hover {
+            transform: scale(1.08) rotate(3deg);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .bandeira.raspada {
+            cursor: default;
+        }
+
+        .bandeira-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #d0d0d0, #silver);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: 700;
+            color: #666;
+            transition: opacity 0.6s ease;
+            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.7);
+        }
+
+        .bandeira-resultado {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-align: center;
+            font-size: clamp(14px, 3.5vw, 18px);
+        }
+
+        .ganhou {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            animation: winPulse 0.8s ease-in-out;
+        }
+
+        .perdeu {
+            background: linear-gradient(135deg, #f44336, #da190b);
+            color: white;
+        }
+
+        @keyframes winPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: #333;
+            font-size: clamp(14px, 3.5vw, 16px);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: clamp(14px, 4vw, 18px);
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            font-size: clamp(16px, 4vw, 18px);
+            transition: var(--transition);
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary-green);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(0, 179, 65, 0.15);
+        }
+
+        /* Loading Animation */
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .testimonials-slider {
+                padding: 20px 15px;
+            }
+
+            .quantidade-selector {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .status-item {
+                min-width: auto;
+            }
+
+            .security-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .security-item {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .banner-slider {
+                height: clamp(250px, 60vw, 350px);
+            }
+
+            .slide-content {
+                padding: 20px 15px;
+                max-width: 95%;
+            }
+
+            .raspadinha-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 15px;
+                padding: 20px 15px;
+            }
+
+            .bandeira {
+                width: 140px;
+                height: 95px;
+            }
+        }
+
+        /* Utility Classes */
+        .page {
+            display: none;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* WhatsApp Button */
+        .whatsapp-btn {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            padding: clamp(16px, 4vw, 20px) clamp(32px, 6vw, 40px);
+            border: none;
+            border-radius: 15px;
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 25px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .whatsapp-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Premio Form */
+        .premio-form {
+            background: linear-gradient(135deg, #e8f5e8, #f0f9f0);
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            margin: 40px 0;
+            border: 4px solid #4CAF50;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .premio-form h3 {
+            color: #4CAF50;
+            font-size: clamp(1.5em, 5vw, 2.2em);
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        /* Admin Styles */
+        .resultado-validacao {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .resultado-validacao.valido {
+            background: #d4edda;
+            color: #155724;
+            border: 3px solid #c3e6cb;
+        }
+
+        .resultado-validacao.invalido {
+            background: #f8d7da;
+            color: #721c24;
+            border: 3px solid #f5c6cb;
+        }
+
+        .premiados-table {
+            margin-top: 25px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .premiado-item {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            border-left: 6px solid #28a745;
+            box-shadow: var(--shadow-light);
+        }
+
+        /* Payment Status Messages */
+        .payment-status-waiting {
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: #333;
+        }
+
+        .payment-status-approved {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .payment-status-error {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            .dark {
+                color-scheme: dark;
+            }
+            
+            .dark .container {
+                background: rgba(30, 30, 30, 0.98);
+                color: #f1f1f1;
+            }
+            
+            .dark .form-group input,
+            .dark .form-group select {
+                background: #2a2a2a;
+                color: #f1f1f1;
+                border-color: #555;
+            }
+            
+            .dark .form-group input:focus,
+            .dark .form-group select:focus {
+                border-color: var(--primary-green);
+                background: #333;
+            }
+            
+            .dark .modal-content,
+            .dark .admin-modal-content {
+                background: #2a2a2a;
+                color: #f1f1f1;
+            }
+            
+            .dark .testimonial {
+                background: #2a2a2a;
+                color: #f1f1f1;
+            }
+            
+            .dark .pix-code {
+                background: #2a2a2a;
+                color: #f1f1f1;
+                border-color: var(--primary-green);
+            }
+            
+            .dark .premiado-item {
+                background: #2a2a2a;
+                color: #f1f1f1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Página Inicial -->
+        <div id="home-page" class="page active">
+            <!-- Banner de Cidades Brasileiras com Header Integrado -->
+            <div class="banner-slider">
+                <div class="banner-image"></div>
+                <div class="slide active">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>A Melhor Raspadinha Virtual do Brasil!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Prêmios de até R$ 100!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Sistema 100% Seguro!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Pagamento em 24h!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Jogue Agora e Ganhe!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Message -->
+            <div class="cta-message">
+                <h3>RASPADINHAS LIMITADAS!</h3>
+                <p>Apenas <strong>10.000 raspadinhas disponíveis</strong> - Ganhe de R$ 10 até R$ 100!</p>
+                <div class="urgency-indicator">
+                    <i class="fas fa-clock"></i>
+                    <span>Corre que ainda dá tempo!</span>
+                </div>
+            </div>
+
+            <div class="main-section">
+                <h2>Ganhe até R$ 100,00!</h2>
+                <p class="subtitle">Cada raspadinha custa apenas <strong>R$ 1,00</strong></p>
+                
+                <div class="quantidade-selector">
+                    <button class="quantidade-btn" onclick="diminuirQuantidade()">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <div id="quantidade-display" class="quantidade-display">1</div>
+                    <button class="quantidade-btn" onclick="aumentarQuantidade()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div id="total-display" class="total-display">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Total: R$ 1,00
+                </div>
+                
+                <button class="btn btn-cta" onclick="irParaPagamento()">
+                    <i class="fas fa-shopping-cart"></i>
+                    COMPRAR AGORA
+                </button>
+
+                <div class="security-info">
+                    <div class="security-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Pagamento 100% seguro</span>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Prêmios pagos na hora</span>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-lock"></i>
+                        <span>Sistema antifraude integrado</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testemunhos Slider -->
+            <div class="testimonials-slider">
+                <h3 style="text-align: center; margin-bottom: 30px; font-size: clamp(1.8em, 6vw, 2.5em); color: #2d5016; font-weight: 800;">O que nossos ganhadores dizem:</h3>
+                <div class="testimonials-container" id="testimonials-container">
+                    <!-- Primeiro conjunto de comentários -->
+                    <div class="testimonial">
+                        <p>"Ganhei R$ 50,00 na primeira tentativa! Recomendo demais!"</p>
+                        <div class="author">- Maria S.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Sistema seguro e pagamento rápido. Já ganhei 3 vezes!"</p>
+                        <div class="author">- João P.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Nunca pensei que ganharia R$ 100! Incrível!"</p>
+                        <div class="author">- Ana L.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Comprei 5 raspadinhas e ganhei em 2! Vale muito a pena!"</p>
+                        <div class="author">- Carlos M.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"O prêmio chegou em menos de 12 horas. Confiável!"</p>
+                        <div class="author">- Fernanda R.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Já indiquei para toda minha família. Todos adoraram!"</p>
+                        <div class="author">- Roberto K.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Ganhei o prêmio máximo de R$ 100! Não acreditei!"</p>
+                        <div class="author">- Luciana B.</div>
+                    </div>
+                    <!-- Segundo conjunto duplicado para loop contínuo -->
+                    <div class="testimonial">
+                        <p>"Ganhei R$ 50,00 na primeira tentativa! Recomendo demais!"</p>
+                        <div class="author">- Maria S.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Sistema seguro e pagamento rápido. Já ganhei 3 vezes!"</p>
+                        <div class="author">- João P.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Nunca pensei que ganharia R$ 100! Incrível!"</p>
+                        <div class="author">- Ana L.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Comprei 5 raspadinhas e ganhei em 2! Vale muito a pena!"</p>
+                        <div class="author">- Carlos M.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"O prêmio chegou em menos de 12 horas. Confiável!"</p>
+                        <div class="author">- Fernanda R.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Já indiquei para toda minha família. Todos adoraram!"</p>
+                        <div class="author">- Roberto K.</div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Ganhei o prêmio máximo de R$ 100! Não acreditei!"</p>
+                        <div class="author">- Luciana B.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página de Pagamento -->
+        <div id="payment-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                    </div>
+                </div>
+                <h1>RASPA BRASIL</h1>
+                <p>Finalize seu pagamento</p>
+            </div>
+
+            <div class="payment-container">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <h2><i class="fas fa-credit-card"></i> Pagamento via PIX</h2>
+                    <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin: 15px 0; font-weight: 600;">
+                        Quantidade: <strong><span id="quantidade-pagamento">1</span> raspadinha(s)</strong>
+                    </p>
+                    <div style="background: linear-gradient(135deg, #00b341, #003087); color: white; padding: clamp(15px, 4vw, 25px); border-radius: 15px; font-size: clamp(1.3em, 5vw, 1.8em); font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+                        Total: R$ <span id="total-pagamento">1,00</span>
+                    </div>
+                </div>
+
+                <div id="payment-status">
+                    <div class="loading">
+                        <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin-bottom: 25px; font-weight: 600;">Gerando seu QR Code PIX...</p>
+                    </div>
+                </div>
+
+                <div class="qr-container" id="qr-section" style="display: none;">
+                    <h3><i class="fas fa-qrcode"></i> Escaneie o QR Code</h3>
+                    <div id="qr-code"></div>
+                    
+                    <div style="margin: 25px 0;">
+                        <p style="font-weight: 700; margin-bottom: 15px; font-size: clamp(1em, 3.5vw, 1.2em);">
+                            <i class="fas fa-copy"></i> Ou copie o código PIX:
+                        </p>
+                        <div class="pix-code" id="pix-code"></div>
+                        <button class="btn btn-secondary" onclick="copiarCodigoPix()">
+                            <i class="fas fa-clipboard"></i>
+                            Copiar Código PIX
+                        </button>
+                    </div>
+
+                    <div id="payment-actions">
+                        <button class="btn btn-primary" onclick="criarPagamentoReal()" style="width: 100%; margin-top: 25px;" id="btn-real-payment">
+                            <i class="fas fa-credit-card"></i>
+                            Pagar com PIX
+                        </button>
+
+                        <div class="cta-message warning" style="margin: 25px 0;">
+                            <h4><i class="fas fa-exclamation-triangle"></i> Importante!</h4>
+                            <p style="margin: 10px 0; font-size: clamp(0.9em, 3vw, 1.1em);">
+                                • Pagamento deve ser aprovado para liberar as raspadinhas<br>
+                                • Aguarde a confirmação automática após o PIX<br>
+                                • Não feche esta página durante o pagamento
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: clamp(20px, 5vw, 30px); border-radius: 15px; margin: 35px 0; border: 3px solid #ffc107;">
+                    <h4 style="margin-bottom: 20px; font-size: clamp(1.1em, 4vw, 1.4em); font-weight: 800;">
+                        <i class="fas fa-info-circle"></i> Como pagar:
+                    </h4>
+                    <ol style="line-height: 2; padding-left: 25px; font-size: clamp(0.95em, 3.5vw, 1.1em);">
+                        <li><strong>Clique em "Pagar com PIX"</strong></li>
+                        <li><strong>Abra o app do seu banco</strong></li>
+                        <li><strong>Escolha a opção PIX</strong></li>
+                        <li><strong>Escaneie o QR Code ou cole o código</strong></li>
+                        <li><strong>Confirme o pagamento de R$ <span id="total-pagamento-info">1,00</span></strong></li>
+                        <li><strong>Aguarde a confirmação automática</strong></li>
+                    </ol>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn btn-secondary" onclick="voltarInicio()">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar ao Início
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página de Raspadinhas -->
+        <div id="raspadinha-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                    </div>
+                </div>
+                <h1>RASPA BRASIL</h1>
+                <p>Suas raspadinhas estão prontas!</p>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 50px;">
+                <h2 style="font-size: clamp(2em, 7vw, 3em); color: #00b341; font-weight: 800;">
+                    <i class="fas fa-hand-pointer"></i> Clique nas bandeiras para raspar!
+                </h2>
+                <p style="font-size: clamp(1.2em, 5vw, 1.5em); margin: 20px 0; font-weight: 600;">
+                    Você tem <strong><span id="quantidade-raspadinhas">1</span></strong> raspadinha(s) para jogar
+                </p>
+                <div class="cta-message success" style="margin: 25px auto; max-width: 600px;">
+                    <h3>Boa sorte!</h3>
+                    <p>Toque nas bandeiras do Brasil e descubra se você ganhou!</p>
+                </div>
+            </div>
+
+            <div class="raspadinha-grid" id="raspadinha-grid">
+                <!-- Raspadinhas serão geradas dinamicamente -->
+            </div>
+
+            <div id="premio-container" style="display: none;"></div>
+
+            <div style="text-align: center; margin-top: 50px;">
+                <button class="btn btn-secondary" onclick="voltarInicio()">
+                    <i class="fas fa-home"></i>
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Admin -->
+    <div id="admin-modal" class="admin-modal">
+        <div class="admin-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2><i class="fas fa-user-shield"></i> Área Administrativa</h2>
+                <button onclick="fecharAdmin()" style="background: none; border: none; font-size: 30px; cursor: pointer; color: #666;">×</button>
+            </div>
+
+            <div id="admin-login">
+                <div class="form-group">
+                    <label>Senha Administrativa:</label>
+                    <input type="password" id="admin-senha" placeholder="Digite a senha">
+                </div>
+                <button class="btn btn-primary" onclick="loginAdmin()" style="width: 100%;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Entrar
+                </button>
+                <div id="admin-message" style="margin-top: 20px;"></div>
+            </div>
+
+            <div id="admin-panel" style="display: none;">
+                <!-- Estatísticas -->
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="number" id="admin-vendidas">0</span>
+                        <span class="label">Vendidas</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-restantes">10000</span>
+                        <span class="label">Restantes</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-porcentagem">0%</span>
+                        <span class="label">Progresso</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-ganhadores">0</span>
+                        <span class="label">Ganhadores</span>
+                    </div>
+                </div>
+
+                <!-- Validador de Códigos -->
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 25px;">
+                    <h4><i class="fas fa-shield-alt"></i> Validador de Códigos</h4>
+                    <div class="form-group">
+                        <input type="text" id="codigo-validacao-admin" placeholder="Ex: RB-38472-X9F">
+                    </div>
+                    <button class="btn btn-secondary" onclick="validarCodigoAdmin()">
+                        <i class="fas fa-search"></i>
+                        Validar Código
+                    </button>
+                    <div id="resultado-validacao-admin"></div>
+                </div>
+
+                <!-- Controles Admin -->
+                <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="listarPremiados()">
+                        <i class="fas fa-trophy"></i>
+                        Ver Ganhadores
+                    </button>
+                    <button class="btn btn-secondary" onclick="carregarEstatisticas()">
+                        <i class="fas fa-chart-bar"></i>
+                        Atualizar Stats
+                    </button>
+                    <button class="btn btn-secondary" onclick="toggleSistema()" id="btn-toggle-sistema">
+                        <i class="fas fa-power-off"></i>
+                        Toggle Sistema
+                    </button>
+                </div>
+
+                <div id="premiados-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal personalizado -->
+    <div id="custom-modal" class="modal">
+        <div class="modal-content">
+            <div id="modal-message"></div>
+            <div style="margin-top: 25px;">
+                <button class="btn btn-secondary" onclick="fecharModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let quantidade = 1;
+        let paymentCheckInterval;
+        let currentPaymentId = null;
+        let vendidas = 0;
+        let totalRaspadinhas = 10000;
+        let currentSlide = 0;
+        const WHATSAPP_NUMERO = "5582996092684";
+
+        // Função para formatar valores monetários com vírgula
+        function formatarDinheiro(valor) {
+            return valor.toFixed(2).replace('.', ',');
+        }
+
+        // Função para mostrar modal personalizado
+        function mostrarModal(mensagem) {
+            document.getElementById('modal-message').innerHTML = mensagem;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('custom-modal').style.display = 'none';
+        }
+
+        // Banner Slider
+        function initBannerSlider() {
+            const slides = document.querySelectorAll('.banner-slider .slide');
+            
+            setInterval(() => {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = (currentSlide + 1) % slides.length;
+                slides[currentSlide].classList.add('active');
+            }, 5000);
+        }
+
+        // Função para alternar páginas
+        function mostrarPagina(pageId) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // Funções para quantidade
+        function aumentarQuantidade() {
+            if (quantidade < 10) {
+                quantidade++;
+                atualizarDisplay();
+            }
+        }
+
+        function diminuirQuantidade() {
+            if (quantidade > 1) {
+                quantidade--;
+                atualizarDisplay();
+            }
+        }
+
+        function atualizarDisplay() {
+            document.getElementById('quantidade-display').textContent = quantidade;
+            document.getElementById('total-display').innerHTML = `
+                <i class="fas fa-money-bill-wave"></i>
+                Total: R$ ${formatarDinheiro(quantidade * 1.00)}
+            `;
+        }
+
+        // Admin functions
+        function abrirAdmin() {
+            document.getElementById('admin-modal').style.display = 'flex';
+        }
+
+        function fecharAdmin() {
+            document.getElementById('admin-modal').style.display = 'none';
+        }
+
+        async function loginAdmin() {
+            const senha = document.getElementById('admin-senha').value;
+            const messageDiv = document.getElementById('admin-message');
+            
+            if (!senha) {
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Digite a senha</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ senha })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    document.getElementById('admin-login').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    messageDiv.innerHTML = '<div class="resultado-validacao valido">Login realizado com sucesso!</div>';
+                    await carregarEstatisticas();
+                } else {
+                    messageDiv.innerHTML = '<div class="resultado-validacao invalido">Senha incorreta</div>';
+                }
+                
+            } catch (error) {
+                console.error('Erro no login admin:', error);
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao fazer login</div>';
+            }
+        }
+
+        async function carregarEstatisticas() {
+            try {
+                const response = await fetch('/admin/stats');
+                const stats = await response.json();
+                
+                document.getElementById('admin-vendidas').textContent = stats.vendidas || 0;
+                document.getElementById('admin-restantes').textContent = (stats.total_raspadinhas || totalRaspadinhas) - (stats.vendidas || 0);
+                document.getElementById('admin-porcentagem').textContent = `${Math.round(((stats.vendidas || 0) / (stats.total_raspadinhas || totalRaspadinhas)) * 100)}%`;
+                document.getElementById('admin-ganhadores').textContent = stats.ganhadores || 0;
+                
+                vendidas = stats.vendidas || 0;
+                
+                // Atualizar botão do sistema
+                const btnToggle = document.getElementById('btn-toggle-sistema');
+                if (btnToggle) {
+                    btnToggle.innerHTML = `
+                        <i class="fas fa-power-off"></i>
+                        ${stats.sistema_ativo ? 'Desativar' : 'Ativar'} Sistema
+                    `;
+                    btnToggle.style.background = stats.sistema_ativo ? 
+                        'linear-gradient(135deg, #dc3545, #c82333)' : 
+                        'linear-gradient(135deg, #28a745, #20c997)';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function toggleSistema() {
+            try {
+                const response = await fetch('/admin/toggle_sistema', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    mostrarModal(`<h3>✅ ${resultado.mensagem}</h3>`);
+                    await carregarEstatisticas();
+                } else {
+                    mostrarModal(`<h3>❌ ${resultado.mensagem}</h3>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao alternar sistema:', error);
+                mostrarModal('<h3>❌ Erro ao alternar sistema</h3>');
+            }
+        }
+
+        async function validarCodigoAdmin() {
+            const codigo = document.getElementById('codigo-validacao-admin').value.trim();
+            const resultadoDiv = document.getElementById('resultado-validacao-admin');
+            
+            if (!codigo) {
+                resultadoDiv.innerHTML = '<div class="resultado-validacao invalido">Por favor, insira um código</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/validar_codigo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ codigo })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.valido) {
+                    resultadoDiv.innerHTML = `<div class="resultado-validacao valido">${resultado.mensagem}</div>`;
+                } else {
+                    resultadoDiv.innerHTML = `<div class="resultado-validacao invalido">${resultado.mensagem}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao validar código:', error);
+                resultadoDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao validar código</div>';
+            }
+        }
+
+        async function listarPremiados() {
+            const listDiv = document.getElementById('premiados-list');
+            
+            try {
+                const response = await fetch('/admin/premiados');
+                const resultado = await response.json();
+                
+                if (resultado.premiados && resultado.premiados.length > 0) {
+                    let html = '<h4><i class="fas fa-trophy"></i> Lista de Ganhadores:</h4><div class="premiados-table">';
+                    resultado.premiados.forEach(premiado => {
+                        html += `
+                            <div class="premiado-item">
+                                <strong>Código:</strong> ${premiado.codigo}<br>
+                                <strong>Nome:</strong> ${premiado.nome}<br>
+                                <strong>Valor:</strong> ${premiado.valor}<br>
+                                <strong>PIX:</strong> ${premiado.chave_pix}<br>
+                                <strong>Status:</strong> ${premiado.status_pagamento || 'pendente'}<br>
+                                <strong>Data:</strong> ${new Date(premiado.data_criacao).toLocaleString('pt-BR')}<br>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = '<p>Nenhum ganhador encontrado.</p>';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao listar premiados:', error);
+                listDiv.innerHTML = '<p>Erro ao carregar ganhadores.</p>';
+            }
+        }
+
+        // Navegação
+        function irParaPagamento() {
+            document.getElementById('quantidade-pagamento').textContent = quantidade;
+            document.getElementById('total-pagamento').textContent = formatarDinheiro(quantidade * 1.00);
+            document.getElementById('total-pagamento-info').textContent = formatarDinheiro(quantidade * 1.00);
+            mostrarPagina('payment-page');
+            setTimeout(gerarPagamentoPIX, 1500);
+        }
+
+        function voltarInicio() {
+            mostrarPagina('home-page');
+            // Limpar intervalo de verificação de pagamento se existir
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+                paymentCheckInterval = null;
+            }
+        }
+
+        function irParaRaspadinhas() {
+            document.getElementById('quantidade-raspadinhas').textContent = quantidade;
+            gerarRaspadinhas();
+            mostrarPagina('raspadinha-page');
+        }
+
+        // Função para gerar pagamento PIX simulado (fallback)
+        function gerarPagamentoPIX() {
+            const codigoPix = `00020126580014BR.GOV.BCB.PIX0136${Math.random().toString(36).substr(2, 32)}520400005303986540${quantidade}.005802BR5925RASPA BRASIL LTDA6009SAO PAULO62070503***6304`;
+            
+            // Gerar QR Code simulado (apenas uma imagem placeholder)
+            const qrCodeData = `data:image/svg+xml;base64,${btoa(`
+                <svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="300" height="300" fill="white"/>
+                    <rect x="30" y="30" width="30" height="30" fill="black"/>
+                    <rect x="90" y="30" width="30" height="30" fill="black"/>
+                    <rect x="150" y="30" width="30" height="30" fill="black"/>
+                    <rect x="210" y="30" width="30" height="30" fill="black"/>
+                    <rect x="30" y="90" width="30" height="30" fill="black"/>
+                    <rect x="150" y="90" width="30" height="30" fill="black"/>
+                    <rect x="240" y="90" width="30" height="30" fill="black"/>
+                    <rect x="90" y="150" width="30" height="30" fill="black"/>
+                    <rect x="210" y="150" width="30" height="30" fill="black"/>
+                    <rect x="30" y="210" width="30" height="30" fill="black"/>
+                    <rect x="150" y="210" width="30" height="30" fill="black"/>
+                    <rect x="240" y="210" width="30" height="30" fill="black"/>
+                    <rect x="90" y="240" width="30" height="30" fill="black"/>
+                    <rect x="210" y="240" width="30" height="30" fill="black"/>
+                    <text x="150" y="280" text-anchor="middle" font-size="16" fill="black">PIX - RASPA BRASIL</text>
+                </svg>
+            `)}`;
+
+            document.getElementById('qr-code').innerHTML = `<img src="${qrCodeData}" alt="QR Code PIX">`;
+            document.getElementById('pix-code').textContent = codigoPix;
+            document.getElementById('qr-section').style.display = 'block';
+            document.getElementById('payment-status').innerHTML = `
+                <div class="cta-message warning">
+                    <h3><i class="fas fa-credit-card"></i> PIX Pronto para Pagamento!</h3>
+                    <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">Clique em "Pagar com PIX" para gerar o pagamento real</p>
+                    <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Aguarde a confirmação do pagamento para liberar as raspadinhas</em></p>
+                </div>
+            `;
+        }
+
+        // Função para criar pagamento real no Mercado Pago
+        async function criarPagamentoReal() {
+            const btn = document.getElementById('btn-real-payment');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando pagamento...';
+            btn.disabled = true;
+
+            // Esconder ações de pagamento
+            document.getElementById('payment-actions').style.display = 'none';
+
+            try {
+                const response = await fetch('/create_payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ quantidade: quantidade })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.id) {
+                    currentPaymentId = data.id;
+                    
+                    // Atualizar QR Code com dados reais
+                    if (data.qr_code_base64) {
+                        document.getElementById('qr-code').innerHTML = `<img src="data:image/png;base64,${data.qr_code_base64}" alt="QR Code PIX Real">`;
+                    }
+                    if (data.qr_code) {
+                        document.getElementById('pix-code').textContent = data.qr_code;
+                    }
+
+                    document.getElementById('payment-status').innerHTML = `
+                        <div class="cta-message payment-status-waiting">
+                            <h3><i class="fas fa-clock"></i> Aguardando Pagamento</h3>
+                            <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">ID: ${data.id}</p>
+                            <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Escaneie o QR Code ou cole o código PIX no seu banco</em></p>
+                        </div>
+                    `;
+
+                    // Iniciar verificação automática do pagamento
+                    iniciarVerificacaoPagamento(data.id);
+
+                } else {
+                    throw new Error(data.error || 'Erro ao criar pagamento');
+                }
+
+            } catch (error) {
+                console.error('Erro ao criar pagamento real:', error);
+                document.getElementById('payment-status').innerHTML = `
+                    <div class="cta-message payment-status-error">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Erro ao Criar Pagamento</h3>
+                        <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">${error.message}</p>
+                        <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Tente novamente ou entre em contato</em></p>
+                    </div>
+                `;
+                
+                // Mostrar ações novamente em caso de erro
+                document.getElementById('payment-actions').style.display = 'block';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Função para verificar pagamento automaticamente
+        function iniciarVerificacaoPagamento(paymentId) {
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+            }
+
+            let tentativas = 0;
+            const maxTentativas = 120; // 10 minutos (120 * 5 segundos)
+
+            paymentCheckInterval = setInterval(async () => {
+                tentativas++;
+                
+                try {
+                    const response = await fetch(`/check_payment/${paymentId}`);
+                    const data = await response.json();
+
+                    console.log(`Verificação ${tentativas}/${maxTentativas} - Status: ${data.status}`);
+
+                    if (data.status === 'approved') {
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+
+                        document.getElementById('payment-status').innerHTML = `
+                            <div class="cta-message payment-status-approved">
+                                <h3><i class="fas fa-check-circle"></i> Pagamento Aprovado!</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">Redirecionando para suas raspadinhas...</p>
+                                <div style="margin-top: 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 2.5em;"></i>
+                                </div>
+                            </div>
+                        `;
+
+                        setTimeout(() => {
+                            irParaRaspadinhas();
+                        }, 3000);
+
+                    } else if (data.status === 'rejected' || data.status === 'cancelled') {
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+
+                        document.getElementById('payment-status').innerHTML = `
+                            <div class="cta-message payment-status-error">
+                                <h3><i class="fas fa-times-circle"></i> Pagamento ${data.status === 'rejected' ? 'Rejeitado' : 'Cancelado'}</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">Tente novamente com outro método</p>
+                            </div>
+                        `;
+
+                        // Reativar botão para tentar novamente
+                        document.getElementById('payment-actions').style.display = 'block';
+                        const btn = document.getElementById('btn-real-payment');
+                        btn.innerHTML = '<i class="fas fa-redo"></i> Tentar Novamente';
+                        btn.disabled = false;
+
+                    } else if (tentativas >= maxTentativas) {
+                        // Timeout após 10 minutos
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+
+                        document.getElementById('payment-status').innerHTML = `
+                            <div class="cta-message payment-status-error">
+                                <h3><i class="fas fa-clock"></i> Tempo Esgotado</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">O pagamento demorou muito para ser confirmado</p>
+                                <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Se você já pagou, aguarde alguns minutos e recarregue a página</em></p>
+                            </div>
+                        `;
+                    }
+
+                } catch (error) {
+                    console.error('Erro ao verificar pagamento:', error);
+                    
+                    if (tentativas >= maxTentativas) {
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+                    }
+                }
+            }, 5000); // Verificar a cada 5 segundos
+        }
+
+        // Função para copiar código PIX
+        function copiarCodigoPix() {
+            const codigo = document.getElementById('pix-code').textContent;
+            navigator.clipboard.writeText(codigo).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                btn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 3000);
+            }).catch(() => {
+                mostrarModal('Código PIX copiado para a área de transferência!');
+            });
+        }
+
+        // Função para gerar raspadinhas
+        function gerarRaspadinhas() {
+            const grid = document.getElementById('raspadinha-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < quantidade; i++) {
+                const bandeira = document.createElement('div');
+                bandeira.className = 'bandeira';
+                bandeira.id = `bandeira-${i}`;
+                bandeira.onclick = () => rasparBandeira(i);
+                
+                bandeira.innerHTML = `
+                    <div class="bandeira-overlay">
+                        <div><i class="fas fa-hand-pointer"></i><br>Clique para raspar</div>
+                    </div>
+                    <div class="bandeira-resultado"></div>
+                `;
+                
+                grid.appendChild(bandeira);
+            }
+        }
+
+        // Função para raspar bandeira (conectada ao backend com validação de pagamento)
+        async function rasparBandeira(index) {
+            const bandeira = document.getElementById(`bandeira-${index}`);
+            
+            if (bandeira.classList.contains('raspada')) {
+                return;
+            }
+            
+            bandeira.classList.add('raspada');
+            
+            // Animação de raspagem
+            const overlay = bandeira.querySelector('.bandeira-overlay');
+            overlay.style.opacity = '0';
+            
+            try {
+                // Chama o backend para determinar o resultado
+                const response = await fetch('/raspar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.erro || 'Erro ao processar raspagem');
+                }
+                
+                const resultado = await response.json();
+                
+                setTimeout(() => {
+                    const resultadoDiv = bandeira.querySelector('.bandeira-resultado');
+                    
+                    if (resultado.ganhou) {
+                        resultadoDiv.innerHTML = `
+                            <div style="font-size: clamp(1.5em, 5vw, 2.2em);">GANHOU!</div>
+                            <div style="font-size: clamp(1em, 4vw, 1.4em);">${resultado.valor}</div>
+                        `;
+                        resultadoDiv.className = 'bandeira-resultado ganhou';
+                        
+                        // Mostrar formulário de prêmio
+                        mostrarFormularioPremio(resultado.valor, resultado.codigo);
+                    } else {
+                        resultadoDiv.innerHTML = `
+                            <div style="font-size: clamp(1.5em, 5vw, 2.2em);">Tente</div>
+                            <div style="font-size: clamp(0.9em, 3.5vw, 1.2em);">NOVAMENTE</div>
+                        `;
+                        resultadoDiv.className = 'bandeira-resultado perdeu';
+                    }
+                }, 600);
+                
+            } catch (error) {
+                console.error('Erro ao raspar:', error);
+                setTimeout(() => {
+                    const resultadoDiv = bandeira.querySelector('.bandeira-resultado');
+                    resultadoDiv.innerHTML = `
+                        <div style="font-size: clamp(1.2em, 4vw, 1.8em);">Erro</div>
+                        <div style="font-size: clamp(0.8em, 3vw, 1em);">${error.message}</div>
+                    `;
+                    resultadoDiv.className = 'bandeira-resultado perdeu';
+                }, 600);
+                
+                // Mostrar modal com erro
+                mostrarModal(`<h3>❌ Erro</h3><p>${error.message}</p>`);
+            }
+        }
+
+        // Função para mostrar formulário de prêmio
+        function mostrarFormularioPremio(valor, codigo) {
+            const container = document.getElementById('premio-container');
+            container.innerHTML = `
+                <div class="premio-form">
+                    <h3>🎉 PARABÉNS! VOCÊ GANHOU ${valor}! 🎉</h3>
+                    <p style="text-align: center; font-size: clamp(1em, 4vw, 1.2em); margin-bottom: 30px; font-weight: 600;">
+                        Preencha seus dados para receber o prêmio em até 24 horas:
+                    </p>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome Completo:</label>
+                        <input type="text" id="nome-ganhador" placeholder="Digite seu nome completo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-key"></i> Tipo de Chave PIX:</label>
+                        <select id="tipo-chave">
+                            <option value="cpf">CPF</option>
+                            <option value="email">E-mail</option>
+                            <option value="telefone">Telefone</option>
+                            <option value="aleatoria">Chave Aleatória</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-credit-card"></i> Chave PIX:</label>
+                        <input type="text" id="chave-pix" placeholder="Digite sua chave PIX" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-shield-alt"></i> Código de Validação:</label>
+                        <input type="text" id="codigo-antifraude" value="${codigo}" readonly style="background: #f8f9fa; font-weight: 700; color: #00b341;">
+                    </div>
+                    
+                    <button class="whatsapp-btn" onclick="enviarWhatsApp('${valor}', '${codigo}')">
+                        <i class="fab fa-whatsapp"></i>
+                        Enviar dados via WhatsApp
+                    </button>
+
+                    <div style="background: linear-gradient(135deg, #e8f4f8, #d1ecf1); padding: 20px; border-radius: 12px; margin-top: 25px; font-size: clamp(0.85em, 3vw, 1em); text-align: center; border: 2px solid #17a2b8;">
+                        <p><strong><i class="fas fa-shield-alt"></i> Seus dados estão seguros!</strong></p>
+                        <p>Use o código de validação <strong>${codigo}</strong> para comprovar seu prêmio a qualquer momento.</p>
+                        <p><strong>WhatsApp:</strong> ${WHATSAPP_NUMERO.replace('55', '+55 ')}</p>
+                    </div>
+                </div>
+            `;
+            container.style.display = 'block';
+            
+            // Scroll para o formulário
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Função para enviar via WhatsApp (conectada ao backend)
+        async function enviarWhatsApp(valor, codigo) {
+            const nome = document.getElementById('nome-ganhador').value.trim();
+            const tipoChave = document.getElementById('tipo-chave').value;
+            const chavePix = document.getElementById('chave-pix').value.trim();
+            
+            if (!nome || !chavePix) {
+                mostrarModal('<h3>⚠️ Atenção</h3><p>Por favor, preencha todos os campos antes de continuar!</p>');
+                return;
+            }
+
+            if (nome.length < 3) {
+                mostrarModal('<h3>⚠️ Atenção</h3><p>Nome deve ter pelo menos 3 caracteres!</p>');
+                return;
+            }
+
+            if (chavePix.length < 5) {
+                mostrarModal('<h3>⚠️ Atenção</h3><p>Chave PIX inválida!</p>');
+                return;
+            }
+            
+            try {
+                // Salvar no backend
+                const response = await fetch('/salvar_ganhador', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        valor,
+                        chave_pix: chavePix,
+                        tipo_chave: tipoChave,
+                        codigo
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (!resultado.sucesso) {
+                    throw new Error(resultado.erro || 'Erro ao salvar dados');
+                }
+                
+                const mensagem = `🎉 GANHEI NA RASPA BRASIL! 🇧🇷
+
+📝 *DADOS DO GANHADOR:*
+• Nome: ${nome}
+• Prêmio: ${valor}
+• Tipo de chave: ${tipoChave}
+• Chave PIX: ${chavePix}
+• Código de validação: ${codigo}
+
+💰 Solicito o pagamento do meu prêmio!
+
+✅ Dados salvos no sistema com sucesso!`;
+                
+                const whatsappUrl = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensagem)}`;
+                window.open(whatsappUrl, '_blank');
+                
+                mostrarModal(`
+                    <h3>✅ Dados Enviados com Sucesso!</h3>
+                    <p>Seu WhatsApp foi aberto com a mensagem pronta.</p>
+                    <p><strong>Seu código de validação:</strong></p>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 1.2em; color: #00b341; font-weight: bold; margin: 10px 0;">${codigo}</div>
+                    <p><strong>⚠️ IMPORTANTE:</strong> Guarde este código para validação!</p>
+                    <p>Prazo para pagamento: <strong>até 24 horas</strong></p>
+                `);
+                
+            } catch (error) {
+                console.error('Erro ao salvar ganhador:', error);
+                mostrarModal(`<h3>❌ Erro</h3><p>${error.message}</p><p>Tente novamente ou entre em contato pelo WhatsApp</p>`);
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarDisplay();
+            initBannerSlider();
+            
+            // Carregar estatísticas periodicamente
+            setInterval(carregarEstatisticas, 30000); // A cada 30 segundos
+        });
+
+        // Detectar modo escuro
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+</body>
+</html>
