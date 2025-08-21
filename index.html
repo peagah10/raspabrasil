@@ -3,7 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raspa Brasil - Raspadinha Virtual Premium</title>
+    <title>Raspa Brasil - A Raspadinha Virtual Dos Brasileiros</title>
+
+    <!-- Open Graph (Facebook, Instagram, WhatsApp) -->
+    <meta property="og:title" content="Raspa Brasil - A Raspadinha Virtual dos Brasileiros">
+    <meta property="og:description" content="Compre sua raspadinha online por apenas R$1 e concorra a prêmios instantâneos! 100% digital e rápido via Pix.">
+    <meta property="og:image" content="https://raspabrasil.onrender.com/logo.jpg">
+    <meta property="og:url" content="https://raspabrasil.onrender.com">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -55,6 +65,17 @@
         @keyframes backgroundMove {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
             50% { transform: translateY(-15px) rotate(2deg); }
+        }
+
+        /* Shake animation for winner alert */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
         }
 
         .container {
@@ -493,25 +514,26 @@
             backdrop-filter: blur(10px);
         }
 
-        /* Comentários Slider Melhorado - Loop contínuo infinito */
-        .testimonials-slider {
-            background: linear-gradient(135deg, #e8f5e8, #f0f9f0);
+        /* Winners Slider - Ganhadores das últimas horas */
+        .winners-slider {
+            background: linear-gradient(135deg, #f0f9f0, #e8f5e8);
             padding: clamp(25px, 6vw, 40px);
             border-radius: var(--border-radius);
             margin: 40px 0;
             position: relative;
             overflow: hidden;
             box-shadow: var(--shadow-medium);
+            border: 3px solid #28a745;
         }
 
-        .testimonials-container {
+        .winners-container {
             display: flex;
             gap: 20px;
-            animation: scrollLeft 40s linear infinite;
+            animation: scrollLeft 45s linear infinite;
             width: max-content;
         }
 
-        .testimonials-container:hover {
+        .winners-container:hover {
             animation-play-state: paused;
         }
 
@@ -524,32 +546,56 @@
             }
         }
 
-        .testimonial {
-            min-width: 320px;
+        .winner-item {
+            min-width: 280px;
             background: white;
-            padding: clamp(20px, 5vw, 30px);
+            padding: clamp(20px, 5vw, 25px);
             border-radius: 15px;
             box-shadow: var(--shadow-light);
             text-align: center;
             flex-shrink: 0;
+            border: 2px solid #28a745;
+            position: relative;
         }
 
-        .testimonial p {
-            font-style: italic;
-            margin-bottom: 20px;
-            font-size: clamp(1em, 3.5vw, 1.2em);
-            line-height: 1.6;
+        .winner-item::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 30px;
+            background: #28a745;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .testimonial .author {
-            font-weight: 700;
-            color: var(--primary-green);
-            font-size: clamp(0.9em, 3vw, 1.1em);
+        .winner-name {
+            font-size: clamp(1.1em, 3.5vw, 1.3em);
+            font-weight: 800;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .winner-prize {
+            font-size: clamp(1.3em, 4vw, 1.6em);
+            font-weight: 900;
+            color: #28a745;
+            margin-bottom: 8px;
+        }
+
+        .winner-time {
+            font-size: clamp(0.85em, 3vw, 1em);
+            color: #666;
+            font-weight: 600;
         }
 
         @media (min-width: 768px) {
-            .testimonial {
-                min-width: clamp(280px, 45vw, 350px);
+            .winner-item {
+                min-width: clamp(260px, 40vw, 320px);
             }
         }
 
@@ -640,13 +686,18 @@
 
         .pix-code {
             background: #f8f9fa;
-            padding: clamp(18px, 5vw, 25px);
-            border-radius: var(--border-radius);
+            padding: clamp(15px, 4vw, 20px);
+            border-radius: 12px;
             margin: 25px 0;
             word-break: break-all;
             font-family: 'Courier New', monospace;
-            font-size: clamp(12px, 3.5vw, 16px);
-            border: 3px dashed var(--primary-green);
+            font-size: clamp(11px, 3vw, 14px);
+            border: 2px dashed var(--primary-green);
+            color: #1a1a1a;
+            font-weight: 600;
+            line-height: 1.4;
+            max-height: 120px;
+            overflow-y: auto;
         }
 
         /* Raspadinha Page Melhorada */
@@ -784,6 +835,74 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Winner Alert Modal */
+        .winner-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+
+        .winner-alert-content {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: white;
+            padding: clamp(30px, 8vw, 50px);
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 25px 80px rgba(220, 38, 38, 0.6);
+            border: 4px solid #ffd700;
+            max-width: 90%;
+            animation: winnerPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes winnerPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 25px 80px rgba(220, 38, 38, 0.6);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 35px 100px rgba(220, 38, 38, 0.9);
+            }
+        }
+
+        .winner-alert h2 {
+            font-size: clamp(2em, 8vw, 4em);
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        .winner-alert p {
+            font-size: clamp(1.2em, 5vw, 1.8em);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .winner-alert .close-btn {
+            background: #ffd700;
+            color: #1a1a1a;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: clamp(1em, 4vw, 1.2em);
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: var(--transition);
+        }
+
+        .winner-alert .close-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -791,7 +910,7 @@
                 padding: 15px;
             }
             
-            .testimonials-slider {
+            .winners-slider {
                 padding: 20px 15px;
             }
 
@@ -824,6 +943,12 @@
                 max-width: min(180px, 70vw);
                 max-height: min(180px, 70vw);
             }
+
+            .pix-code {
+                font-size: clamp(10px, 2.8vw, 12px);
+                padding: clamp(12px, 3vw, 15px);
+                line-height: 1.3;
+            }
         }
 
         @media (max-width: 480px) {
@@ -850,6 +975,12 @@
             .qr-code img {
                 max-width: min(150px, 80vw);
                 max-height: min(150px, 80vw);
+            }
+
+            .pix-code {
+                font-size: 10px;
+                padding: 10px;
+                line-height: 1.2;
             }
         }
 
@@ -970,7 +1101,8 @@
         /* Payment Status Messages */
         .payment-status-waiting {
             background: linear-gradient(135deg, #ffc107, #ff9800);
-            color: #333;
+            color: #1a1a1a;
+            font-weight: 700;
         }
 
         .payment-status-approved {
@@ -1013,7 +1145,7 @@
                 color: #f1f1f1;
             }
             
-            .dark .testimonial {
+            .dark .winner-item {
                 background: #2a2a2a;
                 color: #f1f1f1;
             }
@@ -1041,7 +1173,7 @@
                 <div class="slide active">
                     <div class="slide-content">
                         <div class="logo-brasil">
-                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                             </div>
                         </div>
                         <h1>RASPA BRASIL</h1>
@@ -1051,17 +1183,17 @@
                 <div class="slide">
                     <div class="slide-content">
                         <div class="logo-brasil">
-                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                             </div>
                         </div>
                         <h1>RASPA BRASIL</h1>
-                        <p>Prêmios de até R$ 100!</p>
+                        <p>Prêmios de R$ 10 até R$ 1000!</p>
                     </div>
                 </div>
                 <div class="slide">
                     <div class="slide-content">
                         <div class="logo-brasil">
-                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                             </div>
                         </div>
                         <h1>RASPA BRASIL</h1>
@@ -1071,21 +1203,21 @@
                 <div class="slide">
                     <div class="slide-content">
                         <div class="logo-brasil">
-                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                             </div>
                         </div>
                         <h1>RASPA BRASIL</h1>
-                        <p>Pagamento em 24h!</p>
+                        <p>Pagamento feito na hora!</p>
                     </div>
                 </div>
                 <div class="slide">
                     <div class="slide-content">
                         <div class="logo-brasil">
-                            <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                             </div>
                         </div>
                         <h1>RASPA BRASIL</h1>
-                        <p>Jogue Agora e Ganhe!</p>
+                        <p>Raspou, Achou, Ganhou!</p>
                     </div>
                 </div>
             </div>
@@ -1093,7 +1225,7 @@
             <!-- CTA Message -->
             <div class="cta-message">
                 <h3>RASPADINHAS LIMITADAS!</h3>
-                <p>Apenas <strong>10.000 raspadinhas disponíveis</strong> - Ganhe de R$ 10 até R$ 100!</p>
+                <p>Poucas <strong>raspadinhas disponíveis</strong> - Ganhe de R$ 10 até R$ 1000!</p>
                 <div class="urgency-indicator">
                     <i class="fas fa-clock"></i>
                     <span>Corre que ainda dá tempo!</span>
@@ -1101,7 +1233,7 @@
             </div>
 
             <div class="main-section">
-                <h2>Ganhe até R$ 100,00!</h2>
+                <h2>Ganhe de R$ 10 até R$ 1000,00!</h2>
                 <p class="subtitle">Cada raspadinha custa apenas <strong>R$ 1,00</strong></p>
                 
                 <div class="quantidade-selector">
@@ -1135,72 +1267,106 @@
                     </div>
                     <div class="security-item">
                         <i class="fas fa-lock"></i>
-                        <span>Sistema antifraude integrado</span>
+                        <span>Sistema antifraude</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Testemunhos Slider -->
-            <div class="testimonials-slider">
-                <h3 style="text-align: center; margin-bottom: 30px; font-size: clamp(1.8em, 6vw, 2.5em); color: #2d5016; font-weight: 800;">O que nossos ganhadores dizem:</h3>
-                <div class="testimonials-container" id="testimonials-container">
-                    <!-- Primeiro conjunto de comentários -->
-                    <div class="testimonial">
-                        <p>"Ganhei R$ 50,00 na primeira tentativa! Recomendo demais!"</p>
-                        <div class="author">- Maria S.</div>
+            <!-- Ganhadores das últimas horas -->
+            <div class="winners-slider">
+                <h3 style="text-align: center; margin-bottom: 30px; font-size: clamp(1.8em, 6vw, 2.5em); color: #28a745; font-weight: 800;">Ganhadores das últimas horas:</h3>
+                <div class="winners-container" id="winners-container">
+                    <!-- Primeiro conjunto de ganhadores -->
+                    <div class="winner-item">
+                        <div class="winner-name">Carlos Eduardo Silva</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 12 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Sistema seguro e pagamento rápido. Já ganhei 3 vezes!"</p>
-                        <div class="author">- João P.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Ana Maria Santos</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 28 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Nunca pensei que ganharia R$ 100! Incrível!"</p>
-                        <div class="author">- Ana L.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Roberto Fernandes</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 35 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Comprei 5 raspadinhas e ganhei em 2! Vale muito a pena!"</p>
-                        <div class="author">- Carlos M.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Juliana Oliveira</div>
+                        <div class="winner-prize">R$ 20,00</div>
+                        <div class="winner-time">Há 47 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"O prêmio chegou em menos de 12 horas. Confiável!"</p>
-                        <div class="author">- Fernanda R.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Pedro Henrique Costa</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 1 hora</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Já indiquei para toda minha família. Todos adoraram!"</p>
-                        <div class="author">- Roberto K.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Mariana Pereira</div>
+                        <div class="winner-prize">R$ 40,00</div>
+                        <div class="winner-time">Há 1h 15min</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Ganhei o prêmio máximo de R$ 100! Não acreditei!"</p>
-                        <div class="author">- Luciana B.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">José Carlos Almeida</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 1h 32min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Fernanda Lima</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 1h 45min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">André Luiz Souza</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 2 horas</div>
                     </div>
                     <!-- Segundo conjunto duplicado para loop contínuo -->
-                    <div class="testimonial">
-                        <p>"Ganhei R$ 50,00 na primeira tentativa! Recomendo demais!"</p>
-                        <div class="author">- Maria S.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Carlos Eduardo Silva</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 12 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Sistema seguro e pagamento rápido. Já ganhei 3 vezes!"</p>
-                        <div class="author">- João P.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Ana Maria Santos</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 28 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Nunca pensei que ganharia R$ 100! Incrível!"</p>
-                        <div class="author">- Ana L.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Roberto Fernandes</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 35 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Comprei 5 raspadinhas e ganhei em 2! Vale muito a pena!"</p>
-                        <div class="author">- Carlos M.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Juliana Oliveira</div>
+                        <div class="winner-prize">R$ 20,00</div>
+                        <div class="winner-time">Há 47 minutos</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"O prêmio chegou em menos de 12 horas. Confiável!"</p>
-                        <div class="author">- Fernanda R.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Pedro Henrique Costa</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 1 hora</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Já indiquei para toda minha família. Todos adoraram!"</p>
-                        <div class="author">- Roberto K.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">Mariana Pereira</div>
+                        <div class="winner-prize">R$ 40,00</div>
+                        <div class="winner-time">Há 1h 15min</div>
                     </div>
-                    <div class="testimonial">
-                        <p>"Ganhei o prêmio máximo de R$ 100! Não acreditei!"</p>
-                        <div class="author">- Luciana B.</div>
+                    <div class="winner-item">
+                        <div class="winner-name">José Carlos Almeida</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 1h 32min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Fernanda Lima</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 1h 45min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">André Luiz Souza</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 2 horas</div>
                     </div>
                 </div>
             </div>
@@ -1210,7 +1376,7 @@
         <div id="payment-page" class="page">
             <div class="header">
                 <div class="logo-brasil">
-                    <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                     </div>
                 </div>
                 <h1>RASPA BRASIL</h1>
@@ -1219,8 +1385,8 @@
 
             <div class="payment-container">
                 <div style="text-align: center; margin-bottom: 40px;">
-                    <h2><i class="fas fa-credit-card"></i> Pagamento via PIX</h2>
-                    <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin: 15px 0; font-weight: 600;">
+                    <h2 style="color: #1a1a1a;"><i class="fas fa-credit-card"></i> Pagamento via PIX</h2>
+                    <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin: 15px 0; font-weight: 600; color: #1a1a1a;">
                         Quantidade: <strong><span id="quantidade-pagamento">1</span> raspadinha(s)</strong>
                     </p>
                     <div style="background: linear-gradient(135deg, #00b341, #003087); color: white; padding: clamp(15px, 4vw, 25px); border-radius: 15px; font-size: clamp(1.3em, 5vw, 1.8em); font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
@@ -1230,16 +1396,16 @@
 
                 <div id="payment-status">
                     <div class="loading">
-                        <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin-bottom: 25px; font-weight: 600;">Gerando seu QR Code PIX...</p>
+                        <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin-bottom: 25px; font-weight: 600; color: #1a1a1a;">Gerando seu QR Code PIX...</p>
                     </div>
                 </div>
 
                 <div class="qr-container" id="qr-section" style="display: none;">
-                    <h3><i class="fas fa-qrcode"></i> Escaneie o QR Code</h3>
+                    <h3 style="color: #1a1a1a;"><i class="fas fa-qrcode"></i> Escaneie o QR Code</h3>
                     <div id="qr-code" class="qr-code"></div>
                     
                     <div style="margin: 25px 0;">
-                        <p style="font-weight: 700; margin-bottom: 15px; font-size: clamp(1em, 3.5vw, 1.2em);">
+                        <p style="font-weight: 700; margin-bottom: 15px; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a;">
                             <i class="fas fa-copy"></i> Ou copie o código PIX:
                         </p>
                         <div class="pix-code" id="pix-code"></div>
@@ -1267,10 +1433,10 @@
                 </div>
 
                 <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: clamp(20px, 5vw, 30px); border-radius: 15px; margin: 35px 0; border: 3px solid #ffc107;">
-                    <h4 style="margin-bottom: 20px; font-size: clamp(1.1em, 4vw, 1.4em); font-weight: 800;">
+                    <h4 style="margin-bottom: 20px; font-size: clamp(1.1em, 4vw, 1.4em); font-weight: 800; color: #1a1a1a;">
                         <i class="fas fa-info-circle"></i> Como pagar:
                     </h4>
-                    <ol style="line-height: 2; padding-left: 25px; font-size: clamp(0.95em, 3.5vw, 1.1em);">
+                    <ol style="line-height: 2; padding-left: 25px; font-size: clamp(0.95em, 3.5vw, 1.1em); color: #1a1a1a; font-weight: 600;">
                         <li><strong>Clique em "Pagar com PIX"</strong></li>
                         <li><strong>Abra o app do seu banco</strong></li>
                         <li><strong>Escolha a opção PIX</strong></li>
@@ -1293,7 +1459,7 @@
         <div id="raspadinha-page" class="page">
             <div class="header">
                 <div class="logo-brasil">
-                    <div class="logo-bandeira" onclick="abrirAdmin()" title="Clique aqui para acessar a área administrativa">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                     </div>
                 </div>
                 <h1>RASPA BRASIL</h1>
@@ -1302,7 +1468,7 @@
 
             <div style="text-align: center; margin-bottom: 50px;">
                 <h2 style="font-size: clamp(2em, 7vw, 3em); color: #00b341; font-weight: 800;">
-                    <i class="fas fa-hand-pointer"></i> Clique nas bandeiras para raspar!
+                    <i class=""></i> Clique nas bandeiras para raspar!
                 </h2>
                 <p style="font-size: clamp(1.2em, 5vw, 1.5em); margin: 20px 0; font-weight: 600;">
                     Você tem <strong><span id="quantidade-raspadinhas">1</span></strong> raspadinha(s) para jogar
@@ -1413,6 +1579,17 @@
         </div>
     </div>
 
+    <!-- Winner Alert Modal -->
+    <div id="winner-alert" class="winner-alert">
+        <div class="winner-alert-content">
+            <h2>ALGUÉM ACABOU DE GANHAR!</h2>
+            <p><strong id="winner-name-alert">Maria Santos</strong></p>
+            <p>acabou de ganhar <strong style="font-size: 1.5em;">R$ 1.000,00!</strong></p>
+            <p>Seja o próximo ganhador!</p>
+            <button class="close-btn" onclick="closeWinnerAlert()">QUERO JOGAR AGORA!</button>
+        </div>
+    </div>
+
     <script>
         // Variáveis globais
         let quantidade = 1;
@@ -1422,6 +1599,50 @@
         let totalRaspadinhas = 10000;
         let currentSlide = 0;
         const WHATSAPP_NUMERO = "5582996092684";
+
+        // Array de ganhadores fictícios para o alerta
+        const ganhadoresFicticios = [
+            { nome: "Ana Marta Soares", valor: 1000 },
+            { nome: "Carlos Santos", valor: 500 },
+            { nome: "Maria Menezes Oliveira", valor: 1000 },
+            { nome: "João Paulo Pereira", valor: 800 },
+            { nome: "Fernanda Costa", valor: 1000 },
+            { nome: "Roberto Lima", valor: 600 },
+            { nome: "Juliana Souza", valor: 1000 },
+            { nome: "Pedro Augusto Alves", valor: 750 }
+        ];
+
+        // Função para mostrar alerta de ganhador
+        function showWinnerAlert() {
+            const ganhador = ganhadoresFicticios[Math.floor(Math.random() * ganhadoresFicticios.length)];
+            document.getElementById('winner-name-alert').textContent = ganhador.nome;
+            document.querySelector('#winner-alert .winner-alert-content p:nth-child(3)').innerHTML = 
+                `acabou de ganhar <strong style="font-size: 1.5em;">R$ ${ganhador.valor},00!</strong>`;
+            
+            document.getElementById('winner-alert').style.display = 'flex';
+            document.body.classList.add('shake');
+            
+            setTimeout(() => {
+                document.body.classList.remove('shake');
+            }, 500);
+        }
+
+        function closeWinnerAlert() {
+            document.getElementById('winner-alert').style.display = 'none';
+        }
+
+        // Mostrar alerta para novos usuários
+        function initWinnerAlerts() {
+            // Mostrar primeiro alerta após 5 segundos
+            setTimeout(showWinnerAlert, 5000);
+            
+            // Mostrar alertas a cada 30-60 segundos
+            setInterval(() => {
+                if (Math.random() < 0.3) { // 30% de chance
+                    showWinnerAlert();
+                }
+            }, 45000);
+        }
 
         // Função para formatar valores monetários com vírgula
         function formatarDinheiro(valor) {
@@ -1706,8 +1927,8 @@
                     document.getElementById('payment-status').innerHTML = `
                         <div class="cta-message payment-status-waiting">
                             <h3><i class="fas fa-clock"></i> Aguardando Pagamento</h3>
-                            <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">ID: ${data.id}</p>
-                            <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Escaneie o QR Code ou cole o código PIX no seu banco</em></p>
+                            <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a; font-weight: 700;">ID: ${data.id}</p>
+                            <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8; color: #1a1a1a; font-weight: 600;"><em>Escaneie o QR Code ou cole o código PIX no seu banco</em></p>
                         </div>
                     `;
 
@@ -1852,7 +2073,7 @@
                 
                 bandeira.innerHTML = `
                     <div class="bandeira-overlay">
-                        <div><i class="fas fa-hand-pointer"></i><br>Clique para raspar</div>
+                        <div><i class=""></i><br>Clique para raspar</div>
                     </div>
                     <div class="bandeira-resultado"></div>
                 `;
@@ -1924,7 +2145,7 @@
                 }, 600);
                 
                 // Mostrar modal com erro
-                mostrarModal(`<h3>❌ Erro</h3><p>${error.message}</p>`);
+                mostrarModal(`<h3>Erro</h3><p>${error.message}</p>`);
             }
         }
 
@@ -1933,7 +2154,7 @@
             const container = document.getElementById('premio-container');
             container.innerHTML = `
                 <div class="premio-form">
-                    <h3>🎉 PARABÉNS! VOCÊ GANHOU ${valor}! 🎉</h3>
+                    <h3>PARABÉNS! VOCÊ GANHOU ${valor}!</h3>
                     <p style="text-align: center; font-size: clamp(1em, 4vw, 1.2em); margin-bottom: 30px; font-weight: 600;">
                         Preencha seus dados para receber o prêmio em até 24 horas:
                     </p>
@@ -1988,17 +2209,17 @@
             const chavePix = document.getElementById('chave-pix').value.trim();
             
             if (!nome || !chavePix) {
-                mostrarModal('<h3>⚠️ Atenção</h3><p>Por favor, preencha todos os campos antes de continuar!</p>');
+                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos antes de continuar!</p>');
                 return;
             }
 
             if (nome.length < 3) {
-                mostrarModal('<h3>⚠️ Atenção</h3><p>Nome deve ter pelo menos 3 caracteres!</p>');
+                mostrarModal('<h3>Atenção</h3><p>Nome deve ter pelo menos 3 caracteres!</p>');
                 return;
             }
 
             if (chavePix.length < 5) {
-                mostrarModal('<h3>⚠️ Atenção</h3><p>Chave PIX inválida!</p>');
+                mostrarModal('<h3>Atenção</h3><p>Chave PIX inválida!</p>');
                 return;
             }
             
@@ -2024,34 +2245,34 @@
                     throw new Error(resultado.erro || 'Erro ao salvar dados');
                 }
                 
-                const mensagem = `🎉 GANHEI NA RASPA BRASIL! 🇧🇷
+                const mensagem = `GANHEI NA RASPA BRASIL!
 
-📝 *DADOS DO GANHADOR:*
+DADOS DO GANHADOR:
 • Nome: ${nome}
 • Prêmio: ${valor}
 • Tipo de chave: ${tipoChave}
 • Chave PIX: ${chavePix}
 • Código de validação: ${codigo}
 
-💰 Solicito o pagamento do meu prêmio!
+Solicito o pagamento do meu prêmio!
 
-✅ Dados salvos no sistema com sucesso!`;
+Dados salvos no sistema com sucesso!`;
                 
                 const whatsappUrl = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensagem)}`;
                 window.open(whatsappUrl, '_blank');
                 
                 mostrarModal(`
-                    <h3>✅ Dados Enviados com Sucesso!</h3>
+                    <h3>Dados Enviados com Sucesso!</h3>
                     <p>Seu WhatsApp foi aberto com a mensagem pronta.</p>
                     <p><strong>Seu código de validação:</strong></p>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 1.2em; color: #00b341; font-weight: bold; margin: 10px 0;">${codigo}</div>
-                    <p><strong>⚠️ IMPORTANTE:</strong> Guarde este código para validação!</p>
+                    <p><strong>IMPORTANTE:</strong> Guarde este código para validação!</p>
                     <p>Prazo para pagamento: <strong>até 24 horas</strong></p>
                 `);
                 
             } catch (error) {
                 console.error('Erro ao salvar ganhador:', error);
-                mostrarModal(`<h3>❌ Erro</h3><p>${error.message}</p><p>Tente novamente ou entre em contato pelo WhatsApp</p>`);
+                mostrarModal(`<h3>Erro</h3><p>${error.message}</p><p>Tente novamente ou entre em contato pelo WhatsApp</p>`);
             }
         }
 
@@ -2059,6 +2280,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             atualizarDisplay();
             initBannerSlider();
+            initWinnerAlerts(); // Iniciar alertas de ganhadores
             
             // Carregar estatísticas periodicamente
             setInterval(carregarEstatisticas, 30000); // A cada 30 segundos
