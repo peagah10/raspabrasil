@@ -594,6 +594,107 @@ def salvar_ganhador():
         return jsonify({'sucesso': False, 'erro': str(e)})
 
 
+@app.route('/admin/login', methods=['POST'])
+def admin_login():
+    """Login do admin"""
+    data = request.json
+    senha = data.get('senha')
+    
+    if not senha:
+        return jsonify({'success': False, 'message': 'Senha é obrigatória'})
+    
+    # Por enquanto, usar senha simples até implementar tabela admin
+    if senha == 'paulo10@admin':
+        session['admin_logado'] = True
+        return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
+    
+    # Verificar no banco se existir
+    if supabase:
+        try:
+            response = supabase.table('admins').select('*').eq('senha', senha).eq('ativo', True).execute()
+            if response.data:
+                admin = response.data[0]
+                session['admin_logado'] = True
+                session['admin_usuario'] = admin['usuario']
+                
+                # Atualizar último login
+                supabase.table('admins').update({
+                    'ultimo_login': datetime.now().isoformat()
+                }).eq('id', admin['id']).execute()
+                
+                return jsonify({'success': True, 'message': f'Bem-vindo, {admin["nome"]}'})
+        except Exception as e:
+            print(f"❌ Erro ao verificar admin no banco: {str(e)}")
+    
+    return jsonify({'success': False, 'message': 'Senha incorreta'})
+
+
+@app.route('/admin/toggle_sistema', methods=['POST'])
+def toggle_sistema():
+    """Alterna status do sistema"""
+    if not session.get('admin_logado'):
+        return jsonify({'success': False, 'mensagem': 'Acesso negado'})
+    
+    try:
+        sistema_atual = obter_configuracao('sistema_ativo', 'true').lower() == 'true'
+        novo_status = 'false' if sistema_atual else 'true'
+        
+        if atualizar_configuracao('sistema_ativo', novo_status):
+            status_texto = 'ativado' if novo_status == 'true' else 'desativado'
+            return jsonify({'success': True, 'mensagem': f'Sistema {status_texto} com sucesso'})
+        else:
+            return jsonify({'success': False, 'mensagem': 'Erro ao atualizar sistema'})
+    except Exception as e:
+        print(f"❌ Erro ao alternar sistema: {str(e)}")
+        return jsonify({'success': False, 'mensagem': str(e)})
+
+
+@app.route('/validar_codigo', methods=['POST'])
+def validar_codigo():
+    """Valida código de ganhador"""
+    data = request.json
+    codigo = data.get('codigo', '').strip().upper()
+    
+    if not codigo:
+        return jsonify({'valido': False, 'mensagem': 'Código não fornecido'})
+    
+    if not supabase:
+        return jsonify({'valido': False, 'mensagem': 'Sistema de validação indisponível'})
+    
+    try:
+        response = supabase.table('ganhadores').select('*').eq('codigo', codigo).execute()
+        
+        if response.data:
+            ganhador = response.data[0]
+            return jsonify({
+                'valido': True,
+                'mensagem': f'✅ Código válido - {ganhador["nome"]} - {ganhador["valor"]} - Status: {ganhador.get("status_pagamento", "pendente")}'
+            })
+        else:
+            return jsonify({'valido': False, 'mensagem': '❌ Código não encontrado ou inválido'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao validar código: {str(e)}")
+        return jsonify({'valido': False, 'mensagem': 'Erro ao validar código'})
+
+
+@app.route('/admin/premiados')
+def admin_premiados():
+    """Lista de premiados para admin"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'})
+    
+    if not supabase:
+        return jsonify({'premiados': []})
+    
+    try:
+        response = supabase.table('ganhadores').select('*').order('data_criacao', desc=True).limit(50).execute()
+        return jsonify({'premiados': response.data or []})
+    except Exception as e:
+        print(f"❌ Erro ao listar premiados: {str(e)}")
+        return jsonify({'premiados': []})
+
+
 @app.route('/admin/stats')
 def admin_stats():
     """Estatísticas do sistema"""
