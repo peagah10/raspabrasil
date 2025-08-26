@@ -1,7 +1,7 @@
 import os
 import random
 import string
-from datetime import datetime
+from datetime import datetime, date
 from flask import Flask, request, jsonify, session
 from dotenv import load_dotenv
 
@@ -43,6 +43,7 @@ sdk = None
 TOTAL_RASPADINHAS = 10000
 PREMIOS_TOTAIS = 2000
 WHATSAPP_NUMERO = "5582996092684"
+PERCENTUAL_COMISSAO_AFILIADO = 50  # 50% de comissão
 
 # Inicializar cliente Supabase com tratamento de erro melhorado
 supabase = None
@@ -50,8 +51,8 @@ if supabase_available:
     try:
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         # Testar conexão
-        test_response = supabase.table('configuracoes').select(
-            'chave'
+        test_response = supabase.table('rb_configuracoes').select(
+            'rb_chave'
         ).limit(1).execute()
         print("✅ Supabase conectado e testado com sucesso")
     except Exception as e:
@@ -77,11 +78,11 @@ def log_payment_change(payment_id, status_anterior, status_novo,
     if not supabase:
         return False
     try:
-        supabase.table('logs_pagamento').insert({
-            'payment_id': payment_id,
-            'status_anterior': status_anterior,
-            'status_novo': status_novo,
-            'webhook_data': webhook_data
+        supabase.table('rb_logs_pagamento').insert({
+            'rb_payment_id': payment_id,
+            'rb_status_anterior': status_anterior,
+            'rb_status_novo': status_novo,
+            'rb_webhook_data': webhook_data
         }).execute()
         return True
     except Exception as e:
@@ -98,13 +99,19 @@ def gerar_codigo_antifraude():
     return f"RB-{numero}-{letras}"
 
 
-def verificar_codigo_unico(codigo):
+def gerar_codigo_afiliado():
+    """Gera código único para afiliado no formato AF-XXXXX"""
+    numero = random.randint(100000, 999999)
+    return f"AF{numero}"
+
+
+def verificar_codigo_unico(codigo, tabela='rb_ganhadores', campo='rb_codigo'):
     """Verifica se o código é único no banco de dados"""
     if not supabase:
         return True
     try:
-        response = supabase.table('ganhadores').select('codigo').eq(
-            'codigo', codigo
+        response = supabase.table(tabela).select(campo).eq(
+            campo, codigo
         ).execute()
         return len(response.data) == 0
     except Exception:
@@ -121,16 +128,26 @@ def gerar_codigo_unico():
     return f"RB-{random.randint(10000, 99999)}-{uuid.uuid4().hex[:3].upper()}"
 
 
+def gerar_codigo_afiliado_unico():
+    """Gera um código de afiliado único"""
+    max_tentativas = 10
+    for _ in range(max_tentativas):
+        codigo = gerar_codigo_afiliado()
+        if verificar_codigo_unico(codigo, 'rb_afiliados', 'rb_codigo'):
+            return codigo
+    return f"AF{random.randint(100000, 999999)}"
+
+
 def obter_configuracao(chave, valor_padrao=None):
     """Obtém valor de configuração do Supabase"""
     if not supabase:
         return valor_padrao
     try:
-        response = supabase.table('configuracoes').select('valor').eq(
-            'chave', chave
+        response = supabase.table('rb_configuracoes').select('rb_valor').eq(
+            'rb_chave', chave
         ).execute()
         if response.data:
-            return response.data[0]['valor']
+            return response.data[0]['rb_valor']
         return valor_padrao
     except Exception as e:
         print(f"❌ Erro ao obter configuração {chave}: {str(e)}")
@@ -142,9 +159,9 @@ def atualizar_configuracao(chave, valor):
     if not supabase:
         return False
     try:
-        response = supabase.table('configuracoes').update({
-            'valor': str(valor)
-        }).eq('chave', chave).execute()
+        response = supabase.table('rb_configuracoes').update({
+            'rb_valor': str(valor)
+        }).eq('rb_chave', chave).execute()
         return response.data is not None
     except Exception as e:
         print(f"❌ Erro ao atualizar configuração {chave}: {str(e)}")
@@ -249,11 +266,11 @@ def obter_total_vendas():
     if not supabase:
         return 0
     try:
-        response = supabase.table('vendas').select('quantidade').eq(
-            'status', 'completed'
+        response = supabase.table('rb_vendas').select('rb_quantidade').eq(
+            'rb_status', 'completed'
         ).execute()
         if response.data:
-            return sum(venda['quantidade'] for venda in response.data)
+            return sum(venda['rb_quantidade'] for venda in response.data)
         return 0
     except Exception as e:
         print(f"❌ Erro ao obter total de vendas: {str(e)}")
@@ -265,13 +282,96 @@ def obter_total_ganhadores():
     if not supabase:
         return 0
     try:
-        response = supabase.table('ganhadores').select('id').execute()
+        response = supabase.table('rb_ganhadores').select('rb_id').execute()
         if response.data:
             return len(response.data)
         return 0
     except Exception as e:
         print(f"❌ Erro ao obter total de ganhadores: {str(e)}")
         return 0
+
+
+def obter_total_afiliados():
+    """Obtém total de afiliados ativos do Supabase"""
+    if not supabase:
+        return 0
+    try:
+        response = supabase.table('rb_afiliados').select('rb_id').eq(
+            'rb_status', 'ativo'
+        ).execute()
+        if response.data:
+            return len(response.data)
+        return 0
+    except Exception as e:
+        print(f"❌ Erro ao obter total de afiliados: {str(e)}")
+        return 0
+
+
+def obter_afiliado_por_codigo(codigo):
+    """Busca afiliado pelo código"""
+    if not supabase:
+        return None
+    try:
+        response = supabase.table('rb_afiliados').select('*').eq(
+            'rb_codigo', codigo
+        ).eq('rb_status', 'ativo').execute()
+        if response.data:
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"❌ Erro ao buscar afiliado: {str(e)}")
+        return None
+
+
+def obter_afiliado_por_cpf(cpf):
+    """Busca afiliado pelo CPF"""
+    if not supabase:
+        return None
+    try:
+        response = supabase.table('rb_afiliados').select('*').eq(
+            'rb_cpf', cpf
+        ).eq('rb_status', 'ativo').execute()
+        if response.data:
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"❌ Erro ao buscar afiliado por CPF: {str(e)}")
+        return None
+
+
+def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
+    """Registra click no link do afiliado"""
+    if not supabase:
+        return False
+    try:
+        supabase.table('rb_afiliado_clicks').insert({
+            'rb_afiliado_id': afiliado_id,
+            'rb_ip_visitor': ip_cliente,
+            'rb_user_agent': user_agent[:500],
+            'rb_referrer': referrer[:500]
+        }).execute()
+        
+        # Atualizar contador de clicks
+        afiliado = supabase.table('rb_afiliados').select('rb_total_clicks').eq(
+            'rb_id', afiliado_id
+        ).execute()
+        
+        if afiliado.data:
+            novo_total = (afiliado.data[0]['rb_total_clicks'] or 0) + 1
+            supabase.table('rb_afiliados').update({
+                'rb_total_clicks': novo_total
+            }).eq('rb_id', afiliado_id).execute()
+        
+        return True
+    except Exception as e:
+        print(f"❌ Erro ao registrar click: {str(e)}")
+        return False
+
+
+def calcular_comissao_afiliado(valor_venda):
+    """Calcula comissão do afiliado"""
+    percentual = float(obter_configuracao('percentual_comissao_afiliado', '50'))
+    return (valor_venda * percentual / 100)
 
 
 def validar_pagamento_aprovado(payment_id):
@@ -294,6 +394,20 @@ def validar_pagamento_aprovado(payment_id):
 def index():
     """Serve a página principal"""
     try:
+        # Verificar se há código de afiliado na URL
+        ref_code = request.args.get('ref')
+        if ref_code:
+            # Buscar afiliado e registrar click
+            afiliado = obter_afiliado_por_codigo(ref_code)
+            if afiliado:
+                registrar_click_afiliado(
+                    afiliado['rb_id'],
+                    request.remote_addr,
+                    request.headers.get('User-Agent', ''),
+                    request.headers.get('Referer', '')
+                )
+                print(f"📊 Click registrado para afiliado: {ref_code}")
+        
         with open('index.html', 'r', encoding='utf-8') as f:
             content = f.read()
         return content
@@ -322,6 +436,7 @@ def create_payment():
     data = request.json
     quantidade = data.get('quantidade', 1)
     total = quantidade * 1.00
+    afiliado_codigo = data.get('ref_code') or session.get('ref_code')
 
     if not sdk:
         return jsonify({
@@ -337,6 +452,11 @@ def create_payment():
                 f'Restam apenas {TOTAL_RASPADINHAS - vendidas} disponíveis'
             )
         }), 400
+
+    # Buscar afiliado se houver código
+    afiliado = None
+    if afiliado_codigo:
+        afiliado = obter_afiliado_por_codigo(afiliado_codigo)
 
     payment_data = {
         "transaction_amount": float(total),
@@ -365,19 +485,29 @@ def create_payment():
             session['payment_id'] = str(payment['id'])
             session['quantidade'] = quantidade
             session['payment_created_at'] = datetime.now().isoformat()
+            if afiliado:
+                session['afiliado_id'] = afiliado['rb_id']
 
             if supabase:
                 try:
-                    supabase.table('vendas').insert({
-                        'quantidade': quantidade,
-                        'valor_total': total,
-                        'payment_id': str(payment['id']),
-                        'status': 'pending',
-                        'ip_cliente': request.remote_addr,
-                        'user_agent': request.headers.get(
+                    venda_data = {
+                        'rb_quantidade': quantidade,
+                        'rb_valor_total': total,
+                        'rb_payment_id': str(payment['id']),
+                        'rb_status': 'pending',
+                        'rb_ip_cliente': request.remote_addr,
+                        'rb_user_agent': request.headers.get(
                             'User-Agent', ''
                         )[:500]
-                    }).execute()
+                    }
+                    
+                    if afiliado:
+                        venda_data['rb_afiliado_id'] = afiliado['rb_id']
+                        comissao = calcular_comissao_afiliado(total)
+                        venda_data['rb_comissao_paga'] = 0  # Será atualizado quando aprovado
+                    
+                    supabase.table('rb_vendas').insert(venda_data).execute()
+                    
                 except Exception as e:
                     print(f"❌ Erro ao salvar venda: {str(e)}")
 
@@ -431,24 +561,52 @@ def check_payment(payment_id):
             if status == 'approved' and payment_key not in session:
                 if supabase:
                     try:
-                        # Atualizar status da venda
-                        update_response = supabase.table('vendas').update({
-                            'status': 'completed'
-                        }).eq('payment_id', payment_id).execute()
+                        # Buscar venda para calcular comissão
+                        venda_response = supabase.table('rb_vendas').select('*').eq(
+                            'rb_payment_id', payment_id
+                        ).execute()
+                        
+                        if venda_response.data:
+                            venda = venda_response.data[0]
+                            update_data = {'rb_status': 'completed'}
+                            
+                            # Calcular e atualizar comissão se há afiliado
+                            if venda.get('rb_afiliado_id'):
+                                comissao = calcular_comissao_afiliado(venda['rb_valor_total'])
+                                update_data['rb_comissao_paga'] = comissao
+                                
+                                # Atualizar saldo do afiliado
+                                afiliado_atual = supabase.table('rb_afiliados').select('*').eq(
+                                    'rb_id', venda['rb_afiliado_id']
+                                ).execute()
+                                
+                                if afiliado_atual.data:
+                                    afiliado = afiliado_atual.data[0]
+                                    novo_total_vendas = (afiliado['rb_total_vendas'] or 0) + venda['rb_quantidade']
+                                    nova_total_comissao = (afiliado['rb_total_comissao'] or 0) + comissao
+                                    novo_saldo = (afiliado['rb_saldo_disponivel'] or 0) + comissao
+                                    
+                                    supabase.table('rb_afiliados').update({
+                                        'rb_total_vendas': novo_total_vendas,
+                                        'rb_total_comissao': nova_total_comissao,
+                                        'rb_saldo_disponivel': novo_saldo
+                                    }).eq('rb_id', venda['rb_afiliado_id']).execute()
+                                    
+                                    print(f"💰 Comissão de R$ {comissao:.2f} creditada ao afiliado {venda['rb_afiliado_id']}")
+                            
+                            # Atualizar status da venda
+                            supabase.table('rb_vendas').update(update_data).eq(
+                                'rb_payment_id', payment_id
+                            ).execute()
 
-                        if update_response.data:
                             session[payment_key] = True
-                            print(
-                                f"✅ Pagamento aprovado: {payment_id}"
-                            )
+                            print(f"✅ Pagamento aprovado: {payment_id}")
 
                             # Log da mudança
                             log_payment_change(
                                 payment_id, 'pending', 'completed', {
                                     'source': 'check_payment',
-                                    'amount': payment.get(
-                                        'transaction_amount', 0
-                                    )
+                                    'amount': payment.get('transaction_amount', 0)
                                 }
                             )
 
@@ -558,8 +716,8 @@ def salvar_ganhador():
                 })
 
         # Verificar se o código é válido (não foi usado antes)
-        existing = supabase.table('ganhadores').select('id').eq(
-            'codigo', data['codigo']
+        existing = supabase.table('rb_ganhadores').select('rb_id').eq(
+            'rb_codigo', data['codigo']
         ).execute()
         if existing.data:
             return jsonify({
@@ -567,14 +725,14 @@ def salvar_ganhador():
                 'erro': 'Código já utilizado'
             })
 
-        response = supabase.table('ganhadores').insert({
-            'codigo': data['codigo'],
-            'nome': data['nome'].strip()[:255],
-            'valor': data['valor'],
-            'chave_pix': data['chave_pix'].strip()[:255],
-            'tipo_chave': data['tipo_chave'],
-            'telefone': data.get('telefone', '')[:20],
-            'status_pagamento': 'pendente'
+        response = supabase.table('rb_ganhadores').insert({
+            'rb_codigo': data['codigo'],
+            'rb_nome': data['nome'].strip()[:255],
+            'rb_valor': data['valor'],
+            'rb_chave_pix': data['chave_pix'].strip()[:255],
+            'rb_tipo_chave': data['tipo_chave'],
+            'rb_telefone': data.get('telefone', '')[:20],
+            'rb_status_pagamento': 'pendente'
         }).execute()
 
         if response.data:
@@ -582,7 +740,7 @@ def salvar_ganhador():
                 f"💾 Ganhador salvo: {data['nome']} - "
                 f"{data['valor']} - {data['codigo']}"
             )
-            return jsonify({'sucesso': True, 'id': response.data[0]['id']})
+            return jsonify({'sucesso': True, 'id': response.data[0]['rb_id']})
         else:
             return jsonify({
                 'sucesso': False,
@@ -593,6 +751,296 @@ def salvar_ganhador():
         print(f"❌ Erro ao salvar ganhador: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
+
+# ========== ROTAS DE AFILIADOS ==========
+
+@app.route('/cadastrar_afiliado', methods=['POST'])
+def cadastrar_afiliado():
+    """Cadastra novo afiliado"""
+    if not supabase:
+        return jsonify({
+            'sucesso': False,
+            'erro': 'Sistema indisponível'
+        })
+
+    try:
+        data = request.json
+
+        # Validar dados obrigatórios
+        campos_obrigatorios = ['nome', 'email', 'telefone', 'cpf']
+        for campo in campos_obrigatorios:
+            if not data.get(campo):
+                return jsonify({
+                    'sucesso': False,
+                    'erro': f'Campo {campo} é obrigatório'
+                })
+
+        # Limpar CPF
+        cpf = data['cpf'].replace('.', '').replace('-', '').replace(' ', '')
+        if len(cpf) != 11:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'CPF inválido'
+            })
+
+        # Verificar se email ou CPF já existe
+        existing_email = supabase.table('rb_afiliados').select('rb_id').eq(
+            'rb_email', data['email']
+        ).execute()
+        
+        existing_cpf = supabase.table('rb_afiliados').select('rb_id').eq(
+            'rb_cpf', cpf
+        ).execute()
+        
+        if existing_email.data or existing_cpf.data:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'E-mail ou CPF já cadastrado'
+            })
+
+        # Gerar código único
+        codigo = gerar_codigo_afiliado_unico()
+
+        # Inserir afiliado
+        response = supabase.table('rb_afiliados').insert({
+            'rb_codigo': codigo,
+            'rb_nome': data['nome'].strip()[:255],
+            'rb_email': data['email'].strip().lower()[:255],
+            'rb_telefone': data['telefone'].strip()[:20],
+            'rb_cpf': cpf,
+            'rb_status': 'ativo'
+        }).execute()
+
+        if response.data:
+            afiliado = response.data[0]
+            print(f"👥 Novo afiliado cadastrado: {data['nome']} - {codigo}")
+            
+            return jsonify({
+                'sucesso': True,
+                'afiliado': {
+                    'id': afiliado['rb_id'],
+                    'codigo': codigo,
+                    'nome': afiliado['rb_nome'],
+                    'email': afiliado['rb_email'],
+                    'total_clicks': 0,
+                    'total_vendas': 0,
+                    'total_comissao': 0,
+                    'saldo_disponivel': 0,
+                    'link': f"https://raspabrasil.com/?ref={codigo}"
+                }
+            })
+        else:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Erro ao inserir afiliado'
+            })
+
+    except Exception as e:
+        print(f"❌ Erro ao cadastrar afiliado: {str(e)}")
+        return jsonify({'sucesso': False, 'erro': str(e)})
+
+
+@app.route('/login_afiliado', methods=['POST'])
+def login_afiliado():
+    """Login do afiliado por CPF"""
+    if not supabase:
+        return jsonify({
+            'sucesso': False,
+            'erro': 'Sistema indisponível'
+        })
+
+    try:
+        data = request.json
+        cpf = data.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        
+        if not cpf or len(cpf) != 11:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'CPF inválido'
+            })
+
+        # Buscar afiliado pelo CPF
+        afiliado = obter_afiliado_por_cpf(cpf)
+        
+        if afiliado:
+            return jsonify({
+                'sucesso': True,
+                'afiliado': {
+                    'id': afiliado['rb_id'],
+                    'codigo': afiliado['rb_codigo'],
+                    'nome': afiliado['rb_nome'],
+                    'email': afiliado['rb_email'],
+                    'total_clicks': afiliado['rb_total_clicks'] or 0,
+                    'total_vendas': afiliado['rb_total_vendas'] or 0,
+                    'total_comissao': float(afiliado['rb_total_comissao'] or 0),
+                    'saldo_disponivel': float(afiliado['rb_saldo_disponivel'] or 0),
+                    'chave_pix': afiliado['rb_chave_pix'],
+                    'tipo_chave_pix': afiliado['rb_tipo_chave_pix']
+                }
+            })
+        else:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'CPF não encontrado ou afiliado inativo'
+            })
+
+    except Exception as e:
+        print(f"❌ Erro no login afiliado: {str(e)}")
+        return jsonify({'sucesso': False, 'erro': str(e)})
+
+
+@app.route('/afiliado/<codigo>')
+def dados_afiliado(codigo):
+    """Retorna dados do afiliado pelo código"""
+    if not supabase:
+        return jsonify({'erro': 'Sistema indisponível'}), 500
+
+    try:
+        response = supabase.table('rb_afiliados').select('*').eq(
+            'rb_codigo', codigo
+        ).eq('rb_status', 'ativo').execute()
+
+        if response.data:
+            afiliado = response.data[0]
+            return jsonify({
+                'sucesso': True,
+                'afiliado': {
+                    'id': afiliado['rb_id'],
+                    'codigo': afiliado['rb_codigo'],
+                    'nome': afiliado['rb_nome'],
+                    'email': afiliado['rb_email'],
+                    'total_clicks': afiliado['rb_total_clicks'],
+                    'total_vendas': afiliado['rb_total_vendas'],
+                    'total_comissao': float(afiliado['rb_total_comissao'] or 0),
+                    'saldo_disponivel': float(afiliado['rb_saldo_disponivel'] or 0),
+                    'chave_pix': afiliado['rb_chave_pix'],
+                    'tipo_chave_pix': afiliado['rb_tipo_chave_pix']
+                }
+            })
+        else:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Afiliado não encontrado'
+            }), 404
+
+    except Exception as e:
+        print(f"❌ Erro ao buscar afiliado: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+
+
+@app.route('/atualizar_pix_afiliado', methods=['POST'])
+def atualizar_pix_afiliado():
+    """Atualiza chave PIX do afiliado"""
+    if not supabase:
+        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+
+    try:
+        data = request.json
+        codigo = data.get('codigo')
+        chave_pix = data.get('chave_pix', '').strip()
+        tipo_chave = data.get('tipo_chave', 'cpf')
+
+        if not codigo or not chave_pix:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Código e chave PIX são obrigatórios'
+            })
+
+        response = supabase.table('rb_afiliados').update({
+            'rb_chave_pix': chave_pix,
+            'rb_tipo_chave_pix': tipo_chave
+        }).eq('rb_codigo', codigo).eq('rb_status', 'ativo').execute()
+
+        if response.data:
+            return jsonify({'sucesso': True})
+        else:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Afiliado não encontrado'
+            })
+
+    except Exception as e:
+        print(f"❌ Erro ao atualizar PIX: {str(e)}")
+        return jsonify({'sucesso': False, 'erro': str(e)})
+
+
+@app.route('/solicitar_saque_afiliado', methods=['POST'])
+def solicitar_saque_afiliado():
+    """Processa solicitação de saque do afiliado"""
+    if not supabase:
+        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+
+    try:
+        data = request.json
+        codigo = data.get('codigo')
+        
+        if not codigo:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Código do afiliado é obrigatório'
+            })
+
+        # Buscar afiliado
+        afiliado_response = supabase.table('rb_afiliados').select('*').eq(
+            'rb_codigo', codigo
+        ).eq('rb_status', 'ativo').execute()
+
+        if not afiliado_response.data:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Afiliado não encontrado'
+            })
+
+        afiliado = afiliado_response.data[0]
+        saldo = float(afiliado['rb_saldo_disponivel'] or 0)
+        saque_minimo = float(obter_configuracao('saque_minimo_afiliado', '10'))
+
+        if saldo < saque_minimo:
+            return jsonify({
+                'sucesso': False,
+                'erro': f'Saldo insuficiente. Mínimo: R$ {saque_minimo:.2f}'
+            })
+
+        if not afiliado['rb_chave_pix']:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Configure sua chave PIX primeiro'
+            })
+
+        # Inserir solicitação de saque
+        saque_response = supabase.table('rb_saques_afiliados').insert({
+            'rb_afiliado_id': afiliado['rb_id'],
+            'rb_valor': saldo,
+            'rb_chave_pix': afiliado['rb_chave_pix'],
+            'rb_tipo_chave': afiliado['rb_tipo_chave_pix'],
+            'rb_status': 'solicitado'
+        }).execute()
+
+        if saque_response.data:
+            # Zerar saldo do afiliado
+            supabase.table('rb_afiliados').update({
+                'rb_saldo_disponivel': 0
+            }).eq('rb_id', afiliado['rb_id']).execute()
+
+            print(f"💰 Saque solicitado: {afiliado['rb_nome']} - R$ {saldo:.2f}")
+
+            return jsonify({
+                'sucesso': True,
+                'valor': saldo,
+                'saque_id': saque_response.data[0]['rb_id']
+            })
+        else:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'Erro ao processar saque'
+            })
+
+    except Exception as e:
+        print(f"❌ Erro ao solicitar saque: {str(e)}")
+        return jsonify({'sucesso': False, 'erro': str(e)})
+
+
+# ========== ROTAS ADMIN ATUALIZADAS ==========
 
 @app.route('/admin/login', methods=['POST'])
 def admin_login():
@@ -611,18 +1059,20 @@ def admin_login():
     # Verificar no banco se existir
     if supabase:
         try:
-            response = supabase.table('admins').select('*').eq('senha', senha).eq('ativo', True).execute()
+            response = supabase.table('rb_admins').select('*').eq(
+                'rb_senha', senha
+            ).eq('rb_ativo', True).execute()
             if response.data:
                 admin = response.data[0]
                 session['admin_logado'] = True
-                session['admin_usuario'] = admin['usuario']
+                session['admin_usuario'] = admin['rb_usuario']
                 
                 # Atualizar último login
-                supabase.table('admins').update({
-                    'ultimo_login': datetime.now().isoformat()
-                }).eq('id', admin['id']).execute()
+                supabase.table('rb_admins').update({
+                    'rb_ultimo_login': datetime.now().isoformat()
+                }).eq('rb_id', admin['rb_id']).execute()
                 
-                return jsonify({'success': True, 'message': f'Bem-vindo, {admin["nome"]}'})
+                return jsonify({'success': True, 'message': f'Bem-vindo, {admin["rb_nome"]}'})
         except Exception as e:
             print(f"❌ Erro ao verificar admin no banco: {str(e)}")
     
@@ -662,13 +1112,15 @@ def validar_codigo():
         return jsonify({'valido': False, 'mensagem': 'Sistema de validação indisponível'})
     
     try:
-        response = supabase.table('ganhadores').select('*').eq('codigo', codigo).execute()
+        response = supabase.table('rb_ganhadores').select('*').eq(
+            'rb_codigo', codigo
+        ).execute()
         
         if response.data:
             ganhador = response.data[0]
             return jsonify({
                 'valido': True,
-                'mensagem': f'✅ Código válido - {ganhador["nome"]} - {ganhador["valor"]} - Status: {ganhador.get("status_pagamento", "pendente")}'
+                'mensagem': f'✅ Código válido - {ganhador["rb_nome"]} - {ganhador["rb_valor"]} - Status: {ganhador.get("rb_status_pagamento", "pendente")}'
             })
         else:
             return jsonify({'valido': False, 'mensagem': '❌ Código não encontrado ou inválido'})
@@ -688,25 +1140,160 @@ def admin_premiados():
         return jsonify({'premiados': []})
     
     try:
-        response = supabase.table('ganhadores').select('*').order('data_criacao', desc=True).limit(50).execute()
+        response = supabase.table('rb_ganhadores').select('*').order(
+            'rb_data_criacao', desc=True
+        ).limit(50).execute()
         return jsonify({'premiados': response.data or []})
     except Exception as e:
         print(f"❌ Erro ao listar premiados: {str(e)}")
         return jsonify({'premiados': []})
 
 
+@app.route('/admin/afiliados')
+def admin_afiliados():
+    """Lista de afiliados para admin"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'})
+    
+    if not supabase:
+        return jsonify({'afiliados': []})
+    
+    try:
+        response = supabase.table('rb_afiliados').select('*').order(
+            'rb_data_criacao', desc=True
+        ).execute()
+        
+        afiliados = []
+        for afiliado in response.data or []:
+            afiliados.append({
+                'id': afiliado['rb_id'],
+                'codigo': afiliado['rb_codigo'],
+                'nome': afiliado['rb_nome'],
+                'email': afiliado['rb_email'],
+                'telefone': afiliado['rb_telefone'],
+                'total_clicks': afiliado['rb_total_clicks'] or 0,
+                'total_vendas': afiliado['rb_total_vendas'] or 0,
+                'total_comissao': float(afiliado['rb_total_comissao'] or 0),
+                'saldo_disponivel': float(afiliado['rb_saldo_disponivel'] or 0),
+                'status': afiliado['rb_status'],
+                'data_criacao': afiliado['rb_data_criacao']
+            })
+        
+        return jsonify({'afiliados': afiliados})
+    except Exception as e:
+        print(f"❌ Erro ao listar afiliados: {str(e)}")
+        return jsonify({'afiliados': []})
+
+
+@app.route('/admin/saques_ganhadores')
+def admin_saques_ganhadores():
+    """Lista de saques de ganhadores para admin"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'})
+    
+    if not supabase:
+        return jsonify({'saques': []})
+    
+    try:
+        # Buscar saques
+        saques_response = supabase.table('rb_saques_ganhadores').select('*').order(
+            'rb_data_solicitacao', desc=True
+        ).execute()
+        
+        saques = []
+        for saque in (saques_response.data or []):
+            # Buscar dados do ganhador separadamente
+            ganhador_response = supabase.table('rb_ganhadores').select('rb_nome, rb_codigo').eq(
+                'rb_id', saque['rb_ganhador_id']
+            ).execute()
+            
+            saque_completo = saque.copy()
+            if ganhador_response.data:
+                saque_completo['rb_ganhadores'] = ganhador_response.data[0]
+            else:
+                saque_completo['rb_ganhadores'] = {'rb_nome': 'Nome não encontrado', 'rb_codigo': 'N/A'}
+            
+            saques.append(saque_completo)
+        
+        return jsonify({'saques': saques})
+    except Exception as e:
+        print(f"❌ Erro ao listar saques de ganhadores: {str(e)}")
+        return jsonify({'saques': []})
+
+
+@app.route('/admin/saques_afiliados')
+def admin_saques_afiliados():
+    """Lista de saques de afiliados para admin"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'})
+    
+    if not supabase:
+        return jsonify({'saques': []})
+    
+    try:
+        # Buscar saques
+        saques_response = supabase.table('rb_saques_afiliados').select('*').order(
+            'rb_data_solicitacao', desc=True
+        ).execute()
+        
+        saques = []
+        for saque in (saques_response.data or []):
+            # Buscar dados do afiliado separadamente
+            afiliado_response = supabase.table('rb_afiliados').select('rb_nome, rb_codigo, rb_total_vendas').eq(
+                'rb_id', saque['rb_afiliado_id']
+            ).execute()
+            
+            saque_completo = saque.copy()
+            if afiliado_response.data:
+                saque_completo['rb_afiliados'] = afiliado_response.data[0]
+            else:
+                saque_completo['rb_afiliados'] = {'rb_nome': 'Nome não encontrado', 'rb_codigo': 'N/A', 'rb_total_vendas': 0}
+            
+            saques.append(saque_completo)
+        
+        return jsonify({'saques': saques})
+    except Exception as e:
+        print(f"❌ Erro ao listar saques de afiliados: {str(e)}")
+        return jsonify({'saques': []})
+
+
 @app.route('/admin/stats')
 def admin_stats():
-    """Estatísticas do sistema"""
+    """Estatísticas do sistema incluindo afiliados"""
     try:
         vendidas = obter_total_vendas()
         ganhadores = obter_total_ganhadores()
+        afiliados = obter_total_afiliados()
+        
+        # Estatísticas do dia
+        vendas_hoje = 0
+        vendas_afiliados_hoje = 0
+        if supabase:
+            try:
+                hoje = date.today().isoformat()
+                vendas_response = supabase.table('rb_vendas').select('*').gte(
+                    'rb_data_criacao', hoje + ' 00:00:00'
+                ).eq('rb_status', 'completed').execute()
+                
+                vendas_hoje = len(vendas_response.data or [])
+                vendas_afiliados_hoje = len([v for v in (vendas_response.data or []) if v.get('rb_afiliado_id')])
+                
+            except Exception as e:
+                print(f"❌ Erro ao obter vendas do dia: {str(e)}")
+
+        # Calcular prêmios restantes
+        premios = obter_premios_disponiveis()
+        total_premios_restantes = sum(premios.values())
 
         return jsonify({
             'vendidas': vendidas,
             'ganhadores': ganhadores,
+            'afiliados': afiliados,
+            'vendas_hoje': vendas_hoje,
+            'vendas_afiliados_hoje': vendas_afiliados_hoje,
             'total_raspadinhas': TOTAL_RASPADINHAS,
             'restantes': TOTAL_RASPADINHAS - vendidas,
+            'premios_restantes': total_premios_restantes,
             'supabase_conectado': supabase is not None,
             'mercadopago_conectado': sdk is not None,
             'sistema_ativo': obter_configuracao(
@@ -719,21 +1306,144 @@ def admin_stats():
         return jsonify({
             'vendidas': 0,
             'ganhadores': 0,
+            'afiliados': 0,
+            'vendas_hoje': 0,
+            'vendas_afiliados_hoje': 0,
             'total_raspadinhas': TOTAL_RASPADINHAS,
             'restantes': TOTAL_RASPADINHAS,
+            'premios_restantes': 0,
             'supabase_conectado': False,
             'mercadopago_conectado': False,
             'sistema_ativo': True
         })
 
 
+# ========== ROTAS DE SAQUE CORRIGIDAS ==========
+
+@app.route('/admin/pagar_saque_ganhador/<int:saque_id>', methods=['POST'])
+def pagar_saque_ganhador(saque_id):
+    """Marca saque de ganhador como pago"""
+    if not session.get('admin_logado'):
+        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
+    
+    if not supabase:
+        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
+    
+    try:
+        response = supabase.table('rb_saques_ganhadores').update({
+            'rb_status': 'pago',
+            'rb_data_pagamento': datetime.now().isoformat()
+        }).eq('rb_id', saque_id).execute()
+        
+        if response.data:
+            return jsonify({"sucesso": True, "mensagem": "Saque marcado como pago"})
+        else:
+            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+            
+    except Exception as e:
+        print(f"❌ Erro ao pagar saque: {str(e)}")
+        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
+
+
+@app.route('/admin/excluir_saque_ganhador/<int:saque_id>', methods=['DELETE'])
+def excluir_saque_ganhador(saque_id):
+    """Exclui saque de ganhador (só se estiver pago)"""
+    if not session.get('admin_logado'):
+        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
+    
+    if not supabase:
+        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
+    
+    try:
+        # Verificar se está pago
+        check_response = supabase.table('rb_saques_ganhadores').select('rb_status').eq(
+            'rb_id', saque_id
+        ).execute()
+        
+        if not check_response.data:
+            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+            
+        if check_response.data[0]['rb_status'] != 'pago':
+            return jsonify({"sucesso": False, "erro": "Só é possível excluir saques pagos"}), 400
+        
+        # Excluir
+        response = supabase.table('rb_saques_ganhadores').delete().eq(
+            'rb_id', saque_id
+        ).execute()
+        
+        return jsonify({"sucesso": True, "mensagem": "Saque excluído com sucesso"})
+        
+    except Exception as e:
+        print(f"❌ Erro ao excluir saque: {str(e)}")
+        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
+
+
+@app.route('/admin/pagar_saque_afiliado/<int:saque_id>', methods=['POST'])
+def pagar_saque_afiliado(saque_id):
+    """Marca saque de afiliado como pago"""
+    if not session.get('admin_logado'):
+        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
+    
+    if not supabase:
+        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
+    
+    try:
+        response = supabase.table('rb_saques_afiliados').update({
+            'rb_status': 'pago',
+            'rb_data_pagamento': datetime.now().isoformat()
+        }).eq('rb_id', saque_id).execute()
+        
+        if response.data:
+            return jsonify({"sucesso": True, "mensagem": "Saque marcado como pago"})
+        else:
+            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+            
+    except Exception as e:
+        print(f"❌ Erro ao pagar saque: {str(e)}")
+        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
+
+
+@app.route('/admin/excluir_saque_afiliado/<int:saque_id>', methods=['DELETE'])
+def excluir_saque_afiliado(saque_id):
+    """Exclui saque de afiliado (só se estiver pago)"""
+    if not session.get('admin_logado'):
+        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
+    
+    if not supabase:
+        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
+    
+    try:
+        # Verificar se está pago
+        check_response = supabase.table('rb_saques_afiliados').select('rb_status').eq(
+            'rb_id', saque_id
+        ).execute()
+        
+        if not check_response.data:
+            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+            
+        if check_response.data[0]['rb_status'] != 'pago':
+            return jsonify({"sucesso": False, "erro": "Só é possível excluir saques pagos"}), 400
+        
+        # Excluir
+        response = supabase.table('rb_saques_afiliados').delete().eq(
+            'rb_id', saque_id
+        ).execute()
+        
+        return jsonify({"sucesso": True, "mensagem": "Saque excluído com sucesso"})
+        
+    except Exception as e:
+        print(f"❌ Erro ao excluir saque: {str(e)}")
+        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando Raspa Brasil...")
+    print("🚀 Iniciando Raspa Brasil com Sistema de Afiliados...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
+    print(f"👥 Sistema de Afiliados: ✅")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
