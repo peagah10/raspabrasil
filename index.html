@@ -13,7 +13,6 @@
     <meta property="og:type" content="website">
     <meta property="og:locale" content="pt_BR">
     
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -23,6 +22,7 @@
             --primary-blue: #003087;
             --primary-red: #dc2626;
             --success-green: #28a745;
+            --affiliate-orange: #ff6b35;
             --gradient-bg: linear-gradient(135deg, #00b341 0%, #ffd700 50%, #003087 100%);
             --shadow-light: 0 4px 20px rgba(0, 0, 0, 0.1);
             --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.15);
@@ -306,6 +306,17 @@
             box-shadow: var(--shadow-heavy);
         }
 
+        .btn-affiliate {
+            background: linear-gradient(135deg, var(--affiliate-orange), #f7931e);
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-affiliate:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
         .btn-cta {
             background: linear-gradient(135deg, var(--success-green), #1e7e34);
             color: white;
@@ -413,6 +424,11 @@
 
         .cta-message.warning {
             background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .cta-message.affiliate {
+            background: linear-gradient(135deg, var(--primary-yellow), #ffcc00);
+            color: #1a1a1a;
         }
 
         .cta-message::before {
@@ -593,10 +609,57 @@
             font-weight: 600;
         }
 
-        @media (min-width: 768px) {
-            .winner-item {
-                min-width: clamp(260px, 40vw, 320px);
-            }
+        /* Affiliate Styles */
+        .affiliate-section {
+            background: linear-gradient(135deg, var(--primary-yellow), #ffcc00);
+            padding: clamp(30px, 6vw, 50px);
+            border-radius: var(--border-radius);
+            margin: 40px 0;
+            box-shadow: var(--shadow-medium);
+            color: #1a1a1a;
+        }
+
+        .affiliate-link-display {
+            background: white;
+            border: 3px solid var(--affiliate-orange);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: clamp(12px, 3vw, 14px);
+            color: var(--affiliate-orange);
+            font-weight: 700;
+        }
+
+        .affiliate-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .affiliate-stat-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid var(--affiliate-orange);
+            box-shadow: var(--shadow-light);
+        }
+
+        .affiliate-stat-number {
+            font-size: clamp(1.8em, 5vw, 2.5em);
+            font-weight: 900;
+            color: var(--affiliate-orange);
+            display: block;
+        }
+
+        .affiliate-stat-label {
+            font-size: clamp(0.9em, 3vw, 1.1em);
+            color: #666;
+            font-weight: 600;
         }
 
         /* Status Bar - Only for Admin */
@@ -648,7 +711,7 @@
             background: white;
             padding: clamp(25px, 6vw, 40px);
             border-radius: var(--border-radius);
-            max-width: 700px;
+            max-width: 900px;
             width: 95%;
             max-height: 85vh;
             overflow-y: auto;
@@ -903,6 +966,74 @@
             box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
         }
 
+        /* Admin Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .admin-tab {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .admin-tab.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .admin-tab-content {
+            display: none;
+        }
+
+        .admin-tab-content.active {
+            display: block;
+        }
+
+        /* Resultado Validação */
+        .resultado-validacao {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .resultado-validacao.valido {
+            background: #d4edda;
+            color: #155724;
+            border: 3px solid #c3e6cb;
+        }
+
+        .resultado-validacao.invalido {
+            background: #f8d7da;
+            color: #721c24;
+            border: 3px solid #f5c6cb;
+        }
+
+        .premiados-table {
+            margin-top: 25px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .premiado-item {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            border-left: 6px solid #28a745;
+            box-shadow: var(--shadow-light);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -948,6 +1079,11 @@
                 font-size: clamp(10px, 2.8vw, 12px);
                 padding: clamp(12px, 3vw, 15px);
                 line-height: 1.3;
+            }
+            
+            .affiliate-stats {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 15px;
             }
         }
 
@@ -1062,42 +1198,6 @@
             font-weight: 800;
         }
 
-        /* Admin Styles */
-        .resultado-validacao {
-            margin-top: 20px;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            font-weight: 700;
-        }
-
-        .resultado-validacao.valido {
-            background: #d4edda;
-            color: #155724;
-            border: 3px solid #c3e6cb;
-        }
-
-        .resultado-validacao.invalido {
-            background: #f8d7da;
-            color: #721c24;
-            border: 3px solid #f5c6cb;
-        }
-
-        .premiados-table {
-            margin-top: 25px;
-            max-height: 450px;
-            overflow-y: auto;
-        }
-
-        .premiado-item {
-            background: white;
-            padding: 25px;
-            margin-bottom: 20px;
-            border-radius: 15px;
-            border-left: 6px solid #28a745;
-            box-shadow: var(--shadow-light);
-        }
-
         /* Payment Status Messages */
         .payment-status-waiting {
             background: linear-gradient(135deg, #ffc107, #ff9800);
@@ -1161,9 +1261,48 @@
                 color: #f1f1f1;
             }
         }
+        @keyframes pulse-glow {
+    0% {
+        box-shadow: 0 8px 25px rgba(252, 199, 85, 0.507);
+    }
+    50% {
+        box-shadow: 0 12px 35px rgba(245, 255, 107, 0.664), 0 0 0 10px rgba(255, 107, 107, 0.1);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 8px 25px rgba(255, 240, 107, 0.4);
+    }
+}
     </style>
 </head>
 <body>
+    <!-- Botão Indique e Ganhe simples no topo -->
+    <div style="text-align: center; margin-bottom: 20px; padding: 10px;">
+    <button onclick="abrirAfiliados()" 
+            style="
+                background: linear-gradient(135deg, #77ff6b59, #ffd93d);
+                border: none;
+                border-radius: 50px;
+                padding: 18px 35px;
+                color: #fff;
+                font-size: clamp(16px, 4vw, 20px);
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+                overflow: hidden;
+                position: relative;
+                animation: pulse-glow 2s infinite;
+            "
+            onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 35px rgba(255, 107, 107, 0.6)'; this.style.animationPlayState='paused';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(255, 107, 107, 0.4)'; this.style.animationPlayState='running';">
+        <i class="fas fa-users" style="margin-right: 10px; font-size: 1.2em;"></i>
+        INDIQUE E GANHE
+    </button>
+</div>
+
     <div class="container">
         <!-- Página Inicial -->
         <div id="home-page" class="page active">
@@ -1372,6 +1511,211 @@
             </div>
         </div>
 
+        <!-- Página de Afiliados -->
+        <div id="affiliate-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                    </div>
+                </div>
+                <h1>PROGRAMA DE AFILIADOS</h1>
+                <p>Ganhe 50% de comissão em cada venda!</p>
+            </div>
+
+            <!-- Formulário de Cadastro ou Área do Afiliado -->
+            <div id="affiliate-signup">
+                <div class="cta-message affiliate">
+                    <h3>SEJA UM AFILIADO RASPA BRASIL!</h3>
+                    <p>Ganhe <strong>50% de comissão</strong> em cada venda que você indicar!</p>
+                    <div class="urgency-indicator">
+                        <i class="fas fa-percentage"></i>
+                        <span>R$ 0,50 por raspadinha vendida!</span>
+                    </div>
+                </div>
+
+                <div style="background: white; padding: clamp(25px, 6vw, 40px); border-radius: var(--border-radius); box-shadow: var(--shadow-medium);">
+                    <h3 style="text-align: center; margin-bottom: 30px; color: var(--affiliate-orange);">
+                        <i class="fas fa-user-plus"></i> Cadastre-se como Afiliado
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome Completo:</label>
+                        <input type="text" id="affiliate-nome" placeholder="Digite seu nome completo">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> Telefone/WhatsApp:</label>
+                        <input type="tel" id="affiliate-telefone" placeholder="(11) 99999-9999">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope"></i> E-mail:</label>
+                        <input type="email" id="affiliate-email" placeholder="seu@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF:</label>
+                        <input type="text" id="affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
+                    </div>
+                    
+                    <button class="btn btn-affiliate" onclick="cadastrarAfiliado()" style="width: 100%; font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">
+                        <i class=""></i>
+                        CRIAR MINHA CONTA DE AFILIADO
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="mostrarLoginAfiliado()" style="width: 100%; font-size: clamp(14px, 3.5vw, 16px);">
+                        <i class="fas fa-sign-in-alt"></i>
+                        JÁ SOU AFILIADO
+                    </button>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #e8f4f8, #d1ecf1); padding: 25px; border-radius: 15px; margin-top: 30px; text-align: center;">
+                    <h4 style="color: var(--affiliate-orange); margin-bottom: 20px;">
+                        <i class="fas fa-info-circle"></i> Como funciona:
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: left;">
+                        <div>
+                            <strong>1. Cadastre-se</strong><br>
+                            Preencha seus dados e receba seu link personalizado
+                        </div>
+                        <div>
+                            <strong>2. Compartilhe</strong><br>
+                            Envie seu link para amigos e redes sociais
+                        </div>
+                        <div>
+                            <strong>3. Ganhe</strong><br>
+                            Receba 50% de cada venda realizada pelo seu link
+                        </div>
+                        <div>
+                            <strong>4. Saque</strong><br>
+                            Solicite saque a partir de R$ 10,00 via PIX
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Login do Afiliado -->
+            <div id="affiliate-login" style="display: none;">
+                <div style="background: white; padding: clamp(25px, 6vw, 40px); border-radius: var(--border-radius); box-shadow: var(--shadow-medium);">
+                    <h3 style="text-align: center; margin-bottom: 30px; color: var(--affiliate-orange);">
+                        <i class="fas fa-sign-in-alt"></i> Área do Afiliado
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF:</label>
+                        <input type="text" id="login-affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
+                    </div>
+                    
+                    <button class="btn btn-affiliate" onclick="loginAfiliado()" style="width: 100%; margin-bottom: 15px;">
+                        <i class="fas fa-sign-in-alt"></i>
+                        ENTRAR NA MINHA ÁREA
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="voltarCadastroAfiliado()" style="width: 100%;">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar ao Cadastro
+                    </button>
+                    
+                    <div id="login-affiliate-message" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Área do Afiliado (após login) -->
+            <div id="affiliate-dashboard" style="display: none;">
+                <div class="affiliate-section">
+                    <h3 style="text-align: center; color: var(--affiliate-orange); margin-bottom: 25px;">
+                        <i class="fas fa-chart-line"></i> Painel do Afiliado
+                    </h3>
+                    
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h4>Bem-vindo(a), <span id="affiliate-name-display">Afiliado</span>!</h4>
+                        <p>Seu link personalizado:</p>
+                        <div class="affiliate-link-display" id="affiliate-link-display">
+                            https://raspabrasil.com/?ref=SEUCODIGO
+                        </div>
+                        <button class="btn btn-secondary" onclick="copiarLinkAfiliado()" style="margin-top: 15px;">
+                            <i class="fas fa-copy"></i>
+                            Copiar Link
+                        </button>
+                    </div>
+                    
+                    <div class="affiliate-stats">
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-clicks">0</span>
+                            <span class="affiliate-stat-label">Cliques</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-sales">0</span>
+                            <span class="affiliate-stat-label">Vendas</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-commission">R$ 0,00</span>
+                            <span class="affiliate-stat-label">Comissão Total</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-balance">R$ 0,00</span>
+                            <span class="affiliate-stat-label">Saldo</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; padding: 25px; border-radius: 15px; margin-top: 30px;">
+                        <h4 style="color: var(--affiliate-orange); margin-bottom: 20px;">
+                            <i class=""></i> Configurar PIX para Saque
+                        </h4>
+                        
+                        <div class="form-group">
+                            <label>Tipo de Chave PIX:</label>
+                            <select id="affiliate-pix-type">
+                                <option value="cpf">CPF</option>
+                                <option value="email">E-mail</option>
+                                <option value="telefone">Telefone</option>
+                                <option value="aleatoria">Chave Aleatória</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Chave PIX:</label>
+                            <input type="text" id="affiliate-pix-key" placeholder="Digite sua chave PIX">
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="salvarChavePix()" style="margin-right: 15px;">
+                            <i class="fas fa-save"></i>
+                            Salvar Chave PIX
+                        </button>
+                        
+                        <button class="btn btn-affiliate" onclick="solicitarSaque()" id="btn-saque" disabled>
+                            <i class="fas fa-money-bill-wave"></i>
+                            Solicitar Saque (Min. R$ 10,00)
+                        </button>
+                    </div>
+                    
+                    <div class="cta-message success" style="margin-top: 30px;">
+                        <h4>Dicas para Aumentar suas Vendas:</h4>
+                        <ul style="text-align: left; margin: 15px 0; padding-left: 20px;">
+                            <li>Compartilhe nas redes sociais (Instagram, Facebook, TikTok)</li>
+                            <li>Envie para grupos de WhatsApp e Telegram</li>
+                            <li>Conte para amigos e família sobre os prêmios</li>
+                            <li>Mostre os ganhadores para aumentar a credibilidade</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="btn btn-secondary" onclick="logoutAfiliado()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Sair da Conta
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <button class="btn btn-secondary" onclick="voltarInicio()">
+                    <i class="fas fa-home"></i>
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+
         <!-- Página de Pagamento -->
         <div id="payment-page" class="page">
             <div class="header">
@@ -1515,56 +1859,126 @@
             </div>
 
             <div id="admin-panel" style="display: none;">
-                <!-- Estatísticas -->
-                <div class="status-bar">
-                    <div class="status-item">
-                        <span class="number" id="admin-vendidas">0</span>
-                        <span class="label">Vendidas</span>
+                <!-- Abas do Admin -->
+                <div class="admin-tabs">
+                    <div class="admin-tab active" onclick="trocarAbaAdmin('dashboard')">Dashboard</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-afiliados')">Afiliados</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-saques')">Saques</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-ganhadores')">Ganhadores</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-vendas')">Vendas</div>
+                </div>
+
+                <!-- Dashboard -->
+                <div id="admin-dashboard" class="admin-tab-content active">
+                    <!-- Estatísticas -->
+                    <div class="status-bar">
+                        <div class="status-item">
+                            <span class="number" id="admin-vendidas">0</span>
+                            <span class="label">Vendidas</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-restantes">10000</span>
+                            <span class="label">Restantes</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-porcentagem">0%</span>
+                            <span class="label">Progresso</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-ganhadores">0</span>
+                            <span class="label">Ganhadores</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-afiliados">0</span>
+                            <span class="label">Afiliados</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-premios-restantes">0</span>
+                            <span class="label">Prêmios Restantes</span>
+                        </div>
                     </div>
-                    <div class="status-item">
-                        <span class="number" id="admin-restantes">10000</span>
-                        <span class="label">Restantes</span>
+
+                    <!-- Validador de Códigos -->
+                    <div style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 25px;">
+                        <h4><i class="fas fa-shield-alt"></i> Validador de Códigos</h4>
+                        <div class="form-group">
+                            <input type="text" id="codigo-validacao-admin" placeholder="Ex: RB-38472-X9F">
+                        </div>
+                        <button class="btn btn-secondary" onclick="validarCodigoAdmin()">
+                            <i class="fas fa-search"></i>
+                            Validar Código
+                        </button>
+                        <div id="resultado-validacao-admin"></div>
                     </div>
-                    <div class="status-item">
-                        <span class="number" id="admin-porcentagem">0%</span>
-                        <span class="label">Progresso</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="number" id="admin-ganhadores">0</span>
-                        <span class="label">Ganhadores</span>
+
+                    <!-- Controles Admin -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="carregarEstatisticas()">
+                            <i class="fas fa-chart-bar"></i>
+                            Atualizar Stats
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleSistema()" id="btn-toggle-sistema">
+                            <i class="fas fa-power-off"></i>
+                            Toggle Sistema
+                        </button>
                     </div>
                 </div>
 
-                <!-- Validador de Códigos -->
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 25px;">
-                    <h4><i class="fas fa-shield-alt"></i> Validador de Códigos</h4>
-                    <div class="form-group">
-                        <input type="text" id="codigo-validacao-admin" placeholder="Ex: RB-38472-X9F">
+                <!-- Afiliados -->
+                <div id="admin-controle-afiliados" class="admin-tab-content">
+                    <h4><i class="fas fa-users"></i> Gerenciar Afiliados</h4>
+                    <div id="lista-afiliados">
+                        <p>Carregando afiliados...</p>
                     </div>
-                    <button class="btn btn-secondary" onclick="validarCodigoAdmin()">
-                        <i class="fas fa-search"></i>
-                        Validar Código
-                    </button>
-                    <div id="resultado-validacao-admin"></div>
                 </div>
 
-                <!-- Controles Admin -->
-                <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+                <!-- Saques -->
+                <div id="admin-controle-saques" class="admin-tab-content">
+                    <h4><i class="fas fa-money-bill-wave"></i> Solicitações de Saque</h4>
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="carregarSaquesGanhadores()">Saques Ganhadores</button>
+                        <button class="btn btn-affiliate" onclick="carregarSaquesAfiliados()">Saques Afiliados</button>
+                    </div>
+                    <div id="lista-saques">
+                        <p>Selecione um tipo de saque acima.</p>
+                    </div>
+                </div>
+
+                <!-- Ganhadores -->
+                <div id="admin-controle-ganhadores" class="admin-tab-content">
+                    <h4><i class="fas fa-trophy"></i> Lista de Ganhadores</h4>
                     <button class="btn btn-primary" onclick="listarPremiados()">
                         <i class="fas fa-trophy"></i>
-                        Ver Ganhadores
+                        Carregar Ganhadores
                     </button>
-                    <button class="btn btn-secondary" onclick="carregarEstatisticas()">
-                        <i class="fas fa-chart-bar"></i>
-                        Atualizar Stats
-                    </button>
-                    <button class="btn btn-secondary" onclick="toggleSistema()" id="btn-toggle-sistema">
-                        <i class="fas fa-power-off"></i>
-                        Toggle Sistema
-                    </button>
+                    <div id="lista-premiados"></div>
                 </div>
 
-                <div id="premiados-list"></div>
+                <!-- Vendas -->
+                <div id="admin-controle-vendas" class="admin-tab-content">
+                    <h4><i class="fas fa-chart-line"></i> Relatório de Vendas</h4>
+                    <div id="vendas-stats">
+                        <div class="status-bar">
+                            <div class="status-item">
+                                <span class="number" id="vendas-hoje">0</span>
+                                <span class="label">Vendas Hoje</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="number" id="vendas-afiliados">0</span>
+                                <span class="label">Via Afiliados</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="number" id="premios-restantes">0</span>
+                                <span class="label">Prêmios Restantes</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="carregarRelatorioVendas()">
+                        <i class="fas fa-refresh"></i>
+                        Atualizar Relatório
+                    </button>
+                    <div id="vendas-detalhes" style="margin-top: 25px;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1598,6 +2012,8 @@
         let vendidas = 0;
         let totalRaspadinhas = 10000;
         let currentSlide = 0;
+        let currentAffiliate = null;
+        let currentAdminTab = 'dashboard';
         const WHATSAPP_NUMERO = "5582996092684";
 
         // Array de ganhadores fictícios para o alerta
@@ -1659,6 +2075,15 @@
             document.getElementById('custom-modal').style.display = 'none';
         }
 
+        // Função para máscara de CPF
+        function mascaraCPF(input) {
+            let cpf = input.value.replace(/\D/g, '');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            input.value = cpf;
+        }
+
         // Banner Slider
         function initBannerSlider() {
             const slides = document.querySelectorAll('.banner-slider .slide');
@@ -1700,6 +2125,257 @@
             `;
         }
 
+        // Funções de Afiliados
+        function abrirAfiliados() {
+            mostrarPagina('affiliate-page');
+            // Verificar se já está logado como afiliado
+            if (currentAffiliate) {
+                exibirDashboardAfiliado();
+            } else {
+                document.getElementById('affiliate-signup').style.display = 'block';
+                document.getElementById('affiliate-login').style.display = 'none';
+                document.getElementById('affiliate-dashboard').style.display = 'none';
+            }
+        }
+
+        function mostrarLoginAfiliado() {
+            document.getElementById('affiliate-signup').style.display = 'none';
+            document.getElementById('affiliate-login').style.display = 'block';
+            document.getElementById('affiliate-dashboard').style.display = 'none';
+        }
+
+        function voltarCadastroAfiliado() {
+            document.getElementById('affiliate-signup').style.display = 'block';
+            document.getElementById('affiliate-login').style.display = 'none';
+            document.getElementById('affiliate-dashboard').style.display = 'none';
+        }
+
+        async function cadastrarAfiliado() {
+            const nome = document.getElementById('affiliate-nome').value.trim();
+            const telefone = document.getElementById('affiliate-telefone').value.trim();
+            const email = document.getElementById('affiliate-email').value.trim();
+            const cpf = document.getElementById('affiliate-cpf').value.trim();
+
+            if (!nome || !telefone || !email || !cpf) {
+                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos!</p>');
+                return;
+            }
+
+            if (nome.length < 3) {
+                mostrarModal('<h3>Atenção</h3><p>Nome deve ter pelo menos 3 caracteres!</p>');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                mostrarModal('<h3>Atenção</h3><p>Digite um e-mail válido!</p>');
+                return;
+            }
+
+            if (cpf.replace(/\D/g, '').length !== 11) {
+                mostrarModal('<h3>Atenção</h3><p>CPF deve ter 11 dígitos!</p>');
+                return;
+            }
+
+            try {
+                const response = await fetch('/cadastrar_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome,
+                        telefone,
+                        email,
+                        cpf: cpf.replace(/\D/g, '')
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate = resultado.afiliado;
+                    localStorage.setItem('affiliate_cpf', cpf.replace(/\D/g, ''));
+                    
+                    exibirDashboardAfiliado();
+                    mostrarModal(`
+                        <h3>✅ Cadastro Realizado!</h3>
+                        <p>Bem-vindo ao programa de afiliados!</p>
+                        <p><strong>Seu código:</strong> ${resultado.afiliado.codigo}</p>
+                        <p>Comece a compartilhar seu link e ganhar!</p>
+                    `);
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+
+            } catch (error) {
+                console.error('Erro ao cadastrar afiliado:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao criar conta de afiliado. Tente novamente.</p>');
+            }
+        }
+
+        async function loginAfiliado() {
+            const cpf = document.getElementById('login-affiliate-cpf').value.replace(/\D/g, '');
+            const messageDiv = document.getElementById('login-affiliate-message');
+            
+            if (!cpf || cpf.length !== 11) {
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Digite um CPF válido</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/login_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cpf })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate = resultado.afiliado;
+                    localStorage.setItem('affiliate_cpf', cpf);
+                    
+                    exibirDashboardAfiliado();
+                    messageDiv.innerHTML = '<div class="resultado-validacao valido">Login realizado com sucesso!</div>';
+                } else {
+                    messageDiv.innerHTML = `<div class="resultado-validacao invalido">${resultado.erro}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('Erro no login afiliado:', error);
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao fazer login. Tente novamente.</div>';
+            }
+        }
+
+        function exibirDashboardAfiliado() {
+            document.getElementById('affiliate-signup').style.display = 'none';
+            document.getElementById('affiliate-login').style.display = 'none';
+            document.getElementById('affiliate-dashboard').style.display = 'block';
+            
+            document.getElementById('affiliate-name-display').textContent = currentAffiliate.nome;
+            document.getElementById('affiliate-link-display').textContent = `${window.location.origin}/?ref=${currentAffiliate.codigo}`;
+            document.getElementById('affiliate-clicks').textContent = currentAffiliate.total_clicks || 0;
+            document.getElementById('affiliate-sales').textContent = currentAffiliate.total_vendas || 0;
+            document.getElementById('affiliate-commission').textContent = `R$ ${formatarDinheiro(currentAffiliate.total_comissao || 0)}`;
+            document.getElementById('affiliate-balance').textContent = `R$ ${formatarDinheiro(currentAffiliate.saldo_disponivel || 0)}`;
+            
+            if (currentAffiliate.chave_pix) {
+                document.getElementById('affiliate-pix-type').value = currentAffiliate.tipo_chave_pix || 'cpf';
+                document.getElementById('affiliate-pix-key').value = currentAffiliate.chave_pix;
+            }
+            
+            atualizarBotaoSaque();
+        }
+
+        function logoutAfiliado() {
+            currentAffiliate = null;
+            localStorage.removeItem('affiliate_cpf');
+            voltarCadastroAfiliado();
+        }
+
+        function copiarLinkAfiliado() {
+            const link = document.getElementById('affiliate-link-display').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                mostrarModal(`
+                    <h3>✅ Link Copiado!</h3>
+                    <p>Seu link de afiliado foi copiado para a área de transferência.</p>
+                    <p>Compartilhe e comece a ganhar!</p>
+                `);
+            }).catch(() => {
+                mostrarModal('<h3>Link copiado!</h3><p>Compartilhe e comece a ganhar!</p>');
+            });
+        }
+
+        async function salvarChavePix() {
+            const tipo = document.getElementById('affiliate-pix-type').value;
+            const chave = document.getElementById('affiliate-pix-key').value.trim();
+            
+            if (!chave) {
+                mostrarModal('<h3>Atenção</h3><p>Digite sua chave PIX!</p>');
+                return;
+            }
+            
+            if (chave.length < 5) {
+                mostrarModal('<h3>Atenção</h3><p>Chave PIX inválida!</p>');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/atualizar_pix_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        codigo: currentAffiliate.codigo,
+                        chave_pix: chave,
+                        tipo_chave: tipo
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate.chave_pix = chave;
+                    currentAffiliate.tipo_chave_pix = tipo;
+                    atualizarBotaoSaque();
+                    mostrarModal('<h3>✅ Chave PIX Salva!</h3><p>Agora você pode solicitar saques.</p>');
+                } else {
+                    mostrarModal('<h3>Erro</h3><p>Erro ao salvar chave PIX</p>');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar PIX:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao salvar chave PIX</p>');
+            }
+        }
+
+        function atualizarBotaoSaque() {
+            const btnSaque = document.getElementById('btn-saque');
+            if ((currentAffiliate.saldo_disponivel || 0) >= 10 && currentAffiliate.chave_pix) {
+                btnSaque.disabled = false;
+            } else {
+                btnSaque.disabled = true;
+            }
+        }
+
+        async function solicitarSaque() {
+            if ((currentAffiliate.saldo_disponivel || 0) < 10) {
+                mostrarModal('<h3>Saldo Insuficiente</h3><p>Saldo mínimo para saque: R$ 10,00</p>');
+                return;
+            }
+            
+            if (!currentAffiliate.chave_pix) {
+                mostrarModal('<h3>Atenção</h3><p>Configure sua chave PIX primeiro!</p>');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/solicitar_saque_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        codigo: currentAffiliate.codigo
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate.saldo_disponivel = 0;
+                    document.getElementById('affiliate-balance').textContent = 'R$ 0,00';
+                    atualizarBotaoSaque();
+                    
+                    mostrarModal(`
+                        <h3>✅ Saque Solicitado!</h3>
+                        <p>Valor: R$ ${formatarDinheiro(resultado.valor)}</p>
+                        <p>PIX: ${currentAffiliate.chave_pix}</p>
+                        <p>Processamento: até 24 horas</p>
+                    `);
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao solicitar saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao solicitar saque</p>');
+            }
+        }
+
         // Admin functions
         function abrirAdmin() {
             document.getElementById('admin-modal').style.display = 'flex';
@@ -1707,6 +2383,27 @@
 
         function fecharAdmin() {
             document.getElementById('admin-modal').style.display = 'none';
+        }
+
+        function trocarAbaAdmin(aba) {
+            // Atualizar tabs
+            document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`admin-${aba}`).classList.add('active');
+            
+            currentAdminTab = aba;
+            
+            // Carregar conteúdo específico da aba
+            switch(aba) {
+                case 'controle-afiliados':
+                    carregarAfiliados();
+                    break;
+                case 'controle-vendas':
+                    carregarRelatorioVendas();
+                    break;
+            }
         }
 
         async function loginAdmin() {
@@ -1753,6 +2450,8 @@
                 document.getElementById('admin-restantes').textContent = (stats.total_raspadinhas || totalRaspadinhas) - (stats.vendidas || 0);
                 document.getElementById('admin-porcentagem').textContent = `${Math.round(((stats.vendidas || 0) / (stats.total_raspadinhas || totalRaspadinhas)) * 100)}%`;
                 document.getElementById('admin-ganhadores').textContent = stats.ganhadores || 0;
+                document.getElementById('admin-afiliados').textContent = stats.afiliados || 0;
+                document.getElementById('admin-premios-restantes').textContent = stats.premios_restantes || 0;
                 
                 vendidas = stats.vendidas || 0;
                 
@@ -1770,6 +2469,153 @@
                 
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function carregarAfiliados() {
+            // Carregar lista real de afiliados
+            try {
+                const response = await fetch('/admin/afiliados');
+                const resultado = await response.json();
+                
+                if (resultado.afiliados && resultado.afiliados.length > 0) {
+                    let html = '';
+                    resultado.afiliados.forEach(afiliado => {
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
+                                <h5>${afiliado.nome} (${afiliado.codigo})</h5>
+                                <p><strong>E-mail:</strong> ${afiliado.email}</p>
+                                <p><strong>Telefone:</strong> ${afiliado.telefone}</p>
+                                <p><strong>Clicks:</strong> ${afiliado.total_clicks} | <strong>Vendas:</strong> ${afiliado.total_vendas}</p>
+                                <p><strong>Comissão Total:</strong> R$ ${afiliado.total_comissao.toFixed(2)} | <strong>Saldo:</strong> R$ ${afiliado.saldo_disponivel.toFixed(2)}</p>
+                                <p><strong>Status:</strong> ${afiliado.status}</p>
+                                <p><strong>Cadastrado em:</strong> ${new Date(afiliado.data_criacao).toLocaleString('pt-BR')}</p>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('lista-afiliados').innerHTML = html;
+                } else {
+                    document.getElementById('lista-afiliados').innerHTML = '<p>Nenhum afiliado cadastrado ainda.</p>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar afiliados:', error);
+                document.getElementById('lista-afiliados').innerHTML = '<p>Erro ao carregar afiliados.</p>';
+            }
+        }
+
+        async function carregarSaquesGanhadores() {
+            try {
+                const response = await fetch('/admin/saques_ganhadores');
+                const resultado = await response.json();
+                
+                let html = '<h5>Solicitações de Saque - Ganhadores</h5>';
+                
+                if (resultado.saques && resultado.saques.length > 0) {
+                    resultado.saques.forEach(saque => {
+                        const statusClass = saque.rb_status === 'pago' ? 'success' : 'warning';
+                        const statusText = saque.rb_status === 'pago' ? 'Pago' : 'Pendente';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
+                                <p><strong>${saque.rb_ganhadores?.rb_nome || 'Nome não encontrado'}</strong> - R$ ${parseFloat(saque.rb_valor).toFixed(2)}</p>
+                                <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
+                                <p><strong>Código:</strong> ${saque.rb_ganhadores?.rb_codigo || 'N/A'}</p>
+                                <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
+                                <p><strong>Data:</strong> ${new Date(saque.rb_data_solicitacao).toLocaleString('pt-BR')}</p>
+                                <div style="margin-top: 15px;">
+                                    ${saque.rb_status === 'pago' ? 
+                                        `<button class="btn btn-primary" onclick="excluirSaqueGanhador(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </button>` :
+                                        `<button class="btn btn-primary" onclick="pagarSaqueGanhador(${saque.rb_id})">
+                                            <i class="fas fa-money-bill-wave"></i> Pagar
+                                        </button>`
+                                    }
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>Nenhuma solicitação de saque encontrada.</p>';
+                }
+                
+                document.getElementById('lista-saques').innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar saques de ganhadores:', error);
+                document.getElementById('lista-saques').innerHTML = '<p>Erro ao carregar saques.</p>';
+            }
+        }
+
+        async function carregarSaquesAfiliados() {
+            try {
+                const response = await fetch('/admin/saques_afiliados');
+                const resultado = await response.json();
+                
+                let html = '<h5>Solicitações de Saque - Afiliados</h5>';
+                
+                if (resultado.saques && resultado.saques.length > 0) {
+                    resultado.saques.forEach(saque => {
+                        const statusClass = saque.rb_status === 'pago' ? 'success' : 'warning';
+                        const statusText = saque.rb_status === 'pago' ? 'Pago' : 'Pendente';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
+                                <p><strong>${saque.rb_afiliados?.rb_nome || 'Nome não encontrado'} (${saque.rb_afiliados?.rb_codigo || 'N/A'})</strong> - R$ ${parseFloat(saque.rb_valor).toFixed(2)}</p>
+                                <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
+                                <p><strong>Comissão de:</strong> ${saque.rb_afiliados?.rb_total_vendas || 0} vendas</p>
+                                <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
+                                <p><strong>Data:</strong> ${new Date(saque.rb_data_solicitacao).toLocaleString('pt-BR')}</p>
+                                <div style="margin-top: 15px;">
+                                    ${saque.rb_status === 'pago' ? 
+                                        `<button class="btn btn-affiliate" onclick="excluirSaqueAfiliado(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </button>` :
+                                        `<button class="btn btn-affiliate" onclick="pagarSaqueAfiliado(${saque.rb_id})">
+                                            <i class="fas fa-money-bill-wave"></i> Pagar
+                                        </button>`
+                                    }
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>Nenhuma solicitação de saque encontrada.</p>';
+                }
+                
+                document.getElementById('lista-saques').innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar saques de afiliados:', error);
+                document.getElementById('lista-saques').innerHTML = '<p>Erro ao carregar saques.</p>';
+            }
+        }
+
+        async function carregarRelatorioVendas() {
+            try {
+                const response = await fetch('/admin/stats');
+                const stats = await response.json();
+                
+                document.getElementById('vendas-hoje').textContent = stats.vendas_hoje || 0;
+                document.getElementById('vendas-afiliados').textContent = stats.vendas_afiliados_hoje || 0;
+                document.getElementById('premios-restantes').textContent = stats.premios_restantes || 0;
+                
+                const vendasDiretas = (stats.vendas_hoje || 0) - (stats.vendas_afiliados_hoje || 0);
+                const totalArrecadado = stats.vendas_hoje || 0;
+                const comissoesPagas = (stats.vendas_afiliados_hoje || 0) * 0.5;
+                const lucroLiquido = totalArrecadado - comissoesPagas;
+                
+                document.getElementById('vendas-detalhes').innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 15px;">
+                        <h5>Detalhes das Vendas de Hoje</h5>
+                        <p><strong>Vendas Diretas:</strong> ${vendasDiretas} raspadinhas (R$ ${vendasDiretas.toFixed(2)})</p>
+                        <p><strong>Vendas via Afiliados:</strong> ${stats.vendas_afiliados_hoje || 0} raspadinhas (R$ ${(stats.vendas_afiliados_hoje || 0).toFixed(2)})</p>
+                        <p><strong>Total Arrecadado:</strong> R$ ${totalArrecadado.toFixed(2)}</p>
+                        <p><strong>Comissões Pagas:</strong> R$ ${comissoesPagas.toFixed(2)}</p>
+                        <p><strong>Lucro Líquido:</strong> R$ ${lucroLiquido.toFixed(2)}</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Erro ao carregar relatório de vendas:', error);
+                document.getElementById('vendas-detalhes').innerHTML = '<p>Erro ao carregar relatório.</p>';
             }
         }
 
@@ -1830,7 +2676,7 @@
         }
 
         async function listarPremiados() {
-            const listDiv = document.getElementById('premiados-list');
+            const listDiv = document.getElementById('lista-premiados');
             
             try {
                 const response = await fetch('/admin/premiados');
@@ -1841,12 +2687,12 @@
                     resultado.premiados.forEach(premiado => {
                         html += `
                             <div class="premiado-item">
-                                <strong>Código:</strong> ${premiado.codigo}<br>
-                                <strong>Nome:</strong> ${premiado.nome}<br>
-                                <strong>Valor:</strong> ${premiado.valor}<br>
-                                <strong>PIX:</strong> ${premiado.chave_pix}<br>
-                                <strong>Status:</strong> ${premiado.status_pagamento || 'pendente'}<br>
-                                <strong>Data:</strong> ${new Date(premiado.data_criacao).toLocaleString('pt-BR')}<br>
+                                <strong>Código:</strong> ${premiado.rb_codigo}<br>
+                                <strong>Nome:</strong> ${premiado.rb_nome}<br>
+                                <strong>Valor:</strong> ${premiado.rb_valor}<br>
+                                <strong>PIX:</strong> ${premiado.rb_chave_pix}<br>
+                                <strong>Status:</strong> ${premiado.rb_status_pagamento || 'pendente'}<br>
+                                <strong>Data:</strong> ${new Date(premiado.rb_data_criacao).toLocaleString('pt-BR')}<br>
                             </div>
                         `;
                     });
@@ -1864,11 +2710,14 @@
 
         // Navegação
         function irParaPagamento() {
+            // Verificar se há código de afiliado armazenado
+            const refCode = localStorage.getItem('raspa_ref');
+            
             document.getElementById('quantidade-pagamento').textContent = quantidade;
             document.getElementById('total-pagamento').textContent = formatarDinheiro(quantidade * 1.00);
             document.getElementById('total-pagamento-info').textContent = formatarDinheiro(quantidade * 1.00);
             mostrarPagina('payment-page');
-            setTimeout(criarPagamentoReal, 1500);
+            setTimeout(() => criarPagamentoReal(refCode), 1500);
         }
 
         function voltarInicio() {
@@ -1887,7 +2736,7 @@
         }
 
         // Função para criar pagamento real no Mercado Pago
-        async function criarPagamentoReal() {
+        async function criarPagamentoReal(refCode) {
             const btn = document.getElementById('btn-real-payment');
             if (btn) {
                 const originalText = btn.innerHTML;
@@ -1902,12 +2751,17 @@
             }
 
             try {
+                const paymentData = { quantidade: quantidade };
+                if (refCode) {
+                    paymentData.ref_code = refCode;
+                }
+
                 const response = await fetch('/create_payment', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ quantidade: quantidade })
+                    body: JSON.stringify(paymentData)
                 });
 
                 const data = await response.json();
@@ -2276,14 +3130,113 @@ Dados salvos no sistema com sucesso!`;
             }
         }
 
+        // Funções para gerenciar saques
+        async function pagarSaqueGanhador(saqueId) {
+            try {
+                const response = await fetch(`/admin/pagar_saque_ganhador/${saqueId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Pago!</h3><p>O saque foi marcado como pago com sucesso.</p>');
+                    carregarSaquesGanhadores(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao pagar saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao processar pagamento do saque.</p>');
+            }
+        }
+
+        async function excluirSaqueGanhador(saqueId) {
+            try {
+                const response = await fetch(`/admin/excluir_saque_ganhador/${saqueId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Excluído!</h3><p>O saque foi removido do sistema.</p>');
+                    carregarSaquesGanhadores(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao excluir saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao excluir saque.</p>');
+            }
+        }
+
+        async function pagarSaqueAfiliado(saqueId) {
+            try {
+                const response = await fetch(`/admin/pagar_saque_afiliado/${saqueId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Pago!</h3><p>O saque foi marcado como pago com sucesso.</p>');
+                    carregarSaquesAfiliados(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao pagar saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao processar pagamento do saque.</p>');
+            }
+        }
+
+        async function excluirSaqueAfiliado(saqueId) {
+            try {
+                const response = await fetch(`/admin/excluir_saque_afiliado/${saqueId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Excluído!</h3><p>O saque foi removido do sistema.</p>');
+                    carregarSaquesAfiliados(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao excluir saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao excluir saque.</p>');
+            }
+        }
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             atualizarDisplay();
             initBannerSlider();
-            initWinnerAlerts(); // Iniciar alertas de ganhadores
+            initWinnerAlerts();
+            
+            // Verificar se há código de afiliado na URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                localStorage.setItem('raspa_ref', refCode);
+                console.log('Código de afiliado detectado:', refCode);
+            }
+            
+            // Verificar login automático do afiliado
+            const savedCpf = localStorage.getItem('affiliate_cpf');
+            if (savedCpf) {
+                // Auto-login do afiliado (implementar se necessário)
+            }
             
             // Carregar estatísticas periodicamente
-            setInterval(carregarEstatisticas, 30000); // A cada 30 segundos
+            setInterval(carregarEstatisticas, 30000);
         });
 
         // Detectar modo escuro
@@ -2300,4 +3253,3 @@ Dados salvos no sistema com sucesso!`;
     </script>
 </body>
 </html>
-
