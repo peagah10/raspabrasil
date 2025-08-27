@@ -639,83 +639,102 @@
             font-weight: 600;
         }
 
-        /* RODA BRASIL - Styles da Roleta 3D */
+        /* RODA BRASIL - Roleta Moderna Baseada na Imagem */
         .roulette-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 50px 0;
             perspective: 1000px;
+            position: relative;
         }
 
         .roulette-wheel {
             position: relative;
-            width: clamp(320px, 85vw, 420px);
-            height: clamp(320px, 85vw, 420px);
+            width: clamp(350px, 85vw, 450px);
+            height: clamp(350px, 85vw, 450px);
             border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                #00b341 0deg 45deg,
-                #dc2626 45deg 90deg,
-                #ffd700 90deg 135deg,
-                #003087 135deg 180deg,
-                #28a745 180deg 225deg,
-                #ff6b35 225deg 270deg,
-                #8b5cf6 270deg 315deg,
-                #06b6d4 315deg 360deg
-            );
+            background: 
+                conic-gradient(
+                    from 0deg,
+                    #00b341 0deg 45deg,        /* R$ 1 - Verde */
+                    #dc2626 45deg 90deg,       /* Perdeu - Vermelho */
+                    #ffd700 90deg 135deg,      /* R$ 5 - Amarelo */
+                    #8b5cf6 135deg 180deg,     /* R$ 10 - Roxo */
+                    #06b6d4 180deg 225deg,     /* R$ 100 - Azul claro */
+                    #ff6b35 225deg 270deg,     /* R$ 300 - Laranja */
+                    #4f46e5 270deg 315deg,     /* R$ 500 - Azul escuro */
+                    #28a745 315deg 360deg      /* R$ 1000 - Verde escuro */
+                );
             box-shadow: 
-                0 0 0 8px #ffd700,
-                0 0 0 12px #fff,
-                0 15px 60px rgba(0, 0, 0, 0.4),
-                inset 0 0 50px rgba(255, 255, 255, 0.1);
-            transition: transform 4s cubic-bezier(0.23, 1, 0.32, 1);
+                0 0 0 15px #ffd700,
+                0 0 0 20px #fff,
+                0 25px 100px rgba(0, 0, 0, 0.6),
+                inset 0 0 0 6px rgba(255, 255, 255, 0.3),
+                inset 0 0 60px rgba(0, 0, 0, 0.2);
+            transition: transform 4.5s cubic-bezier(0.23, 1, 0.32, 1);
             margin-bottom: 30px;
             transform-style: preserve-3d;
-            border: 4px solid #fff;
+            border: 8px solid #fff;
+            overflow: visible;
+            animation: rouletteIdle 8s ease-in-out infinite;
+        }
+
+        @keyframes rouletteIdle {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(2deg) scale(1.02); }
         }
 
         .roulette-wheel.spinning {
-            transform: rotateZ(1800deg) rotateX(5deg);
+            transform: rotateZ(1800deg) rotateX(2deg) scale(1.05);
+            animation: none;
         }
 
         .roulette-wheel::before {
             content: '';
             position: absolute;
-            top: -4px;
-            left: -4px;
-            right: -4px;
-            bottom: -4px;
+            top: -12px;
+            left: -12px;
+            right: -12px;
+            bottom: -12px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            background: linear-gradient(45deg, #ffd700, #ffaa00, #ffd700, #ffcc00);
             z-index: -1;
-            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
+            box-shadow: 
+                0 15px 50px rgba(255, 215, 0, 0.8),
+                0 0 100px rgba(255, 215, 0, 0.4);
         }
 
         .roulette-pointer {
             position: absolute;
             top: 50%;
-            right: -25px;
+            right: -35px;
             transform: translateY(-50%);
             width: 0;
             height: 0;
-            border-top: 20px solid transparent;
-            border-bottom: 20px solid transparent;
-            border-right: 35px solid #dc2626;
+            border-top: 30px solid transparent;
+            border-bottom: 30px solid transparent;
+            border-right: 50px solid #dc2626;
             z-index: 15;
-            filter: drop-shadow(-4px 0 8px rgba(0, 0, 0, 0.4));
+            filter: drop-shadow(-8px 0 15px rgba(0, 0, 0, 0.8));
+            animation: pointerPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pointerPulse {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.1); }
         }
 
         .roulette-pointer::after {
             content: '';
             position: absolute;
-            top: -15px;
-            right: -30px;
+            top: -22px;
+            right: -42px;
             width: 0;
             height: 0;
-            border-top: 15px solid transparent;
-            border-bottom: 15px solid transparent;
-            border-right: 25px solid #ffd700;
+            border-top: 22px solid transparent;
+            border-bottom: 22px solid transparent;
+            border-right: 35px solid #ffd700;
         }
 
         .roulette-center {
@@ -723,85 +742,96 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #ffd700, #ffcc00);
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, #333, #1a1a1a);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 
-                0 0 0 4px #fff,
-                0 8px 25px rgba(0, 0, 0, 0.3),
-                inset 0 0 20px rgba(255, 255, 255, 0.3);
-            border: 2px solid #fff;
+                0 0 0 8px #ffd700,
+                0 0 0 12px #fff,
+                0 15px 35px rgba(0, 0, 0, 0.5),
+                inset 0 0 25px rgba(255, 255, 255, 0.1);
+            border: 4px solid #fff;
             z-index: 10;
+            font-size: clamp(16px, 3.5vw, 20px);
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
-        /* Prêmios dentro da roleta */
+        /* Prêmios dentro da roleta posicionados corretamente */
         .roulette-prize {
             position: absolute;
-            font-size: clamp(10px, 2.5vw, 14px);
-            font-weight: 800;
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: 900;
             color: white;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.9);
             transform-origin: center;
             z-index: 5;
             text-align: center;
-            line-height: 1;
+            line-height: 1.1;
             pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 55px;
+            height: 35px;
         }
 
+        /* Posições dos prêmios baseadas nos 8 segmentos */
         .roulette-prize.prize-1 {
-            top: 35%;
-            right: 15%;
+            top: 18%;
+            right: 23%;
             transform: rotate(22.5deg);
         }
 
         .roulette-prize.prize-2 {
-            top: 15%;
-            right: 35%;
+            top: 8%;
+            right: 43%;
             transform: rotate(67.5deg);
             color: #000;
-            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
+            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.9);
         }
 
         .roulette-prize.prize-3 {
-            top: 15%;
-            left: 35%;
+            top: 8%;
+            left: 43%;
             transform: rotate(112.5deg);
+            color: #333;
+            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.8);
         }
 
         .roulette-prize.prize-4 {
-            top: 35%;
-            left: 15%;
+            top: 18%;
+            left: 23%;
             transform: rotate(157.5deg);
         }
 
         .roulette-prize.prize-5 {
-            bottom: 35%;
-            left: 15%;
+            bottom: 18%;
+            left: 23%;
             transform: rotate(202.5deg);
         }
 
         .roulette-prize.prize-6 {
-            bottom: 15%;
-            left: 35%;
+            bottom: 8%;
+            left: 43%;
             transform: rotate(247.5deg);
         }
 
         .roulette-prize.prize-7 {
-            bottom: 15%;
-            right: 35%;
+            bottom: 8%;
+            right: 43%;
             transform: rotate(292.5deg);
         }
 
         .roulette-prize.prize-8 {
-            bottom: 35%;
-            right: 15%;
+            bottom: 18%;
+            right: 23%;
             transform: rotate(337.5deg);
-            color: #000;
-            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
         }
 
         .roulette-prizes {
@@ -1472,8 +1502,8 @@
             }
 
             .roulette-wheel {
-                width: clamp(250px, 90vw, 300px);
-                height: clamp(250px, 90vw, 300px);
+                width: clamp(280px, 90vw, 350px);
+                height: clamp(280px, 90vw, 350px);
             }
 
             .roulette-prizes {
@@ -1515,8 +1545,8 @@
             }
 
             .roulette-wheel {
-                width: clamp(200px, 95vw, 250px);
-                height: clamp(200px, 95vw, 250px);
+                width: clamp(250px, 95vw, 300px);
+                height: clamp(250px, 95vw, 300px);
             }
 
             .roulette-prizes {
@@ -2002,17 +2032,17 @@
                 <div class="roulette-pointer"></div>
                 <div class="roulette-wheel" id="roulette-wheel">
                     <!-- Prêmios dentro da roleta -->
-                    <div class="roulette-prize prize-1">R$ 10</div>
-                    <div class="roulette-prize prize-2">VOCÊ PERDEU</div>
-                    <div class="roulette-prize prize-3">R$ 100</div>
-                    <div class="roulette-prize prize-4">R$ 300</div>
-                    <div class="roulette-prize prize-5">R$ 500</div>
-                    <div class="roulette-prize prize-6">R$ 1000</div>
-                    <div class="roulette-prize prize-7">R$ 5</div>
-                    <div class="roulette-prize prize-8">R$ 1</div>
+                    <div class="roulette-prize prize-1">R$ 1</div>
+                    <div class="roulette-prize prize-2">PERDEU</div>
+                    <div class="roulette-prize prize-3">R$ 5</div>
+                    <div class="roulette-prize prize-4">R$ 10</div>
+                    <div class="roulette-prize prize-5">R$ 100</div>
+                    <div class="roulette-prize prize-6">R$ 300</div>
+                    <div class="roulette-prize prize-7">R$ 500</div>
+                    <div class="roulette-prize prize-8">R$ 1000</div>
                     
                     <div class="roulette-center">
-                        <i class="fas fa-star" style="color: white; font-size: 20px;"></i>
+                        GO
                     </div>
                 </div>
                 
@@ -2483,7 +2513,7 @@
                     <div class="status-bar">
                         <div class="status-item">
                             <span class="number" id="admin-vendidas">0</span>
-                            <span class="label">Vendidas</span>
+                            <span class="label">Vendas</span>
                         </div>
                         <div class="status-item">
                             <span class="number" id="admin-restantes">10000</span>
@@ -2502,7 +2532,7 @@
                             <span class="label">Afiliados</span>
                         </div>
                         <div class="status-item">
-                            <span class="number" id="admin-premios-restantes">0</span>
+                            <span class="number" id="admin-premios-restantes">345</span>
                             <span class="label">Prêmios Restantes</span>
                         </div>
                     </div>
@@ -2629,6 +2659,7 @@
         let currentAffiliate = null;
         let currentAdminTab = 'dashboard';
         const WHATSAPP_NUMERO = "5582996092684";
+        const LIMITE_PREMIOS = 1000; // LIMITE CRÍTICO - SÓ LIBERA PRÊMIOS APÓS 1000 VENDAS
 
         // Array de ganhadores fictícios para o alerta
         const ganhadoresFicticios = [
@@ -2642,17 +2673,180 @@
             { nome: "Pedro Augusto Alves", valor: 750 }
         ];
 
-        // Prêmios da roleta com suas probabilidades
+        // Prêmios da roleta com suas probabilidades e ângulos corretos
         const premiosRoleta = [
-            { valor: "R$ 1,00", peso: 25, angulo: 0 },
-            { valor: "R$ 5,00", peso: 20, angulo: 45 },
-            { valor: "R$ 10,00", peso: 15, angulo: 90 },
-            { valor: "R$ 100,00", peso: 10, angulo: 135 },
-            { valor: "R$ 300,00", peso: 5, angulo: 180 },
-            { valor: "R$ 500,00", peso: 3, angulo: 225 },
-            { valor: "R$ 1000,00", peso: 2, angulo: 270 },
-            { valor: "TENTE NOVAMENTE", peso: 20, angulo: 315 }
+            { valor: "R$ 1,00", peso: 25, angulo: 22.5, segmento: 1 },      // Verde
+            { valor: "VOCÊ PERDEU", peso: 30, angulo: 67.5, segmento: 2 },   // Vermelho
+            { valor: "R$ 5,00", peso: 20, angulo: 112.5, segmento: 3 },     // Amarelo
+            { valor: "R$ 10,00", peso: 15, angulo: 157.5, segmento: 4 },    // Roxo
+            { valor: "R$ 100,00", peso: 7, angulo: 202.5, segmento: 5 },    // Azul claro
+            { valor: "R$ 300,00", peso: 2, angulo: 247.5, segmento: 6 },    // Laranja
+            { valor: "R$ 500,00", peso: 1, angulo: 292.5, segmento: 7 },    // Azul escuro
+            { valor: "R$ 1000,00", peso: 0.5, angulo: 337.5, segmento: 8 }  // Verde escuro
         ];
+
+        // Sistema de controle de vendas atualizado
+        function atualizarStatusSistema() {
+            console.log(`📊 Status atual: ${vendidas}/${LIMITE_PREMIOS} vendas`);
+            console.log(`🎁 Prêmios: ${vendidas >= LIMITE_PREMIOS ? 'LIBERADOS' : 'BLOQUEADOS'}`);
+            
+            // Exibir status visual
+            if (vendidas < LIMITE_PREMIOS) {
+                console.log(`🚫 SISTEMA TRAVADO - Faltam ${LIMITE_PREMIOS - vendidas} vendas para liberar prêmios`);
+            } else {
+                console.log(`✅ SISTEMA LIBERADO - Prêmios ativos!`);
+            }
+        }
+
+        // Funções da Roleta TOTALMENTE CORRIGIDAS - SISTEMA DE BLOQUEIO RIGOROSO
+        function sortearPremioRoleta() {
+            // ✅ VERIFICAÇÃO CRÍTICA - FORÇA "VOCÊ PERDEU" ATÉ 1000 VENDAS
+            atualizarStatusSistema();
+            
+            if (vendidas < LIMITE_PREMIOS) {
+                console.log(`🚫 BLOQUEIO TOTAL ATIVO: ${vendidas}/${LIMITE_PREMIOS} vendas - FORÇANDO DERROTA OBRIGATÓRIA`);
+                return { valor: "VOCÊ PERDEU", angulo: 67.5, segmento: 2 };
+            }
+
+            console.log(`🎁 Prêmios desbloqueados! Vendas: ${vendidas}/${LIMITE_PREMIOS} - Iniciando sorteio real`);
+
+            // Criar array ponderado
+            const premiosPonderados = [];
+            premiosRoleta.forEach(premio => {
+                for (let i = 0; i < Math.round(premio.peso * 10); i++) {
+                    premiosPonderados.push(premio);
+                }
+            });
+            
+            // Sortear prêmio
+            const premioSorteado = premiosPonderados[Math.floor(Math.random() * premiosPonderados.length)];
+            console.log(`🎰 Prêmio real sorteado: ${premioSorteado.valor} - Ângulo: ${premioSorteado.angulo}`);
+            return premioSorteado;
+        }
+
+        function girarRoleta() {
+            if (isSpinning || currentRodaFichas <= 0) return;
+            
+            const spinButton = document.getElementById('spin-button');
+            const rouletteWheel = document.getElementById('roulette-wheel');
+            const resultDiv = document.getElementById('roulette-result');
+            
+            isSpinning = true;
+            spinButton.disabled = true;
+            spinButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GIRANDO...';
+            
+            // Diminuir ficha
+            currentRodaFichas--;
+            document.getElementById('fichas-restantes').textContent = currentRodaFichas;
+            
+            console.log(`🎰 Iniciando giro da roleta - Vendas atuais: ${vendidas}/${LIMITE_PREMIOS}`);
+            
+            // 🚫 BLOQUEIO ABSOLUTO - SEMPRE "VOCÊ PERDEU" ATÉ 1000 VENDAS
+            let premioSorteado;
+            if (vendidas < LIMITE_PREMIOS) {
+                console.log(`🚫 SISTEMA TRAVADO - Vendas insuficientes: ${vendidas}/${LIMITE_PREMIOS} - GARANTINDO DERROTA`);
+                premioSorteado = { valor: "VOCÊ PERDEU", angulo: 67.5, segmento: 2 };
+            } else {
+                console.log(`🎁 Sistema desbloqueado! Sorteando normalmente...`);
+                premioSorteado = sortearPremioRoleta();
+            }
+            
+            // Calcular rotação (múltiplos de 360 + posição correta do prêmio)
+            const rotacoesExtras = 360 * (5 + Math.floor(Math.random() * 5)); // 5-10 voltas extras
+            const anguloFinal = premioSorteado.angulo;
+            const rotacaoTotal = rotacoesExtras + (360 - anguloFinal); // Subtrair para que pare no prêmio correto
+            
+            console.log(`🎯 Girando para: ${premioSorteado.valor} - Rotação total: ${rotacaoTotal}°`);
+            
+            // Som de roleta melhorado
+            playRouletteSound();
+            
+            // Animar roleta
+            rouletteWheel.style.transform = `rotate(${rotacaoTotal}deg)`;
+            rouletteWheel.classList.add('spinning');
+            
+            // Parar animação e mostrar resultado após 4.5 segundos
+            setTimeout(() => {
+                rouletteWheel.classList.remove('spinning');
+                isSpinning = false;
+                
+                // Mostrar resultado
+                mostrarResultadoRoleta(premioSorteado.valor);
+                
+                // Reativar botão se ainda há fichas
+                if (currentRodaFichas > 0) {
+                    spinButton.disabled = false;
+                    spinButton.innerHTML = '<i class="fas fa-sync-alt"></i> GIRAR ROLETA';
+                } else {
+                    spinButton.innerHTML = '<i class="fas fa-times"></i> SEM FICHAS';
+                }
+            }, 4500);
+        }
+
+        function mostrarResultadoRoleta(premio) {
+            const resultDiv = document.getElementById('roulette-result');
+            
+            if (premio === "VOCÊ PERDEU") {
+                resultDiv.className = 'roulette-result loser';
+                resultDiv.innerHTML = `
+                    <h3><i class="fas fa-times-circle"></i> QUE PENA!</h3>
+                    <p>Você perdeu! Compre mais fichas para tentar novamente.</p>
+                    ${vendidas < LIMITE_PREMIOS ? `<p style="font-size: 0.9em; opacity: 0.8;">Sistema em teste - Prêmios liberados após ${LIMITE_PREMIOS} vendas</p>` : ''}
+                `;
+                
+            } else {
+                // Prêmio em dinheiro
+                resultDiv.className = 'roulette-result winner';
+                resultDiv.innerHTML = `
+                    <h3><i class="fas fa-trophy"></i> PARABÉNS!</h3>
+                    <p>Você ganhou <strong>${premio}</strong>!</p>
+                `;
+                
+                // Mostrar formulário de prêmio
+                mostrarFormularioPremioRoda(premio, gerarCodigoUnicoRoda());
+            }
+        }
+
+        function playRouletteSound() {
+            try {
+                // Som aprimorado da roleta usando Web Audio API
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Som de clique da roleta real
+                const duration = 4;
+                const sampleRate = audioContext.sampleRate;
+                const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                // Criar som realista de roleta
+                for (let i = 0; i < buffer.length; i++) {
+                    const t = i / sampleRate;
+                    const tickRate = 8 - (t * 2); // Desaceleração gradual
+                    const volume = Math.max(0, 1 - t / duration) * 0.4;
+                    
+                    // Som de clique com variação
+                    const tick = Math.floor(t * tickRate) % 2;
+                    const noise = (Math.random() - 0.5) * 0.1;
+                    
+                    data[i] = (tick * 0.3 + noise) * volume;
+                }
+                
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start();
+                
+                console.log('🔊 Som da roleta reproduzido');
+            } catch (error) {
+                console.log('⚠️ Som da roleta não disponível:', error);
+            }
+        }
+
+        function gerarCodigoUnicoRoda() {
+            const numero = Math.floor(Math.random() * 90000) + 10000;
+            const letras = Math.random().toString(36).substring(2, 5).toUpperCase();
+            return `RR-${numero}-${letras}`;
+        }
 
         // Função para mostrar alerta de ganhador
         function showWinnerAlert() {
@@ -2777,125 +2971,6 @@
         // Função para abrir Roda Brasil
         function abrirRodaBrasil() {
             mostrarPagina('roda-brasil-page');
-        }
-
-        // Funções da Roleta
-        function sortearPremioRoleta() {
-            // Criar array ponderado
-            const premiosPonderados = [];
-            premiosRoleta.forEach(premio => {
-                for (let i = 0; i < Math.round(premio.peso); i++) {
-                    premiosPonderados.push(premio);
-                }
-            });
-            
-            // Sortear prêmio
-            const premioSorteado = premiosPonderados[Math.floor(Math.random() * premiosPonderados.length)];
-            return premioSorteado;
-        }
-
-        function girarRoleta() {
-            if (isSpinning || currentRodaFichas <= 0) return;
-            
-            const spinButton = document.getElementById('spin-button');
-            const rouletteWheel = document.getElementById('roulette-wheel');
-            const resultDiv = document.getElementById('roulette-result');
-            
-            isSpinning = true;
-            spinButton.disabled = true;
-            spinButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GIRANDO...';
-            
-            // Diminuir ficha
-            currentRodaFichas--;
-            document.getElementById('fichas-restantes').textContent = currentRodaFichas;
-            
-            // Sortear prêmio
-            const premioSorteado = sortearPremioRoleta();
-            
-            // Calcular rotação (múltiplos de 360 + ângulo do prêmio + offset aleatório)
-            const rotacoesExtras = 360 * (5 + Math.floor(Math.random() * 5)); // 5-10 voltas extras
-            const anguloFinal = premioSorteado.angulo + (Math.random() * 40 - 20); // ±20 graus de variação
-            const rotacaoTotal = rotacoesExtras + (360 - anguloFinal); // Inverter para que pare no prêmio correto
-            
-            // Reproduzir som de roleta (se possível)
-            playRouletteSound();
-            
-            // Animar roleta
-            rouletteWheel.style.transform = `rotate(${rotacaoTotal}deg)`;
-            rouletteWheel.classList.add('spinning');
-            
-            // Parar animação e mostrar resultado após 4 segundos
-            setTimeout(() => {
-                rouletteWheel.classList.remove('spinning');
-                isSpinning = false;
-                
-                // Mostrar resultado
-                mostrarResultadoRoleta(premioSorteado.valor);
-                
-                // Reativar botão se ainda há fichas
-                if (currentRodaFichas > 0) {
-                    spinButton.disabled = false;
-                    spinButton.innerHTML = '<i class="fas fa-sync-alt"></i> GIRAR ROLETA';
-                } else {
-                    spinButton.innerHTML = '<i class="fas fa-times"></i> SEM FICHAS';
-                }
-            }, 4000);
-        }
-
-        function mostrarResultadoRoleta(premio) {
-            const resultDiv = document.getElementById('roulette-result');
-            
-            if (premio === "TENTE NOVAMENTE") {
-                resultDiv.className = 'roulette-result loser';
-                resultDiv.innerHTML = `
-                    <h3><i class="fas fa-times-circle"></i> QUE PENA!</h3>
-                    <p>Você perdeu! Compre mais fichas para tentar novamente.</p>
-                `;
-                
-            } else {
-                // Prêmio em dinheiro
-                resultDiv.className = 'roulette-result winner';
-                resultDiv.innerHTML = `
-                    <h3><i class="fas fa-trophy"></i> PARABÉNS!</h3>
-                    <p>Você ganhou <strong>${premio}</strong>!</p>
-                `;
-                
-                // Mostrar formulário de prêmio
-                mostrarFormularioPremioRoda(premio, gerarCodigoUnicoRoda());
-            }
-        }
-
-        function playRouletteSound() {
-            try {
-                // Criar som sintético da roleta usando Web Audio API
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Som de clique da roleta
-                const duration = 3;
-                const sampleRate = audioContext.sampleRate;
-                const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate);
-                const data = buffer.getChannelData(0);
-                
-                for (let i = 0; i < buffer.length; i++) {
-                    const t = i / sampleRate;
-                    const frequency = 200 + Math.sin(t * 10) * 50;
-                    const volume = Math.max(0, 1 - t / duration) * 0.3;
-                    data[i] = Math.sin(2 * Math.PI * frequency * t) * volume * (Math.random() * 0.1 + 0.9);
-                }
-                
-                const source = audioContext.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioContext.destination);
-                source.start();
-            } catch (error) {
-                console.log('Som da roleta não disponível:', error);
-            }
-        }
-
-        function gerarCodigoUnicoRoda() {
-            const numero = Math.floor(Math.random() * 90000) + 10000;
-            const letras = Math.random().toString(36).substring(2, 5).toUpperCase();
-            return `RR-${numero}-${letras}`;
         }
 
         // Função para mostrar formulário de prêmio da Roda Brasil
@@ -3349,7 +3424,11 @@
                 document.getElementById('admin-afiliados').textContent = stats.afiliados || 0;
                 document.getElementById('admin-premios-restantes').textContent = stats.premios_restantes || 0;
                 
+                // Atualizar variável global de vendas
                 vendidas = stats.vendidas || 0;
+                
+                // Atualizar status do sistema
+                atualizarStatusSistema();
                 
                 // Atualizar botão do sistema
                 const btnToggle = document.getElementById('btn-toggle-sistema');
@@ -3839,6 +3918,11 @@
                             </div>
                         `;
 
+                        // Atualizar vendas para controle de prêmios
+                        vendidas += quantidade;
+                        console.log(`✅ Pagamento aprovado! Vendas atualizadas: ${vendidas}`);
+                        atualizarStatusSistema();
+                        
                         setTimeout(() => {
                             irParaRaspadinhas();
                         }, 3000);
@@ -3921,6 +4005,11 @@
                                 </div>
                             </div>
                         `;
+
+                        // Atualizar vendas para controle de prêmios
+                        vendidas += quantidadeRoda;
+                        console.log(`🎰 Pagamento da roda aprovado! Vendas atualizadas: ${vendidas}`);
+                        atualizarStatusSistema();
 
                         setTimeout(() => {
                             irParaRoleta();
@@ -4047,13 +4136,15 @@
             setTimeout(() => {
                 const resultadoDiv = bandeira.querySelector('.bandeira-resultado');
                 
-                // Sistema de prêmios limitados - só libera prêmios após 1000 vendas
-                // Chance de ganho de 25% mas dificulta ainda mais para ser realista
-                const sistemaLiberado = vendidas >= 1000;
-                const chanceGanho = sistemaLiberado ? 0.15 : 0; // 15% quando liberado, 0% antes
+                // 🚫 SISTEMA DE PRÊMIOS TOTALMENTE BLOQUEADO - SÓ LIBERA APÓS 1000 VENDAS
+                const sistemaLiberado = vendidas >= LIMITE_PREMIOS;
+                console.log(`🎮 Raspando bandeira ${index} - Vendas: ${vendidas}, Limite: ${LIMITE_PREMIOS}, Sistema liberado: ${sistemaLiberado}`);
+                
+                // BLOQUEIO TOTAL - 0% de chance antes de 1000 vendas
+                const chanceGanho = sistemaLiberado ? 0.10 : 0; // 10% quando liberado, 0% antes
                 const ganhou = Math.random() < chanceGanho;
                 
-                if (ganhou) {
+                if (ganhou && sistemaLiberado) {
                     // Prêmios possíveis
                     const premios = ['R$ 10,00', 'R$ 20,00', 'R$ 30,00', 'R$ 50,00', 'R$ 100,00', 'R$ 300,00', 'R$ 500,00', 'R$ 1000,00'];
                     const pesos = [40, 25, 20, 10, 3, 1.5, 0.4, 0.1]; // Probabilidades
@@ -4079,6 +4170,8 @@
                     `;
                     resultadoDiv.className = 'bandeira-resultado ganhou';
                     
+                    console.log(`🎉 PRÊMIO LIBERADO: ${premioSorteado} - Código: ${codigo}`);
+                    
                     // Mostrar formulário de prêmio
                     mostrarFormularioPremio(premioSorteado, codigo);
                 } else {
@@ -4087,6 +4180,12 @@
                         <div style="font-size: clamp(0.9em, 3.5vw, 1.2em);">PERDEU</div>
                     `;
                     resultadoDiv.className = 'bandeira-resultado perdeu';
+                    
+                    if (!sistemaLiberado) {
+                        console.log(`🚫 DERROTA FORÇADA - Sistema bloqueado: ${vendidas}/${LIMITE_PREMIOS}`);
+                    } else {
+                        console.log(`😔 Sem prêmio - Sorte não favorável`);
+                    }
                 }
             }, 600);
         }
@@ -4309,6 +4408,21 @@ Dados salvos no sistema com sucesso!`;
             }
         }
 
+        // Função para carregar vendas do backend na inicialização
+        async function carregarVendasIniciais() {
+            try {
+                const response = await fetch('/admin/stats');
+                const stats = await response.json();
+                vendidas = stats.vendidas || 0;
+                console.log(`📊 Vendas carregadas do backend: ${vendidas}/${LIMITE_PREMIOS}`);
+                console.log(`🎁 Prêmios ${vendidas >= LIMITE_PREMIOS ? 'LIBERADOS' : 'BLOQUEADOS'}`);
+                atualizarStatusSistema();
+            } catch (error) {
+                console.error('Erro ao carregar vendas:', error);
+                vendidas = 0;
+            }
+        }
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             atualizarDisplay();
@@ -4330,8 +4444,16 @@ Dados salvos no sistema com sucesso!`;
                 // Auto-login do afiliado (implementar se necessário)
             }
             
+            // Carregar estatísticas iniciais e vendas
+            carregarEstatisticas();
+            carregarVendasIniciais(); // NOVA FUNÇÃO
+            
             // Carregar estatísticas periodicamente
             setInterval(carregarEstatisticas, 30000);
+            setInterval(carregarVendasIniciais, 60000); // Atualizar vendas a cada minuto
+            
+            console.log(`🚀 Raspa Brasil + Roda Brasil inicializado!`);
+            console.log(`🔒 Sistema de bloqueio ativo até ${LIMITE_PREMIOS} vendas`);
         });
 
         // Detectar modo escuro
