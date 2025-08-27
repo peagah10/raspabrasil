@@ -639,52 +639,83 @@
             font-weight: 600;
         }
 
-        /* RODA BRASIL - Styles da Roleta */
+        /* RODA BRASIL - Styles da Roleta 3D */
         .roulette-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 50px 0;
+            perspective: 1000px;
         }
 
         .roulette-wheel {
             position: relative;
-            width: clamp(300px, 80vw, 400px);
-            height: clamp(300px, 80vw, 400px);
+            width: clamp(320px, 85vw, 420px);
+            height: clamp(320px, 85vw, 420px);
             border-radius: 50%;
-            border: 8px solid #ffd700;
             background: conic-gradient(
                 from 0deg,
                 #00b341 0deg 45deg,
-                #ffd700 45deg 90deg,
-                #003087 90deg 135deg,
-                #ff6b35 135deg 180deg,
+                #dc2626 45deg 90deg,
+                #ffd700 90deg 135deg,
+                #003087 135deg 180deg,
                 #28a745 180deg 225deg,
-                #ff9800 225deg 270deg,
+                #ff6b35 225deg 270deg,
                 #8b5cf6 270deg 315deg,
                 #06b6d4 315deg 360deg
             );
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                0 0 0 8px #ffd700,
+                0 0 0 12px #fff,
+                0 15px 60px rgba(0, 0, 0, 0.4),
+                inset 0 0 50px rgba(255, 255, 255, 0.1);
             transition: transform 4s cubic-bezier(0.23, 1, 0.32, 1);
             margin-bottom: 30px;
+            transform-style: preserve-3d;
+            border: 4px solid #fff;
         }
 
         .roulette-wheel.spinning {
-            transform: rotate(1800deg);
+            transform: rotateZ(1800deg) rotateX(5deg);
+        }
+
+        .roulette-wheel::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            z-index: -1;
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
         }
 
         .roulette-pointer {
             position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 50%;
+            right: -25px;
+            transform: translateY(-50%);
             width: 0;
             height: 0;
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-top: 30px solid #ffd700;
-            z-index: 10;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            border-right: 35px solid #dc2626;
+            z-index: 15;
+            filter: drop-shadow(-4px 0 8px rgba(0, 0, 0, 0.4));
+        }
+
+        .roulette-pointer::after {
+            content: '';
+            position: absolute;
+            top: -15px;
+            right: -30px;
+            width: 0;
+            height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-right: 25px solid #ffd700;
         }
 
         .roulette-center {
@@ -692,16 +723,85 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             background: linear-gradient(135deg, #ffd700, #ffcc00);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            border: 3px solid white;
+            box-shadow: 
+                0 0 0 4px #fff,
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                inset 0 0 20px rgba(255, 255, 255, 0.3);
+            border: 2px solid #fff;
+            z-index: 10;
+        }
+
+        /* Prêmios dentro da roleta */
+        .roulette-prize {
+            position: absolute;
+            font-size: clamp(10px, 2.5vw, 14px);
+            font-weight: 800;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            transform-origin: center;
             z-index: 5;
+            text-align: center;
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .roulette-prize.prize-1 {
+            top: 35%;
+            right: 15%;
+            transform: rotate(22.5deg);
+        }
+
+        .roulette-prize.prize-2 {
+            top: 15%;
+            right: 35%;
+            transform: rotate(67.5deg);
+            color: #000;
+            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
+        }
+
+        .roulette-prize.prize-3 {
+            top: 15%;
+            left: 35%;
+            transform: rotate(112.5deg);
+        }
+
+        .roulette-prize.prize-4 {
+            top: 35%;
+            left: 15%;
+            transform: rotate(157.5deg);
+        }
+
+        .roulette-prize.prize-5 {
+            bottom: 35%;
+            left: 15%;
+            transform: rotate(202.5deg);
+        }
+
+        .roulette-prize.prize-6 {
+            bottom: 15%;
+            left: 35%;
+            transform: rotate(247.5deg);
+        }
+
+        .roulette-prize.prize-7 {
+            bottom: 15%;
+            right: 35%;
+            transform: rotate(292.5deg);
+        }
+
+        .roulette-prize.prize-8 {
+            bottom: 35%;
+            right: 15%;
+            transform: rotate(337.5deg);
+            color: #000;
+            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
         }
 
         .roulette-prizes {
@@ -1864,8 +1964,8 @@
                         <div class="prize-label">Grande Prêmio</div>
                     </div>
                     <div class="prize-item special">
-                        <div class="prize-value special">TENTE NOVAMENTE</div>
-                        <div class="prize-label">Você Perdeu</div>
+                        <div class="prize-value special">VOCÊ PERDEU</div>
+                        <div class="prize-label">Tente Novamente</div>
                     </div>
                 </div>
             </div>
@@ -1901,6 +2001,16 @@
             <div class="roulette-container">
                 <div class="roulette-pointer"></div>
                 <div class="roulette-wheel" id="roulette-wheel">
+                    <!-- Prêmios dentro da roleta -->
+                    <div class="roulette-prize prize-1">R$ 10</div>
+                    <div class="roulette-prize prize-2">VOCÊ PERDEU</div>
+                    <div class="roulette-prize prize-3">R$ 100</div>
+                    <div class="roulette-prize prize-4">R$ 300</div>
+                    <div class="roulette-prize prize-5">R$ 500</div>
+                    <div class="roulette-prize prize-6">R$ 1000</div>
+                    <div class="roulette-prize prize-7">R$ 5</div>
+                    <div class="roulette-prize prize-8">R$ 1</div>
+                    
                     <div class="roulette-center">
                         <i class="fas fa-star" style="color: white; font-size: 20px;"></i>
                     </div>
@@ -3919,7 +4029,7 @@
             }
         }
 
-        // Função para raspar bandeira (conectada ao backend com validação de pagamento)
+        // Função para raspar bandeira (simulação offline com prêmios limitados)
         async function rasparBandeira(index) {
             const bandeira = document.getElementById(`bandeira-${index}`);
             
@@ -3933,57 +4043,58 @@
             const overlay = bandeira.querySelector('.bandeira-overlay');
             overlay.style.opacity = '0';
             
-            try {
-                // Chama o backend para determinar o resultado
-                const response = await fetch('/raspar', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+            // Simular processamento
+            setTimeout(() => {
+                const resultadoDiv = bandeira.querySelector('.bandeira-resultado');
                 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.erro || 'Erro ao processar raspagem');
-                }
+                // Sistema de prêmios limitados - só libera prêmios após 1000 vendas
+                // Chance de ganho de 25% mas dificulta ainda mais para ser realista
+                const sistemaLiberado = vendidas >= 1000;
+                const chanceGanho = sistemaLiberado ? 0.15 : 0; // 15% quando liberado, 0% antes
+                const ganhou = Math.random() < chanceGanho;
                 
-                const resultado = await response.json();
-                
-                setTimeout(() => {
-                    const resultadoDiv = bandeira.querySelector('.bandeira-resultado');
+                if (ganhou) {
+                    // Prêmios possíveis
+                    const premios = ['R$ 10,00', 'R$ 20,00', 'R$ 30,00', 'R$ 50,00', 'R$ 100,00', 'R$ 300,00', 'R$ 500,00', 'R$ 1000,00'];
+                    const pesos = [40, 25, 20, 10, 3, 1.5, 0.4, 0.1]; // Probabilidades
                     
-                    if (resultado.ganhou) {
-                        resultadoDiv.innerHTML = `
-                            <div style="font-size: clamp(1.5em, 5vw, 2.2em);">GANHOU!</div>
-                            <div style="font-size: clamp(1em, 4vw, 1.4em);">${resultado.valor}</div>
-                        `;
-                        resultadoDiv.className = 'bandeira-resultado ganhou';
-                        
-                        // Mostrar formulário de prêmio
-                        mostrarFormularioPremio(resultado.valor, resultado.codigo);
-                    } else {
-                        resultadoDiv.innerHTML = `
-                            <div style="font-size: clamp(1.5em, 5vw, 2.2em);">Tente</div>
-                            <div style="font-size: clamp(0.9em, 3.5vw, 1.2em);">NOVAMENTE</div>
-                        `;
-                        resultadoDiv.className = 'bandeira-resultado perdeu';
+                    const totalPeso = pesos.reduce((a, b) => a + b, 0);
+                    let random = Math.random() * totalPeso;
+                    let premioIndex = 0;
+                    
+                    for (let i = 0; i < pesos.length; i++) {
+                        random -= pesos[i];
+                        if (random <= 0) {
+                            premioIndex = i;
+                            break;
+                        }
                     }
-                }, 600);
-                
-            } catch (error) {
-                console.error('Erro ao raspar:', error);
-                setTimeout(() => {
-                    const resultadoDiv = bandeira.querySelector('.bandeira-resultado');
+                    
+                    const premioSorteado = premios[premioIndex];
+                    const codigo = gerarCodigoUnico();
+                    
                     resultadoDiv.innerHTML = `
-                        <div style="font-size: clamp(1.2em, 4vw, 1.8em);">Erro</div>
-                        <div style="font-size: clamp(0.8em, 3vw, 1em);">${error.message}</div>
+                        <div style="font-size: clamp(1.5em, 5vw, 2.2em);">GANHOU!</div>
+                        <div style="font-size: clamp(1em, 4vw, 1.4em);">${premioSorteado}</div>
+                    `;
+                    resultadoDiv.className = 'bandeira-resultado ganhou';
+                    
+                    // Mostrar formulário de prêmio
+                    mostrarFormularioPremio(premioSorteado, codigo);
+                } else {
+                    resultadoDiv.innerHTML = `
+                        <div style="font-size: clamp(1.5em, 5vw, 2.2em);">VOCÊ</div>
+                        <div style="font-size: clamp(0.9em, 3.5vw, 1.2em);">PERDEU</div>
                     `;
                     resultadoDiv.className = 'bandeira-resultado perdeu';
-                }, 600);
-                
-                // Mostrar modal com erro
-                mostrarModal(`<h3>Erro</h3><p>${error.message}</p>`);
-            }
+                }
+            }, 600);
+        }
+
+        function gerarCodigoUnico() {
+            const numero = Math.floor(Math.random() * 90000) + 10000;
+            const letras = Math.random().toString(36).substring(2, 5).toUpperCase();
+            return `RB-${numero}-${letras}`;
         }
 
         // Função para mostrar formulário de prêmio
