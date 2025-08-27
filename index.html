@@ -639,199 +639,58 @@
             font-weight: 600;
         }
 
-        /* RODA BRASIL - Roleta Moderna Baseada na Imagem */
+        /* RODA BRASIL - Roleta Neon Canvas */
         .roulette-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 50px 0;
-            perspective: 1000px;
             position: relative;
         }
 
-        .roulette-wheel {
-            position: relative;
-            width: clamp(350px, 85vw, 450px);
-            height: clamp(350px, 85vw, 450px);
+        #roleta {
             border-radius: 50%;
-            background: 
-                conic-gradient(
-                    from 0deg,
-                    #00b341 0deg 45deg,        /* R$ 1 - Verde */
-                    #dc2626 45deg 90deg,       /* Perdeu - Vermelho */
-                    #ffd700 90deg 135deg,      /* R$ 5 - Amarelo */
-                    #8b5cf6 135deg 180deg,     /* R$ 10 - Roxo */
-                    #06b6d4 180deg 225deg,     /* R$ 100 - Azul claro */
-                    #ff6b35 225deg 270deg,     /* R$ 300 - Laranja */
-                    #4f46e5 270deg 315deg,     /* R$ 500 - Azul escuro */
-                    #28a745 315deg 360deg      /* R$ 1000 - Verde escuro */
-                );
-            box-shadow: 
-                0 0 0 15px #ffd700,
-                0 0 0 20px #fff,
-                0 25px 100px rgba(0, 0, 0, 0.6),
-                inset 0 0 0 6px rgba(255, 255, 255, 0.3),
-                inset 0 0 60px rgba(0, 0, 0, 0.2);
-            transition: transform 4.5s cubic-bezier(0.23, 1, 0.32, 1);
+            background: white;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.8),
+                        0 0 80px rgba(0, 255, 200, 0.5);
+            cursor: pointer;
             margin-bottom: 30px;
-            transform-style: preserve-3d;
-            border: 8px solid #fff;
-            overflow: visible;
-            animation: rouletteIdle 8s ease-in-out infinite;
+            max-width: 90vw;
+            max-height: 90vw;
+            width: clamp(350px, 85vw, 500px);
+            height: clamp(350px, 85vw, 500px);
         }
 
-        @keyframes rouletteIdle {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(2deg) scale(1.02); }
-        }
-
-        .roulette-wheel.spinning {
-            transform: rotateZ(1800deg) rotateX(2deg) scale(1.05);
-            animation: none;
-        }
-
-        .roulette-wheel::before {
-            content: '';
+        #arrow {
             position: absolute;
-            top: -12px;
-            left: -12px;
-            right: -12px;
-            bottom: -12px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #ffd700, #ffaa00, #ffd700, #ffcc00);
-            z-index: -1;
-            box-shadow: 
-                0 15px 50px rgba(255, 215, 0, 0.8),
-                0 0 100px rgba(255, 215, 0, 0.4);
-        }
-
-        .roulette-pointer {
-            position: absolute;
-            top: 50%;
-            right: -35px;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-top: 30px solid transparent;
-            border-bottom: 30px solid transparent;
-            border-right: 50px solid #dc2626;
-            z-index: 15;
-            filter: drop-shadow(-8px 0 15px rgba(0, 0, 0, 0.8));
-            animation: pointerPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pointerPulse {
-            0%, 100% { transform: translateY(-50%) scale(1); }
-            50% { transform: translateY(-50%) scale(1.1); }
-        }
-
-        .roulette-pointer::after {
-            content: '';
-            position: absolute;
-            top: -22px;
-            right: -42px;
-            width: 0;
-            height: 0;
-            border-top: 22px solid transparent;
-            border-bottom: 22px solid transparent;
-            border-right: 35px solid #ffd700;
-        }
-
-        .roulette-center {
-            position: absolute;
-            top: 50%;
+            top: calc(50% - 250px + 55px);
             left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90px;
-            height: 90px;
-            background: linear-gradient(135deg, #333, #1a1a1a);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 
-                0 0 0 8px #ffd700,
-                0 0 0 12px #fff,
-                0 15px 35px rgba(0, 0, 0, 0.5),
-                inset 0 0 25px rgba(255, 255, 255, 0.1);
-            border: 4px solid #fff;
+            transform: translateX(-50%);
+            width: 0; 
+            height: 0; 
+            border-left: 25px solid transparent;
+            border-right: 25px solid transparent;
+            border-top: 50px solid gold;
+            filter: drop-shadow(0 0 8px #ffd700);
             z-index: 10;
-            font-size: clamp(16px, 3.5vw, 20px);
-            font-weight: 900;
-            color: #ffd700;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
-        /* Prêmios dentro da roleta posicionados corretamente */
-        .roulette-prize {
-            position: absolute;
-            font-size: clamp(12px, 3vw, 16px);
-            font-weight: 900;
-            color: white;
-            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.9);
-            transform-origin: center;
-            z-index: 5;
-            text-align: center;
-            line-height: 1.1;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 55px;
-            height: 35px;
+        @media (max-width: 768px) {
+            #arrow {
+                top: calc(50% - 175px + 40px);
+                border-left: 20px solid transparent;
+                border-right: 20px solid transparent;
+                border-top: 40px solid gold;
+            }
         }
 
-        /* Posições dos prêmios baseadas nos 8 segmentos */
-        .roulette-prize.prize-1 {
-            top: 18%;
-            right: 23%;
-            transform: rotate(22.5deg);
-        }
-
-        .roulette-prize.prize-2 {
-            top: 8%;
-            right: 43%;
-            transform: rotate(67.5deg);
-            color: #000;
-            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.9);
-        }
-
-        .roulette-prize.prize-3 {
-            top: 8%;
-            left: 43%;
-            transform: rotate(112.5deg);
-            color: #333;
-            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.8);
-        }
-
-        .roulette-prize.prize-4 {
-            top: 18%;
-            left: 23%;
-            transform: rotate(157.5deg);
-        }
-
-        .roulette-prize.prize-5 {
-            bottom: 18%;
-            left: 23%;
-            transform: rotate(202.5deg);
-        }
-
-        .roulette-prize.prize-6 {
-            bottom: 8%;
-            left: 43%;
-            transform: rotate(247.5deg);
-        }
-
-        .roulette-prize.prize-7 {
-            bottom: 8%;
-            right: 43%;
-            transform: rotate(292.5deg);
-        }
-
-        .roulette-prize.prize-8 {
-            bottom: 18%;
-            right: 23%;
-            transform: rotate(337.5deg);
+        @media (max-width: 480px) {
+            #arrow {
+                top: calc(50% - 125px + 30px);
+                border-left: 15px solid transparent;
+                border-right: 15px solid transparent;
+                border-top: 30px solid gold;
+            }
         }
 
         .roulette-prizes {
@@ -1501,11 +1360,6 @@
                 gap: 15px;
             }
 
-            .roulette-wheel {
-                width: clamp(280px, 90vw, 350px);
-                height: clamp(280px, 90vw, 350px);
-            }
-
             .roulette-prizes {
                 grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
                 gap: 15px;
@@ -1542,11 +1396,6 @@
                 font-size: 10px;
                 padding: 10px;
                 line-height: 1.2;
-            }
-
-            .roulette-wheel {
-                width: clamp(250px, 95vw, 300px);
-                height: clamp(250px, 95vw, 300px);
             }
 
             .roulette-prizes {
@@ -2029,22 +1878,13 @@
             </div>
 
             <div class="roulette-container">
-                <div class="roulette-pointer"></div>
-                <div class="roulette-wheel" id="roulette-wheel">
-                    <!-- Prêmios dentro da roleta -->
-                    <div class="roulette-prize prize-1">R$ 1</div>
-                    <div class="roulette-prize prize-2">PERDEU</div>
-                    <div class="roulette-prize prize-3">R$ 5</div>
-                    <div class="roulette-prize prize-4">R$ 10</div>
-                    <div class="roulette-prize prize-5">R$ 100</div>
-                    <div class="roulette-prize prize-6">R$ 300</div>
-                    <div class="roulette-prize prize-7">R$ 500</div>
-                    <div class="roulette-prize prize-8">R$ 1000</div>
-                    
-                    <div class="roulette-center">
-                        GO
-                    </div>
-                </div>
+                <div id="arrow"></div>
+                <canvas id="roleta" width="500" height="500"></canvas>
+                
+                <!-- Som real de roleta -->
+                <audio id="sound" preload="auto">
+                    <source src="https://www.fesliyanstudios.com/play-mp3/387" type="audio/mpeg">
+                </audio>
                 
                 <button class="spin-button" id="spin-button" onclick="girarRoleta()">
                     <i class="fas fa-sync-alt"></i>
@@ -2064,9 +1904,6 @@
             </div>
         </div>
 
-        <!-- Continua com as outras páginas (Afiliados, Pagamento, etc.) -->
-        <!-- A implementação das outras páginas continua igual ao código anterior -->
-        
         <!-- Página de Afiliados -->
         <div id="affiliate-page" class="page">
             <div class="header">
@@ -2078,131 +1915,91 @@
                 <p>Ganhe 50% de comissão em cada venda!</p>
             </div>
 
-            <!-- Formulário de Cadastro ou Área do Afiliado -->
-            <div id="affiliate-signup">
-                <div class="cta-message affiliate">
-                    <h3>SEJA UM AFILIADO RASPA BRASIL!</h3>
-                    <p>Ganhe <strong>50% de comissão</strong> em cada venda que você indicar!</p>
-                    <div class="urgency-indicator">
-                        <i class="fas fa-percentage"></i>
-                        <span>R$ 0,50 por raspadinha vendida!</span>
-                    </div>
-                </div>
-
-                <div style="background: white; padding: clamp(25px, 6vw, 40px); border-radius: var(--border-radius); box-shadow: var(--shadow-medium);">
-                    <h3 style="text-align: center; margin-bottom: 30px; color: var(--affiliate-orange);">
-                        <i class="fas fa-user-plus"></i> Cadastre-se como Afiliado
+            <!-- Cadastro de Afiliado -->
+            <div id="affiliate-signup" style="display: block;">
+                <div class="affiliate-section">
+                    <h3 style="text-align: center; margin-bottom: 30px; font-size: clamp(1.8em, 6vw, 2.5em);">
+                        <i class="fas fa-users"></i> Torne-se um Afiliado
                     </h3>
                     
                     <div class="form-group">
                         <label><i class="fas fa-user"></i> Nome Completo:</label>
-                        <input type="text" id="affiliate-nome" placeholder="Digite seu nome completo">
+                        <input type="text" id="affiliate-nome" placeholder="Digite seu nome completo" required>
                     </div>
                     
                     <div class="form-group">
                         <label><i class="fas fa-phone"></i> Telefone/WhatsApp:</label>
-                        <input type="tel" id="affiliate-telefone" placeholder="(11) 99999-9999">
+                        <input type="text" id="affiliate-telefone" placeholder="(00) 00000-0000" required>
                     </div>
                     
                     <div class="form-group">
                         <label><i class="fas fa-envelope"></i> E-mail:</label>
-                        <input type="email" id="affiliate-email" placeholder="seu@email.com">
+                        <input type="email" id="affiliate-email" placeholder="seu@email.com" required>
                     </div>
                     
                     <div class="form-group">
                         <label><i class="fas fa-id-card"></i> CPF:</label>
-                        <input type="text" id="affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
+                        <input type="text" id="affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)" required>
                     </div>
                     
-                    <button class="btn btn-affiliate" onclick="cadastrarAfiliado()" style="width: 100%; font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">
-                        <i class=""></i>
-                        CRIAR MINHA CONTA DE AFILIADO
+                    <button class="btn btn-affiliate" onclick="cadastrarAfiliado()" style="width: 100%; margin-bottom: 20px;">
+                        <i class="fas fa-user-plus"></i>
+                        CADASTRAR-SE COMO AFILIADO
                     </button>
                     
-                    <button class="btn btn-secondary" onclick="mostrarLoginAfiliado()" style="width: 100%; font-size: clamp(14px, 3.5vw, 16px);">
-                        <i class="fas fa-sign-in-alt"></i>
-                        JÁ SOU AFILIADO
-                    </button>
-                </div>
-
-                <div style="background: linear-gradient(135deg, #e8f4f8, #d1ecf1); padding: 25px; border-radius: 15px; margin-top: 30px; text-align: center;">
-                    <h4 style="color: var(--affiliate-orange); margin-bottom: 20px;">
-                        <i class="fas fa-info-circle"></i> Como funciona:
-                    </h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: left;">
-                        <div>
-                            <strong>1. Cadastre-se</strong><br>
-                            Preencha seus dados e receba seu link personalizado
-                        </div>
-                        <div>
-                            <strong>2. Compartilhe</strong><br>
-                            Envie seu link para amigos e redes sociais
-                        </div>
-                        <div>
-                            <strong>3. Ganhe</strong><br>
-                            Receba 50% de cada venda realizada pelo seu link
-                        </div>
-                        <div>
-                            <strong>4. Saque</strong><br>
-                            Solicite saque a partir de R$ 10,00 via PIX
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Login do Afiliado -->
-            <div id="affiliate-login" style="display: none;">
-                <div style="background: white; padding: clamp(25px, 6vw, 40px); border-radius: var(--border-radius); box-shadow: var(--shadow-medium);">
-                    <h3 style="text-align: center; margin-bottom: 30px; color: var(--affiliate-orange);">
-                        <i class="fas fa-sign-in-alt"></i> Área do Afiliado
-                    </h3>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-id-card"></i> CPF:</label>
-                        <input type="text" id="login-affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
-                    </div>
-                    
-                    <button class="btn btn-affiliate" onclick="loginAfiliado()" style="width: 100%; margin-bottom: 15px;">
-                        <i class="fas fa-sign-in-alt"></i>
-                        ENTRAR NA MINHA ÁREA
-                    </button>
-                    
-                    <button class="btn btn-secondary" onclick="voltarCadastroAfiliado()" style="width: 100%;">
-                        <i class="fas fa-arrow-left"></i>
-                        Voltar ao Cadastro
-                    </button>
-                    
-                    <div id="login-affiliate-message" style="margin-top: 20px;"></div>
-                </div>
-            </div>
-
-            <!-- Área do Afiliado (após login) -->
-            <div id="affiliate-dashboard" style="display: none;">
-                <div class="affiliate-section">
-                    <h3 style="text-align: center; color: var(--affiliate-orange); margin-bottom: 25px;">
-                        <i class="fas fa-chart-line"></i> Painel do Afiliado
-                    </h3>
-                    
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <h4>Bem-vindo(a), <span id="affiliate-name-display">Afiliado</span>!</h4>
-                        <p>Seu link personalizado:</p>
-                        <div class="affiliate-link-display" id="affiliate-link-display">
-                            https://raspabrasil.com/?ref=SEUCODIGO
-                        </div>
-                        <button class="btn btn-secondary" onclick="copiarLinkAfiliado()" style="margin-top: 15px;">
-                            <i class="fas fa-copy"></i>
-                            Copiar Link
+                    <div style="text-align: center;">
+                        <p style="margin: 20px 0;">Já é afiliado?</p>
+                        <button class="btn btn-secondary" onclick="mostrarLoginAfiliado()">
+                            <i class="fas fa-sign-in-alt"></i>
+                            FAZER LOGIN
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Login de Afiliado -->
+            <div id="affiliate-login" style="display: none;">
+                <div class="affiliate-section">
+                    <h3 style="text-align: center; margin-bottom: 30px; font-size: clamp(1.8em, 6vw, 2.5em);">
+                        <i class="fas fa-sign-in-alt"></i> Login do Afiliado
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF:</label>
+                        <input type="text" id="login-affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)" required>
+                    </div>
+                    
+                    <button class="btn btn-affiliate" onclick="loginAfiliado()" style="width: 100%; margin-bottom: 20px;">
+                        <i class="fas fa-sign-in-alt"></i>
+                        ENTRAR
+                    </button>
+                    
+                    <div id="login-affiliate-message"></div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn btn-secondary" onclick="voltarCadastroAfiliado()">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar ao Cadastro
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard do Afiliado -->
+            <div id="affiliate-dashboard" style="display: none;">
+                <div class="affiliate-section">
+                    <h3 style="text-align: center; margin-bottom: 30px; font-size: clamp(1.8em, 6vw, 2.5em);">
+                        <i class="fas fa-chart-line"></i> Olá, <span id="affiliate-name-display">Afiliado</span>!
+                    </h3>
                     
                     <div class="affiliate-stats">
                         <div class="affiliate-stat-item">
                             <span class="affiliate-stat-number" id="affiliate-clicks">0</span>
-                            <span class="affiliate-stat-label">Cliques</span>
+                            <span class="affiliate-stat-label">Clicks no Link</span>
                         </div>
                         <div class="affiliate-stat-item">
                             <span class="affiliate-stat-number" id="affiliate-sales">0</span>
-                            <span class="affiliate-stat-label">Vendas</span>
+                            <span class="affiliate-stat-label">Vendas Convertidas</span>
                         </div>
                         <div class="affiliate-stat-item">
                             <span class="affiliate-stat-number" id="affiliate-commission">R$ 0,00</span>
@@ -2210,143 +2007,118 @@
                         </div>
                         <div class="affiliate-stat-item">
                             <span class="affiliate-stat-number" id="affiliate-balance">R$ 0,00</span>
-                            <span class="affiliate-stat-label">Saldo</span>
+                            <span class="affiliate-stat-label">Saldo Disponível</span>
                         </div>
                     </div>
                     
-                    <div style="background: white; padding: 25px; border-radius: 15px; margin-top: 30px;">
-                        <h4 style="color: var(--affiliate-orange); margin-bottom: 20px;">
-                            <i class=""></i> Configurar PIX para Saque
-                        </h4>
-                        
-                        <div class="form-group">
-                            <label>Tipo de Chave PIX:</label>
-                            <select id="affiliate-pix-type">
-                                <option value="cpf">CPF</option>
-                                <option value="email">E-mail</option>
-                                <option value="telefone">Telefone</option>
-                                <option value="aleatoria">Chave Aleatória</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Chave PIX:</label>
-                            <input type="text" id="affiliate-pix-key" placeholder="Digite sua chave PIX">
-                        </div>
-                        
-                        <button class="btn btn-primary" onclick="salvarChavePix()" style="margin-right: 15px;">
-                            <i class="fas fa-save"></i>
-                            Salvar Chave PIX
-                        </button>
-                        
-                        <button class="btn btn-affiliate" onclick="solicitarSaque()" id="btn-saque" disabled>
-                            <i class="fas fa-money-bill-wave"></i>
-                            Solicitar Saque (Min. R$ 10,00)
-                        </button>
+                    <h4 style="margin: 30px 0 15px 0; text-align: center;">Seu Link de Afiliado:</h4>
+                    <div class="affiliate-link-display" id="affiliate-link-display">
+                        Carregando...
                     </div>
+                    <button class="btn btn-affiliate" onclick="copiarLinkAfiliado()" style="width: 100%; margin: 20px 0;">
+                        <i class="fas fa-copy"></i>
+                        COPIAR LINK
+                    </button>
                     
-                    <div class="cta-message success" style="margin-top: 30px;">
-                        <h4>Dicas para Aumentar suas Vendas:</h4>
-                        <ul style="text-align: left; margin: 15px 0; padding-left: 20px;">
-                            <li>Compartilhe nas redes sociais (Instagram, Facebook, TikTok)</li>
-                            <li>Envie para grupos de WhatsApp e Telegram</li>
-                            <li>Conte para amigos e família sobre os prêmios</li>
-                            <li>Mostre os ganhadores para aumentar a credibilidade</li>
-                        </ul>
+                    <h4 style="margin: 30px 0 15px 0; text-align: center;">Configurar PIX para Saque:</h4>
+                    <div class="form-group">
+                        <label><i class="fas fa-key"></i> Tipo de Chave PIX:</label>
+                        <select id="affiliate-pix-type">
+                            <option value="cpf">CPF</option>
+                            <option value="email">E-mail</option>
+                            <option value="telefone">Telefone</option>
+                            <option value="aleatoria">Chave Aleatória</option>
+                        </select>
                     </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-credit-card"></i> Chave PIX:</label>
+                        <input type="text" id="affiliate-pix-key" placeholder="Digite sua chave PIX">
+                    </div>
+                    <button class="btn btn-secondary" onclick="salvarChavePix()" style="width: 100%; margin-bottom: 20px;">
+                        <i class="fas fa-save"></i>
+                        SALVAR CHAVE PIX
+                    </button>
+                    
+                    <button class="btn btn-affiliate" id="btn-saque" onclick="solicitarSaque()" style="width: 100%; margin-bottom: 20px;" disabled>
+                        <i class="fas fa-money-bill-wave"></i>
+                        SOLICITAR SAQUE (Min. R$ 10,00)
+                    </button>
                     
                     <div style="text-align: center; margin-top: 30px;">
                         <button class="btn btn-secondary" onclick="logoutAfiliado()">
                             <i class="fas fa-sign-out-alt"></i>
-                            Sair da Conta
+                            SAIR
+                        </button>
+                        <button class="btn btn-secondary" onclick="voltarInicio()" style="margin-left: 10px;">
+                            <i class="fas fa-home"></i>
+                            INÍCIO
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <div style="text-align: center; margin-top: 40px;">
-                <button class="btn btn-secondary" onclick="voltarInicio()">
-                    <i class="fas fa-home"></i>
-                    Voltar ao Início
-                </button>
             </div>
         </div>
 
-        <!-- Página de Pagamento -->
+        <!-- Página de Pagamento (Raspadinhas) -->
         <div id="payment-page" class="page">
-            <div class="header">
-                <div class="logo-brasil">
-                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
-                    </div>
-                </div>
-                <h1>RASPA BRASIL</h1>
-                <p>Finalize seu pagamento</p>
-            </div>
-
             <div class="payment-container">
-                <div style="text-align: center; margin-bottom: 40px;">
-                    <h2 style="color: #1a1a1a;"><i class="fas fa-credit-card"></i> Pagamento via PIX</h2>
-                    <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin: 15px 0; font-weight: 600; color: #1a1a1a;">
-                        Quantidade: <strong><span id="quantidade-pagamento">1</span> raspadinha(s)</strong>
-                    </p>
-                    <div style="background: linear-gradient(135deg, #00b341, #003087); color: white; padding: clamp(15px, 4vw, 25px); border-radius: 15px; font-size: clamp(1.3em, 5vw, 1.8em); font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
-                        Total: R$ <span id="total-pagamento">1,00</span>
-                    </div>
-                </div>
-
-                <div id="payment-status">
-                    <div class="loading">
-                        <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin-bottom: 25px; font-weight: 600; color: #1a1a1a;">Gerando seu QR Code PIX...</p>
-                    </div>
-                </div>
-
-                <div class="qr-container" id="qr-section" style="display: none;">
-                    <h3 style="color: #1a1a1a;"><i class="fas fa-qrcode"></i> Escaneie o QR Code</h3>
-                    <div id="qr-code" class="qr-code"></div>
-                    
-                    <div style="margin: 25px 0;">
-                        <p style="font-weight: 700; margin-bottom: 15px; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a;">
-                            <i class="fas fa-copy"></i> Ou copie o código PIX:
-                        </p>
-                        <div class="pix-code" id="pix-code"></div>
-                        <button class="btn btn-secondary" onclick="copiarCodigoPix()">
-                            <i class="fas fa-clipboard"></i>
-                            Copiar Código PIX
-                        </button>
-                    </div>
-
-                    <div id="payment-actions">
-                        <button class="btn btn-primary" onclick="criarPagamentoReal()" style="width: 100%; margin-top: 25px;" id="btn-real-payment">
-                            <i class="fas fa-credit-card"></i>
-                            Pagar com PIX
-                        </button>
-
-                        <div class="cta-message warning" style="margin: 25px 0;">
-                            <h4><i class="fas fa-exclamation-triangle"></i> Importante!</h4>
-                            <p style="margin: 10px 0; font-size: clamp(0.9em, 3vw, 1.1em);">
-                                • Pagamento deve ser aprovado para liberar as raspadinhas<br>
-                                • Aguarde a confirmação automática após o PIX<br>
-                                • Não feche esta página durante o pagamento
-                            </p>
+                <div class="header">
+                    <div class="logo-brasil">
+                        <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                         </div>
                     </div>
+                    <h1>FINALIZAR PAGAMENTO</h1>
+                    <p>Raspadinhas Brasileiras</p>
                 </div>
 
-                <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: clamp(20px, 5vw, 30px); border-radius: 15px; margin: 35px 0; border: 3px solid #ffc107;">
-                    <h4 style="margin-bottom: 20px; font-size: clamp(1.1em, 4vw, 1.4em); font-weight: 800; color: #1a1a1a;">
-                        <i class="fas fa-info-circle"></i> Como pagar:
-                    </h4>
-                    <ol style="line-height: 2; padding-left: 25px; font-size: clamp(0.95em, 3.5vw, 1.1em); color: #1a1a1a; font-weight: 600;">
-                        <li><strong>Clique em "Pagar com PIX"</strong></li>
-                        <li><strong>Abra o app do seu banco</strong></li>
-                        <li><strong>Escolha a opção PIX</strong></li>
-                        <li><strong>Escaneie o QR Code ou cole o código</strong></li>
-                        <li><strong>Confirme o pagamento de R$ <span id="total-pagamento-info">1,00</span></strong></li>
-                        <li><strong>Aguarde a confirmação automática</strong></li>
-                    </ol>
+                <div style="text-align: center; margin: 30px 0;">
+                    <h3 style="color: var(--primary-green); font-size: clamp(1.5em, 5vw, 2em); margin-bottom: 15px;">
+                        <i class="fas fa-shopping-cart"></i> Resumo do Pedido
+                    </h3>
+                    <p style="font-size: clamp(1.2em, 4vw, 1.5em); margin: 10px 0;">
+                        Quantidade: <strong><span id="quantidade-pagamento">1</span> raspadinha(s)</strong>
+                    </p>
+                    <p style="font-size: clamp(1.5em, 6vw, 2.2em); color: var(--primary-green); font-weight: 800;">
+                        Total: R$ <span id="total-pagamento">1,00</span>
+                    </p>
                 </div>
 
-                <div style="text-align: center;">
+                <div id="payment-actions" style="text-align: center; margin: 30px 0;">
+                    <button class="btn btn-cta" id="btn-real-payment" onclick="criarPagamentoReal()">
+                        <i class="fas fa-qrcode"></i>
+                        GERAR PIX PARA PAGAMENTO
+                    </button>
+                </div>
+
+                <div id="payment-status" style="margin: 30px 0;"></div>
+
+                <div id="qr-section" style="display: none;">
+                    <div class="qr-container">
+                        <h4 style="text-align: center; margin-bottom: 20px; color: var(--primary-green);">
+                            <i class="fas fa-qrcode"></i> Escaneie o QR Code ou copie o código PIX:
+                        </h4>
+                        <div class="qr-code" id="qr-code">
+                            <!-- QR Code será inserido aqui -->
+                        </div>
+                        <div class="pix-code" id="pix-code">
+                            <!-- Código PIX será inserido aqui -->
+                        </div>
+                        <button class="btn btn-secondary" onclick="copiarCodigoPix()" style="width: 100%;">
+                            <i class="fas fa-copy"></i>
+                            COPIAR CÓDIGO PIX
+                        </button>
+                    </div>
+                    
+                    <div class="cta-message warning" style="margin-top: 20px;">
+                        <h4><i class="fas fa-info-circle"></i> Instruções:</h4>
+                        <p>1. Abra seu app do banco</p>
+                        <p>2. Vá em PIX → Pagar</p>
+                        <p>3. Escaneie o QR Code ou cole o código</p>
+                        <p>4. Confirme o pagamento de <strong>R$ <span id="total-pagamento-info">1,00</span></strong></p>
+                        <p>5. Aguarde alguns segundos para confirmação automática</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 40px;">
                     <button class="btn btn-secondary" onclick="voltarInicio()">
                         <i class="fas fa-arrow-left"></i>
                         Voltar ao Início
@@ -2357,79 +2129,65 @@
 
         <!-- Página de Pagamento Roda Brasil -->
         <div id="payment-page-roda" class="page">
-            <div class="header roda-brasil">
-                <div class="logo-brasil">
-                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
-                    </div>
-                </div>
-                <h1>RODA BRASIL</h1>
-                <p>Finalize seu pagamento</p>
-            </div>
-
             <div class="payment-container">
-                <div style="text-align: center; margin-bottom: 40px;">
-                    <h2 style="color: #1a1a1a;"><i class="fas fa-credit-card"></i> Pagamento via PIX</h2>
-                    <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin: 15px 0; font-weight: 600; color: #1a1a1a;">
-                        Quantidade: <strong><span id="quantidade-pagamento-roda">1</span> ficha(s)</strong>
-                    </p>
-                    <div style="background: linear-gradient(135deg, #00b341, #003087); color: white; padding: clamp(15px, 4vw, 25px); border-radius: 15px; font-size: clamp(1.3em, 5vw, 1.8em); font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
-                        Total: R$ <span id="total-pagamento-roda">1,00</span>
-                    </div>
-                </div>
-
-                <div id="payment-status-roda">
-                    <div class="loading">
-                        <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin-bottom: 25px; font-weight: 600; color: #1a1a1a;">Gerando seu QR Code PIX...</p>
-                    </div>
-                </div>
-
-                <div class="qr-container" id="qr-section-roda" style="display: none;">
-                    <h3 style="color: #1a1a1a;"><i class="fas fa-qrcode"></i> Escaneie o QR Code</h3>
-                    <div id="qr-code-roda" class="qr-code"></div>
-                    
-                    <div style="margin: 25px 0;">
-                        <p style="font-weight: 700; margin-bottom: 15px; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a;">
-                            <i class="fas fa-copy"></i> Ou copie o código PIX:
-                        </p>
-                        <div class="pix-code" id="pix-code-roda"></div>
-                        <button class="btn btn-secondary" onclick="copiarCodigoPixRoda()">
-                            <i class="fas fa-clipboard"></i>
-                            Copiar Código PIX
-                        </button>
-                    </div>
-
-                    <div id="payment-actions-roda">
-                        <button class="btn btn-roda" onclick="criarPagamentoRealRoda()" style="width: 100%; margin-top: 25px;" id="btn-real-payment-roda">
-                            <i class="fas fa-credit-card"></i>
-                            Pagar com PIX
-                        </button>
-
-                        <div class="cta-message warning" style="margin: 25px 0;">
-                            <h4><i class="fas fa-exclamation-triangle"></i> Importante!</h4>
-                            <p style="margin: 10px 0; font-size: clamp(0.9em, 3vw, 1.1em);">
-                                • Pagamento deve ser aprovado para liberar as fichas<br>
-                                • Aguarde a confirmação automática após o PIX<br>
-                                • Não feche esta página durante o pagamento
-                            </p>
+                <div class="header roda-brasil">
+                    <div class="logo-brasil">
+                        <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                         </div>
                     </div>
+                    <h1>FINALIZAR PAGAMENTO</h1>
+                    <p>Roda Brasil - Fichas</p>
                 </div>
 
-                <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: clamp(20px, 5vw, 30px); border-radius: 15px; margin: 35px 0; border: 3px solid #ffc107;">
-                    <h4 style="margin-bottom: 20px; font-size: clamp(1.1em, 4vw, 1.4em); font-weight: 800; color: #1a1a1a;">
-                        <i class="fas fa-info-circle"></i> Como pagar:
-                    </h4>
-                    <ol style="line-height: 2; padding-left: 25px; font-size: clamp(0.95em, 3.5vw, 1.1em); color: #1a1a1a; font-weight: 600;">
-                        <li><strong>Clique em "Pagar com PIX"</strong></li>
-                        <li><strong>Abra o app do seu banco</strong></li>
-                        <li><strong>Escolha a opção PIX</strong></li>
-                        <li><strong>Escaneie o QR Code ou cole o código</strong></li>
-                        <li><strong>Confirme o pagamento de R$ <span id="total-pagamento-info-roda">1,00</span></strong></li>
-                        <li><strong>Aguarde a confirmação automática</strong></li>
-                    </ol>
+                <div style="text-align: center; margin: 30px 0;">
+                    <h3 style="color: var(--primary-green); font-size: clamp(1.5em, 5vw, 2em); margin-bottom: 15px;">
+                        <i class="fas fa-coins"></i> Resumo do Pedido
+                    </h3>
+                    <p style="font-size: clamp(1.2em, 4vw, 1.5em); margin: 10px 0;">
+                        Quantidade: <strong><span id="quantidade-pagamento-roda">1</span> ficha(s)</strong>
+                    </p>
+                    <p style="font-size: clamp(1.5em, 6vw, 2.2em); color: var(--primary-green); font-weight: 800;">
+                        Total: R$ <span id="total-pagamento-roda">1,00</span>
+                    </p>
                 </div>
 
-                <div style="text-align: center;">
+                <div id="payment-actions-roda" style="text-align: center; margin: 30px 0;">
+                    <button class="btn btn-cta" id="btn-real-payment-roda" onclick="criarPagamentoRealRoda()">
+                        <i class="fas fa-qrcode"></i>
+                        GERAR PIX PARA PAGAMENTO
+                    </button>
+                </div>
+
+                <div id="payment-status-roda" style="margin: 30px 0;"></div>
+
+                <div id="qr-section-roda" style="display: none;">
+                    <div class="qr-container">
+                        <h4 style="text-align: center; margin-bottom: 20px; color: var(--primary-green);">
+                            <i class="fas fa-qrcode"></i> Escaneie o QR Code ou copie o código PIX:
+                        </h4>
+                        <div class="qr-code" id="qr-code-roda">
+                            <!-- QR Code será inserido aqui -->
+                        </div>
+                        <div class="pix-code" id="pix-code-roda">
+                            <!-- Código PIX será inserido aqui -->
+                        </div>
+                        <button class="btn btn-secondary" onclick="copiarCodigoPixRoda()" style="width: 100%;">
+                            <i class="fas fa-copy"></i>
+                            COPIAR CÓDIGO PIX
+                        </button>
+                    </div>
+                    
+                    <div class="cta-message warning" style="margin-top: 20px;">
+                        <h4><i class="fas fa-info-circle"></i> Instruções:</h4>
+                        <p>1. Abra seu app do banco</p>
+                        <p>2. Vá em PIX → Pagar</p>
+                        <p>3. Escaneie o QR Code ou cole o código</p>
+                        <p>4. Confirme o pagamento de <strong>R$ <span id="total-pagamento-info-roda">1,00</span></strong></p>
+                        <p>5. Aguarde alguns segundos para confirmação automática</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 40px;">
                     <button class="btn btn-secondary" onclick="voltarInicio()">
                         <i class="fas fa-arrow-left"></i>
                         Voltar ao Início
@@ -2438,28 +2196,24 @@
             </div>
         </div>
 
-        <!-- Página de Raspadinhas -->
+        <!-- Página das Raspadinhas -->
         <div id="raspadinha-page" class="page">
             <div class="header">
                 <div class="logo-brasil">
                     <div class="logo-bandeira" onclick="abrirAdmin()" title="">
                     </div>
                 </div>
-                <h1>RASPA BRASIL</h1>
-                <p>Suas raspadinhas estão prontas!</p>
+                <h1>SUAS RASPADINHAS</h1>
+                <p>Clique para raspar e descobrir se ganhou!</p>
             </div>
 
-            <div style="text-align: center; margin-bottom: 50px;">
-                <h2 style="font-size: clamp(2em, 7vw, 3em); color: #00b341; font-weight: 800;">
-                    <i class=""></i> Clique nas bandeiras para raspar!
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h2 style="font-size: clamp(2em, 7vw, 3em); color: var(--primary-green); font-weight: 800;">
+                    <i class="fas fa-hand-point-up"></i> Clique para Raspar!
                 </h2>
                 <p style="font-size: clamp(1.2em, 5vw, 1.5em); margin: 20px 0; font-weight: 600;">
-                    Você tem <strong><span id="quantidade-raspadinhas">1</span></strong> raspadinha(s) para jogar
+                    Você tem <strong><span id="quantidade-raspadinhas">1</span></strong> raspadinha(s) para raspar
                 </p>
-                <div class="cta-message success" style="margin: 25px auto; max-width: 600px;">
-                    <h3>Boa sorte!</h3>
-                    <p>Toque nas bandeiras do Brasil e descubra se você ganhou!</p>
-                </div>
             </div>
 
             <div class="raspadinha-grid" id="raspadinha-grid">
@@ -2475,171 +2229,215 @@
                 </button>
             </div>
         </div>
+        
+    </div>
+
+    <!-- Modal de Alerta de Ganhador -->
+    <div id="winner-alert" class="winner-alert">
+        <div class="winner-alert-content">
+            <h2><i class="fas fa-trophy"></i> ATENÇÃO!</h2>
+            <p><strong><span id="winner-name-alert">Maria Silva</span></strong></p>
+            <p>acabou de ganhar <strong style="font-size: 1.5em;">R$ 500,00!</strong></p>
+            <p style="font-size: 1.2em; margin-top: 20px;">🔥 <strong>Não perca tempo!</strong> 🔥</p>
+            <button class="close-btn" onclick="closeWinnerAlert()">ENTENDI</button>
+        </div>
+    </div>
+
+    <!-- Modal Personalizado -->
+    <div id="custom-modal" class="modal">
+        <div class="modal-content">
+            <div id="modal-message">Mensagem</div>
+            <button class="btn btn-primary" onclick="fecharModal()" style="margin-top: 20px;">
+                <i class="fas fa-check"></i>
+                OK
+            </button>
+        </div>
     </div>
 
     <!-- Modal Admin -->
     <div id="admin-modal" class="admin-modal">
         <div class="admin-modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h2><i class="fas fa-user-shield"></i> Área Administrativa</h2>
-                <button onclick="fecharAdmin()" style="background: none; border: none; font-size: 30px; cursor: pointer; color: #666;">×</button>
-            </div>
-
+            <!-- Login Admin -->
             <div id="admin-login">
+                <h3 style="text-align: center; margin-bottom: 30px; color: var(--primary-green);">
+                    <i class="fas fa-shield-alt"></i> Painel Administrativo
+                </h3>
+                
                 <div class="form-group">
-                    <label>Senha Administrativa:</label>
-                    <input type="password" id="admin-senha" placeholder="Digite a senha">
+                    <label><i class="fas fa-lock"></i> Senha de Acesso:</label>
+                    <input type="password" id="admin-senha" placeholder="Digite a senha de administrador">
                 </div>
-                <button class="btn btn-primary" onclick="loginAdmin()" style="width: 100%;">
+                
+                <button class="btn btn-primary" onclick="loginAdmin()" style="width: 100%; margin-bottom: 20px;">
                     <i class="fas fa-sign-in-alt"></i>
-                    Entrar
+                    ENTRAR
                 </button>
-                <div id="admin-message" style="margin-top: 20px;"></div>
+                
+                <div id="admin-message"></div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="fecharAdmin()">
+                        <i class="fas fa-times"></i>
+                        Fechar
+                    </button>
+                </div>
             </div>
 
+            <!-- Painel Admin -->
             <div id="admin-panel" style="display: none;">
-                <!-- Abas do Admin -->
+                <h3 style="text-align: center; margin-bottom: 30px; color: var(--primary-green);">
+                    <i class="fas fa-chart-bar"></i> Dashboard Administrativo
+                </h3>
+
+                <!-- Status Bar -->
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="number" id="admin-vendidas">0</span>
+                        <span class="label">Vendidas</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-restantes">10000</span>
+                        <span class="label">Restantes</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-porcentagem">0%</span>
+                        <span class="label">Progresso</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-ganhadores">0</span>
+                        <span class="label">Ganhadores</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-afiliados">0</span>
+                        <span class="label">Afiliados</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="number" id="admin-premios-restantes">0</span>
+                        <span class="label">Prêmios</span>
+                    </div>
+                </div>
+
+                <!-- Tabs Admin -->
                 <div class="admin-tabs">
                     <div class="admin-tab active" onclick="trocarAbaAdmin('dashboard')">Dashboard</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('validacao')">Validação</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('premiados')">Premiados</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('saques')">Saques</div>
                     <div class="admin-tab" onclick="trocarAbaAdmin('controle-afiliados')">Afiliados</div>
-                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-saques')">Saques</div>
-                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-ganhadores')">Ganhadores</div>
                     <div class="admin-tab" onclick="trocarAbaAdmin('controle-vendas')">Vendas</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('configuracoes')">Config</div>
                 </div>
 
                 <!-- Dashboard -->
                 <div id="admin-dashboard" class="admin-tab-content active">
-                    <!-- Estatísticas -->
-                    <div class="status-bar">
-                        <div class="status-item">
-                            <span class="number" id="admin-vendidas">0</span>
-                            <span class="label">Vendas</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="number" id="admin-restantes">10000</span>
-                            <span class="label">Restantes</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="number" id="admin-porcentagem">0%</span>
-                            <span class="label">Progresso</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="number" id="admin-ganhadores">0</span>
-                            <span class="label">Ganhadores</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="number" id="admin-afiliados">0</span>
-                            <span class="label">Afiliados</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="number" id="admin-premios-restantes">345</span>
-                            <span class="label">Prêmios Restantes</span>
-                        </div>
-                    </div>
-
-                    <!-- Validador de Códigos -->
-                    <div style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 25px;">
-                        <h4><i class="fas fa-shield-alt"></i> Validador de Códigos</h4>
-                        <div class="form-group">
-                            <input type="text" id="codigo-validacao-admin" placeholder="Ex: RB-38472-X9F">
-                        </div>
-                        <button class="btn btn-secondary" onclick="validarCodigoAdmin()">
-                            <i class="fas fa-search"></i>
-                            Validar Código
-                        </button>
-                        <div id="resultado-validacao-admin"></div>
-                    </div>
-
-                    <!-- Controles Admin -->
-                    <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" onclick="carregarEstatisticas()">
-                            <i class="fas fa-chart-bar"></i>
-                            Atualizar Stats
-                        </button>
-                        <button class="btn btn-secondary" onclick="toggleSistema()" id="btn-toggle-sistema">
-                            <i class="fas fa-power-off"></i>
-                            Toggle Sistema
-                        </button>
+                    <h4 style="margin-bottom: 20px;">Controles do Sistema</h4>
+                    <button class="btn btn-primary" id="btn-toggle-sistema" onclick="toggleSistema()" style="width: 100%; margin-bottom: 15px;">
+                        <i class="fas fa-power-off"></i>
+                        Toggle Sistema
+                    </button>
+                    <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 12px;">
+                        <h5>Status do Sistema:</h5>
+                        <p>• Mercado Pago: <strong>Conectado</strong></p>
+                        <p>• Supabase: <strong>Conectado</strong></p>
+                        <p>• Sistema de Prêmios: <strong>Ativo com Limitação</strong></p>
+                        <p>• Limite para Liberar Prêmios: <strong>1000 vendas</strong></p>
                     </div>
                 </div>
 
-                <!-- Afiliados -->
-                <div id="admin-controle-afiliados" class="admin-tab-content">
-                    <h4><i class="fas fa-users"></i> Gerenciar Afiliados</h4>
-                    <div id="lista-afiliados">
-                        <p>Carregando afiliados...</p>
+                <!-- Validação de Códigos -->
+                <div id="admin-validacao" class="admin-tab-content">
+                    <h4 style="margin-bottom: 20px;">Validar Código de Ganhador</h4>
+                    <div class="form-group">
+                        <label><i class="fas fa-search"></i> Código de Validação:</label>
+                        <input type="text" id="codigo-validacao-admin" placeholder="RB-XXXXX-YYY ou RR-XXXXX-YYY" style="text-transform: uppercase;">
+                    </div>
+                    <button class="btn btn-primary" onclick="validarCodigoAdmin()" style="width: 100%; margin-bottom: 20px;">
+                        <i class="fas fa-check-circle"></i>
+                        VALIDAR CÓDIGO
+                    </button>
+                    <div id="resultado-validacao-admin"></div>
+                </div>
+
+                <!-- Lista de Premiados -->
+                <div id="admin-premiados" class="admin-tab-content">
+                    <h4 style="margin-bottom: 20px;">Lista de Ganhadores</h4>
+                    <button class="btn btn-secondary" onclick="listarPremiados()" style="width: 100%; margin-bottom: 20px;">
+                        <i class="fas fa-sync"></i>
+                        ATUALIZAR LISTA
+                    </button>
+                    <div id="lista-premiados">
+                        <p>Clique em "Atualizar Lista" para carregar os ganhadores.</p>
                     </div>
                 </div>
 
-                <!-- Saques -->
-                <div id="admin-controle-saques" class="admin-tab-content">
-                    <h4><i class="fas fa-money-bill-wave"></i> Solicitações de Saque</h4>
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                        <button class="btn btn-primary" onclick="carregarSaquesGanhadores()">Saques Ganhadores</button>
-                        <button class="btn btn-affiliate" onclick="carregarSaquesAfiliados()">Saques Afiliados</button>
+                <!-- Gerenciar Saques -->
+                <div id="admin-saques" class="admin-tab-content">
+                    <h4 style="margin-bottom: 20px;">Gerenciar Saques</h4>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-secondary" onclick="carregarSaquesGanhadores()" style="margin-right: 10px;">
+                            <i class="fas fa-trophy"></i>
+                            Saques Ganhadores
+                        </button>
+                        <button class="btn btn-affiliate" onclick="carregarSaquesAfiliados()">
+                            <i class="fas fa-users"></i>
+                            Saques Afiliados
+                        </button>
                     </div>
                     <div id="lista-saques">
                         <p>Selecione um tipo de saque acima.</p>
                     </div>
                 </div>
 
-                <!-- Ganhadores -->
-                <div id="admin-controle-ganhadores" class="admin-tab-content">
-                    <h4><i class="fas fa-trophy"></i> Lista de Ganhadores</h4>
-                    <button class="btn btn-primary" onclick="listarPremiados()">
-                        <i class="fas fa-trophy"></i>
-                        Carregar Ganhadores
-                    </button>
-                    <div id="lista-premiados"></div>
+                <!-- Controle de Afiliados -->
+                <div id="admin-controle-afiliados" class="admin-tab-content">
+                    <h4 style="margin-bottom: 20px;">Lista de Afiliados</h4>
+                    <div id="lista-afiliados">
+                        <p>Carregando afiliados...</p>
+                    </div>
                 </div>
 
-                <!-- Vendas -->
+                <!-- Controle de Vendas -->
                 <div id="admin-controle-vendas" class="admin-tab-content">
-                    <h4><i class="fas fa-chart-line"></i> Relatório de Vendas</h4>
-                    <div id="vendas-stats">
-                        <div class="status-bar">
-                            <div class="status-item">
-                                <span class="number" id="vendas-hoje">0</span>
-                                <span class="label">Vendas Hoje</span>
-                            </div>
-                            <div class="status-item">
-                                <span class="number" id="vendas-afiliados">0</span>
-                                <span class="label">Via Afiliados</span>
-                            </div>
-                            <div class="status-item">
-                                <span class="number" id="premios-restantes">0</span>
-                                <span class="label">Prêmios Restantes</span>
-                            </div>
+                    <h4 style="margin-bottom: 20px;">Relatório de Vendas</h4>
+                    <div class="affiliate-stats" style="margin-bottom: 30px;">
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="vendas-hoje">0</span>
+                            <span class="affiliate-stat-label">Vendas Hoje</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="vendas-afiliados">0</span>
+                            <span class="affiliate-stat-label">Via Afiliados</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="premios-restantes">0</span>
+                            <span class="affiliate-stat-label">Prêmios Restantes</span>
                         </div>
                     </div>
-                    <button class="btn btn-secondary" onclick="carregarRelatorioVendas()">
-                        <i class="fas fa-refresh"></i>
-                        Atualizar Relatório
+                    <div id="vendas-detalhes">
+                        <p>Carregando detalhes...</p>
+                    </div>
+                </div>
+
+                <!-- Configurações -->
+                <div id="admin-configuracoes" class="admin-tab-content">
+                    <h4 style="margin-bottom: 20px;">Configurações do Sistema</h4>
+                    <div style="padding: 20px; background: #f8f9fa; border-radius: 12px;">
+                        <h5>Configurações Atuais:</h5>
+                        <p>• <strong>Limite para prêmios:</strong> 1000 vendas</p>
+                        <p>• <strong>Comissão afiliados:</strong> 50%</p>
+                        <p>• <strong>Saque mínimo:</strong> R$ 10,00</p>
+                        <p>• <strong>Total de raspadinhas:</strong> 10.000</p>
+                        <p>• <strong>WhatsApp:</strong> (82) 99609-2684</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-secondary" onclick="fecharAdmin()">
+                        <i class="fas fa-times"></i>
+                        Fechar Painel
                     </button>
-                    <div id="vendas-detalhes" style="margin-top: 25px;"></div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal personalizado -->
-    <div id="custom-modal" class="modal">
-        <div class="modal-content">
-            <div id="modal-message"></div>
-            <div style="margin-top: 25px;">
-                <button class="btn btn-secondary" onclick="fecharModal()">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Winner Alert Modal -->
-    <div id="winner-alert" class="winner-alert">
-        <div class="winner-alert-content">
-            <h2>ALGUÉM ACABOU DE GANHAR!</h2>
-            <p><strong id="winner-name-alert">Maria Santos</strong></p>
-            <p>acabou de ganhar <strong style="font-size: 1.5em;">R$ 1.000,00!</strong></p>
-            <p>Seja o próximo ganhador!</p>
-            <button class="close-btn" onclick="closeWinnerAlert()">QUERO JOGAR AGORA!</button>
         </div>
     </div>
 
@@ -2659,79 +2457,142 @@
         let currentAffiliate = null;
         let currentAdminTab = 'dashboard';
         const WHATSAPP_NUMERO = "5582996092684";
-        const LIMITE_PREMIOS = 1000; // LIMITE CRÍTICO - SÓ LIBERA PRÊMIOS APÓS 1000 VENDAS
+        const LIMITE_PREMIOS = 1000;
 
-        // Array de ganhadores fictícios para o alerta
-        const ganhadoresFicticios = [
-            { nome: "Ana Marta Soares", valor: 1000 },
-            { nome: "Carlos Santos", valor: 500 },
-            { nome: "Maria Menezes Oliveira", valor: 1000 },
-            { nome: "João Paulo Pereira", valor: 800 },
-            { nome: "Fernanda Costa", valor: 1000 },
-            { nome: "Roberto Lima", valor: 600 },
-            { nome: "Juliana Souza", valor: 1000 },
-            { nome: "Pedro Augusto Alves", valor: 750 }
+        // Adicionar após as variáveis globais:
+const ganhadoresFicticios = [
+    { nome: "Ana Marta Soares", valor: 1000 },
+    { nome: "Carlos Santos", valor: 500 },
+    { nome: "Maria Menezes Oliveira", valor: 1000 },
+    { nome: "João Paulo Pereira", valor: 800 },
+    { nome: "Fernanda Costa", valor: 1000 },
+    { nome: "Roberto Lima", valor: 600 },
+    { nome: "Juliana Souza", valor: 1000 },
+    { nome: "Pedro Augusto Alves", valor: 750 }
+];
+
+// Adicionar esta função:
+function atualizarStatusSistema() {
+    console.log(`📊 Status atual: ${vendidas}/${LIMITE_PREMIOS} vendas`);
+    console.log(`🎁 Prêmios: ${vendidas >= LIMITE_PREMIOS ? 'LIBERADOS' : 'BLOQUEADOS'}`);
+    
+    if (vendidas < LIMITE_PREMIOS) {
+        console.log(`🚫 SISTEMA TRAVADO - Faltam ${LIMITE_PREMIOS - vendidas} vendas para liberar prêmios`);
+    } else {
+        console.log(`✅ SISTEMA LIBERADO - Prêmios ativos!`);
+    }
+}
+
+        // Canvas variables para a nova roleta
+        const canvas = document.getElementById("roleta");
+        const ctx = canvas.getContext("2d");
+        const premios = [
+            "R$ 1", 
+            "R$ 5", 
+            "R$ 10", 
+            "VOCÊ PERDEU", 
+            "R$ 100", 
+            "R$ 300", 
+            "R$ 500", 
+            "R$ 1000"
         ];
-
-        // Prêmios da roleta com suas probabilidades e ângulos corretos
-        const premiosRoleta = [
-            { valor: "R$ 1,00", peso: 25, angulo: 22.5, segmento: 1 },      // Verde
-            { valor: "VOCÊ PERDEU", peso: 30, angulo: 67.5, segmento: 2 },   // Vermelho
-            { valor: "R$ 5,00", peso: 20, angulo: 112.5, segmento: 3 },     // Amarelo
-            { valor: "R$ 10,00", peso: 15, angulo: 157.5, segmento: 4 },    // Roxo
-            { valor: "R$ 100,00", peso: 7, angulo: 202.5, segmento: 5 },    // Azul claro
-            { valor: "R$ 300,00", peso: 2, angulo: 247.5, segmento: 6 },    // Laranja
-            { valor: "R$ 500,00", peso: 1, angulo: 292.5, segmento: 7 },    // Azul escuro
-            { valor: "R$ 1000,00", peso: 0.5, angulo: 337.5, segmento: 8 }  // Verde escuro
+        const colors = [
+            "#ff0057", // R$ 1
+            "#00eaff", // R$ 5
+            "#ff69b4", // R$ 10 rosa
+            "#00FF00", // VOCÊ PERDEU verde
+            "#845ef7", // R$ 100
+            "#ff3f34", // R$ 300
+            "#3c40c6", // R$ 500
+            "#0fbcf9"  // R$ 1000
         ];
+        const size = premios.length;
+        const arc = (2 * Math.PI) / size;
+        let angle = 0, spinning = false, speed = 0;
+        const sound = document.getElementById("sound");
 
-        // Sistema de controle de vendas atualizado
-        function atualizarStatusSistema() {
-            console.log(`📊 Status atual: ${vendidas}/${LIMITE_PREMIOS} vendas`);
-            console.log(`🎁 Prêmios: ${vendidas >= LIMITE_PREMIOS ? 'LIBERADOS' : 'BLOQUEADOS'}`);
-            
-            // Exibir status visual
-            if (vendidas < LIMITE_PREMIOS) {
-                console.log(`🚫 SISTEMA TRAVADO - Faltam ${LIMITE_PREMIOS - vendidas} vendas para liberar prêmios`);
-            } else {
-                console.log(`✅ SISTEMA LIBERADO - Prêmios ativos!`);
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // borda dourada
+            ctx.beginPath();
+            ctx.arc(250, 250, 250, 0, 2 * Math.PI);
+            ctx.fillStyle = "gold";
+            ctx.fill();
+
+            // setores
+            for (let i = 0; i < size; i++) {
+                ctx.beginPath();
+                ctx.fillStyle = colors[i];
+                ctx.moveTo(250, 250);
+                ctx.arc(250, 250, 240, arc * i + angle, arc * (i+1) + angle);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = colors[i];
+
+                ctx.save();
+                ctx.fillStyle = "white";
+                ctx.shadowBlur = 0;
+                ctx.translate(250, 250);
+                ctx.rotate(arc * i + arc / 2 + angle);
+                ctx.textAlign = "right";
+                ctx.font = "bold 22px Arial";
+                ctx.fillText(premios[i], 220, 10);
+                ctx.restore();
             }
+
+            // círculo preto no meio com borda dourada
+            ctx.beginPath();
+            ctx.arc(250, 250, 50, 0, 2 * Math.PI);
+            ctx.fillStyle = "black";
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "gold";
+            ctx.stroke();
+
+            // texto "BR" neon verde
+            ctx.fillStyle = "lime";
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "lime";
+            ctx.font = "bold 28px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("BR", 250, 250);
+            ctx.shadowBlur = 0;
         }
 
-        // Funções da Roleta TOTALMENTE CORRIGIDAS - SISTEMA DE BLOQUEIO RIGOROSO
-        function sortearPremioRoleta() {
-            // ✅ VERIFICAÇÃO CRÍTICA - FORÇA "VOCÊ PERDEU" ATÉ 1000 VENDAS
-            atualizarStatusSistema();
-            
-            if (vendidas < LIMITE_PREMIOS) {
-                console.log(`🚫 BLOQUEIO TOTAL ATIVO: ${vendidas}/${LIMITE_PREMIOS} vendas - FORÇANDO DERROTA OBRIGATÓRIA`);
-                return { valor: "VOCÊ PERDEU", angulo: 67.5, segmento: 2 };
+        function rotate() {
+            if (!spinning) return;
+            angle += speed;
+            speed *= 0.985;
+            if (speed < 0.002) {
+                spinning = false;
+                sound.pause();
+                sound.currentTime = 0;
+                
+                // Determinar em qual setor parou
+                const normalizedAngle = ((angle % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+                const sectorIndex = Math.floor(normalizedAngle / arc);
+                const premioSorteado = premios[sectorIndex];
+                
+                console.log(`🎰 Roleta parou no setor ${sectorIndex}: ${premioSorteado}`);
+                mostrarResultadoRoleta(premioSorteado);
             }
-
-            console.log(`🎁 Prêmios desbloqueados! Vendas: ${vendidas}/${LIMITE_PREMIOS} - Iniciando sorteio real`);
-
-            // Criar array ponderado
-            const premiosPonderados = [];
-            premiosRoleta.forEach(premio => {
-                for (let i = 0; i < Math.round(premio.peso * 10); i++) {
-                    premiosPonderados.push(premio);
-                }
-            });
-            
-            // Sortear prêmio
-            const premioSorteado = premiosPonderados[Math.floor(Math.random() * premiosPonderados.length)];
-            console.log(`🎰 Prêmio real sorteado: ${premioSorteado.valor} - Ângulo: ${premioSorteado.angulo}`);
-            return premioSorteado;
+            drawWheel();
+            requestAnimationFrame(rotate);
         }
 
+        // Função principal da roleta - integrada com o sistema
         function girarRoleta() {
-            if (isSpinning || currentRodaFichas <= 0) return;
+            if (isSpinning || currentRodaFichas <= 0 || spinning) return;
             
             const spinButton = document.getElementById('spin-button');
-            const rouletteWheel = document.getElementById('roulette-wheel');
             const resultDiv = document.getElementById('roulette-result');
             
             isSpinning = true;
+            spinning = true;
             spinButton.disabled = true;
             spinButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GIRANDO...';
             
@@ -2741,56 +2602,119 @@
             
             console.log(`🎰 Iniciando giro da roleta - Vendas atuais: ${vendidas}/${LIMITE_PREMIOS}`);
             
-            // 🚫 BLOQUEIO ABSOLUTO - SEMPRE "VOCÊ PERDEU" ATÉ 1000 VENDAS
-            let premioSorteado;
+            // Aplicar lógica de bloqueio
             if (vendidas < LIMITE_PREMIOS) {
-                console.log(`🚫 SISTEMA TRAVADO - Vendas insuficientes: ${vendidas}/${LIMITE_PREMIOS} - GARANTINDO DERROTA`);
-                premioSorteado = { valor: "VOCÊ PERDEU", angulo: 67.5, segmento: 2 };
+                console.log(`🚫 SISTEMA TRAVADO - Forçando "VOCÊ PERDEU"`);
+                // Calcular ângulo para parar em "VOCÊ PERDEU" (setor 3)
+                const targetSector = 3;
+                const targetAngle = targetSector * arc + (arc / 2);
+                const extraRotations = 5 + Math.floor(Math.random() * 5);
+                speed = 0.3; // velocidade inicial
+                angle = (extraRotations * 2 * Math.PI) + targetAngle;
+                
+                // Forçar parada no setor correto
+                setTimeout(() => {
+                    spinning = false;
+                    angle = targetAngle;
+                    drawWheel();
+                    mostrarResultadoRoleta("VOCÊ PERDEU");
+                }, 3000);
             } else {
-                console.log(`🎁 Sistema desbloqueado! Sorteando normalmente...`);
-                premioSorteado = sortearPremioRoleta();
+                console.log(`🎁 Sistema desbloqueado! Giro normal...`);
+                speed = Math.random() * 0.3 + 0.3; 
             }
             
-            // Calcular rotação (múltiplos de 360 + posição correta do prêmio)
-            const rotacoesExtras = 360 * (5 + Math.floor(Math.random() * 5)); // 5-10 voltas extras
-            const anguloFinal = premioSorteado.angulo;
-            const rotacaoTotal = rotacoesExtras + (360 - anguloFinal); // Subtrair para que pare no prêmio correto
+            // Tocar som
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log('Som não disponível'));
+            }
             
-            console.log(`🎯 Girando para: ${premioSorteado.valor} - Rotação total: ${rotacaoTotal}°`);
-            
-            // Som de roleta melhorado
-            playRouletteSound();
-            
-            // Animar roleta
-            rouletteWheel.style.transform = `rotate(${rotacaoTotal}deg)`;
-            rouletteWheel.classList.add('spinning');
-            
-            // Parar animação e mostrar resultado após 4.5 segundos
-            setTimeout(() => {
-                rouletteWheel.classList.remove('spinning');
-                isSpinning = false;
-                
-                // Mostrar resultado
-                mostrarResultadoRoleta(premioSorteado.valor);
-                
-                // Reativar botão se ainda há fichas
-                if (currentRodaFichas > 0) {
-                    spinButton.disabled = false;
-                    spinButton.innerHTML = '<i class="fas fa-sync-alt"></i> GIRAR ROLETA';
-                } else {
-                    spinButton.innerHTML = '<i class="fas fa-times"></i> SEM FICHAS';
-                }
-            }, 4500);
+            // Iniciar animação
+            rotate();
         }
 
-        function mostrarResultadoRoleta(premio) {
-            const resultDiv = document.getElementById('roulette-result');
+        // Função para mostrar resultado da roleta
+function mostrarResultadoRoleta(premio) {
+    const resultDiv = document.getElementById('roulette-result');
+    
+    isSpinning = false;
+    spinning = false;
+    
+    if (premio === "VOCÊ PERDEU") {
+        resultDiv.className = 'roulette-result loser';
+        resultDiv.innerHTML = `
+            <h3><i class="fas fa-times-circle"></i> QUE PENA!</h3>
+            <p>Você perdeu! Compre mais fichas para tentar novamente.</p>
+        `;
+        
+    } else {
+        // Prêmio em dinheiro
+        resultDiv.className = 'roulette-result winner';
+        resultDiv.innerHTML = `
+            <h3><i class="fas fa-trophy"></i> PARABÉNS!</h3>
+            <p>Você ganhou <strong>${premio}</strong>!</p>
+        `;
+        
+        // Mostrar formulário de prêmio
+        mostrarFormularioPremioRoda(premio, gerarCodigoUnicoRoda());
+    }
+
+    // Reativar botão se ainda há fichas
+    const spinButton = document.getElementById('spin-button');
+    if (currentRodaFichas > 0) {
+        spinButton.disabled = false;
+        spinButton.innerHTML = '<i class="fas fa-sync-alt"></i> GIRAR ROLETA';
+    } else {
+        spinButton.innerHTML = '<i class="fas fa-times"></i> SEM FICHAS';
+    }
+}
+
+// Inicializar roleta quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    if (canvas && ctx) {
+        drawWheel();
+        
+        // Clique no canvas para girar (apenas no centro BR)
+        canvas.addEventListener("click", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Ajustar para o tamanho real do canvas
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const canvasX = x * scaleX;
+            const canvasY = y * scaleY;
+            
+            const dx = canvasX - 250;
+            const dy = canvasY - 250;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist <= 50 && !spinning && !isSpinning && currentRodaFichas > 0) {
+                girarRoleta();
+            }
+        });
+    }
+    
+    // Resto da inicialização
+    atualizarDisplay();
+    atualizarDisplayRoda();
+    initBannerSlider();
+    initWinnerAlerts();
+    carregarEstatisticas();
+    carregarVendasIniciais();
+    
+    console.log(`🚀 Raspa Brasil + Roda Brasil inicializado com nova roleta Canvas!`);
+});
+
             
             if (premio === "VOCÊ PERDEU") {
                 resultDiv.className = 'roulette-result loser';
                 resultDiv.innerHTML = `
                     <h3><i class="fas fa-times-circle"></i> QUE PENA!</h3>
-                    <p>Você perdeu! Compre mais fichas para tentar novamente.</p>`;
+                    <p>Você perdeu! Compre mais fichas para tentar novamente.</p>
+                `;
                 
             } else {
                 // Prêmio em dinheiro
@@ -2803,7 +2727,6 @@
                 // Mostrar formulário de prêmio
                 mostrarFormularioPremioRoda(premio, gerarCodigoUnicoRoda());
             }
-        }
 
         function playRouletteSound() {
             try {
@@ -4466,6 +4389,6 @@ Dados salvos no sistema com sucesso!`;
             }
         });
     </script>
+
 </body>
 </html>
-
