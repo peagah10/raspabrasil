@@ -1,170 +1,54 @@
 import os
+import time
 import random
-import string
 from datetime import datetime, date
-from flask import Flask, request, jsonify, session
-from dotenv import load_dotenv
-
-# Inicializar Supabase com configuração compatível
-try:
-    from supabase import create_client, Client
-    supabase_available = True
-except ImportError:
-    supabase_available = False
-    print("⚠️ Supabase não disponível")
-
+from flask import Flask, render_template_string, request, jsonify, session
+from supabase import create_client, Client
 import mercadopago
-import uuid
 
-load_dotenv()
-
+# ========== CONFIGURAÇÕES ==========
 app = Flask(__name__)
-app.secret_key = os.getenv(
-    'SECRET_KEY', 'raspa-brasil-super-secret-key-2024-seguro'
-)
+app.secret_key = os.environ.get('SECRET_KEY', 'raspa-brasil-secret-key-2024')
 
 # Configurações do Supabase
-SUPABASE_URL = os.getenv(
-    'SUPABASE_URL', "https://ngishqxtnkgvognszyep.supabase.co"
-)
-SUPABASE_KEY = os.getenv(
-    'SUPABASE_KEY',
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5naXNocXh0bmtndm9nbnN6eWVwIiwi"
-    "cm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTMwNjcsImV4cCI6MjA2ODE2OTA2N30."
-    "FOksPjvS2NyO6dcZ_j0Grj3Prn9OP_udSGQwswtFBXE"
-)
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 
 # Configurações do Mercado Pago
-MP_ACCESS_TOKEN = os.getenv('MERCADOPAGO_ACCESS_TOKEN')
+MERCADO_PAGO_ACCESS_TOKEN = os.environ.get('MERCADO_PAGO_ACCESS_TOKEN')
+
+# Configurações gerais
+TOTAL_RASPADINHAS = 10000
+
+# ========== INICIALIZAÇÃO DOS SERVIÇOS ==========
+supabase: Client = None
 sdk = None
 
-# Configurações da aplicação
-TOTAL_RASPADINHAS = 10000
-PREMIOS_TOTAIS = 2000
-WHATSAPP_NUMERO = "5582996092684"
-PERCENTUAL_COMISSAO_AFILIADO = 50  # 50% de comissão
-
-# Inicializar cliente Supabase
-supabase = None
-if supabase_available:
+if SUPABASE_URL and SUPABASE_KEY:
     try:
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        # Testar conexão
-        test_response = supabase.table('rb_configuracoes').select(
-            'rb_chave'
-        ).limit(1).execute()
-        print("✅ Supabase conectado e testado com sucesso")
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Supabase conectado com sucesso")
     except Exception as e:
-        print(f"❌ Erro ao conectar com Supabase: {str(e)}")
-        supabase = None
+        print(f"❌ Erro ao conectar Supabase: {str(e)}")
 
-# Configurar Mercado Pago
-try:
-    if MP_ACCESS_TOKEN:
-        sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
-        print("✅ Mercado Pago SDK configurado com sucesso")
-    else:
-        print("❌ Token do Mercado Pago não encontrado")
-        print("⚠️ Sistema funcionará apenas com pagamentos simulados")
-except Exception as e:
-    print(f"❌ Erro ao configurar Mercado Pago: {str(e)}")
-    print("⚠️ Sistema funcionará apenas com pagamentos simulados")
-
-
-def log_payment_change(payment_id, status_anterior, status_novo,
-                       webhook_data=None):
-    """Registra mudanças de status de pagamento"""
-    if not supabase:
-        return False
+if MERCADO_PAGO_ACCESS_TOKEN:
     try:
-        supabase.table('rb_logs_pagamento').insert({
-            'rb_payment_id': payment_id,
-            'rb_status_anterior': status_anterior,
-            'rb_status_novo': status_novo,
-            'rb_webhook_data': webhook_data
-        }).execute()
-        return True
+        sdk = mercadopago.SDK(MERCADO_PAGO_ACCESS_TOKEN)
+        print("✅ Mercado Pago conectado com sucesso")
     except Exception as e:
-        print(f"❌ Erro ao registrar log: {str(e)}")
-        return False
+        print(f"❌ Erro ao conectar Mercado Pago: {str(e)}")
 
-
-def gerar_codigo_antifraude():
-    """Gera código único no formato RB-XXXXX-YYY"""
-    numero = random.randint(10000, 99999)
-    letras = ''.join(random.choices(
-        string.ascii_uppercase + string.digits, k=3
-    ))
-    return f"RB-{numero}-{letras}"
-
-
-def gerar_codigo_roda():
-    """Gera código único para Roda Brasil no formato RR-XXXXX-YYY"""
-    numero = random.randint(10000, 99999)
-    letras = ''.join(random.choices(
-        string.ascii_uppercase + string.digits, k=3
-    ))
-    return f"RR-{numero}-{letras}"
-
-
-def gerar_codigo_afiliado():
-    """Gera código único para afiliado no formato AF-XXXXX"""
-    numero = random.randint(100000, 999999)
-    return f"AF{numero}"
-
-
-def verificar_codigo_unico(codigo, tabela='rb_ganhadores', campo='rb_codigo'):
-    """Verifica se o código é único no banco de dados"""
-    if not supabase:
-        return True
-    try:
-        response = supabase.table(tabela).select(campo).eq(
-            campo, codigo
-        ).execute()
-        return len(response.data) == 0
-    except Exception:
-        return True
-
-
-def gerar_codigo_unico():
-    """Gera um código antifraude único"""
-    max_tentativas = 10
-    for _ in range(max_tentativas):
-        codigo = gerar_codigo_antifraude()
-        if verificar_codigo_unico(codigo):
-            return codigo
-    return f"RB-{random.randint(10000, 99999)}-{uuid.uuid4().hex[:3].upper()}"
-
-
-def gerar_codigo_unico_roda():
-    """Gera um código único para Roda Brasil"""
-    max_tentativas = 10
-    for _ in range(max_tentativas):
-        codigo = gerar_codigo_roda()
-        if verificar_codigo_unico(codigo, 'rb_ganhadores_roda', 'rb_codigo'):
-            return codigo
-    return f"RR-{random.randint(10000, 99999)}-{uuid.uuid4().hex[:3].upper()}"
-
-
-def gerar_codigo_afiliado_unico():
-    """Gera um código de afiliado único"""
-    max_tentativas = 10
-    for _ in range(max_tentativas):
-        codigo = gerar_codigo_afiliado()
-        if verificar_codigo_unico(codigo, 'rb_afiliados', 'rb_codigo'):
-            return codigo
-    return f"AF{random.randint(100000, 999999)}"
-
-
-def obter_configuracao(chave, valor_padrao=None):
-    """Obtém valor de configuração do Supabase"""
+# ========== FUNÇÕES DE CONFIGURAÇÃO ==========
+def obter_configuracao(chave, valor_padrao):
+    """Obter valor de configuração do banco ou retornar padrão"""
     if not supabase:
         return valor_padrao
+    
     try:
         response = supabase.table('rb_configuracoes').select('rb_valor').eq(
             'rb_chave', chave
         ).execute()
+        
         if response.data:
             return response.data[0]['rb_valor']
         return valor_padrao
@@ -172,139 +56,173 @@ def obter_configuracao(chave, valor_padrao=None):
         print(f"❌ Erro ao obter configuração {chave}: {str(e)}")
         return valor_padrao
 
-
 def atualizar_configuracao(chave, valor):
-    """Atualiza valor de configuração no Supabase"""
+    """Atualizar configuração no banco"""
     if not supabase:
         return False
+    
     try:
+        # Tentar atualizar primeiro
         response = supabase.table('rb_configuracoes').update({
-            'rb_valor': str(valor)
+            'rb_valor': valor
         }).eq('rb_chave', chave).execute()
-        return response.data is not None
+        
+        # Se não atualizou nenhum registro, inserir novo
+        if not response.data:
+            supabase.table('rb_configuracoes').insert({
+                'rb_chave': chave,
+                'rb_valor': valor
+            }).execute()
+        
+        return True
     except Exception as e:
         print(f"❌ Erro ao atualizar configuração {chave}: {str(e)}")
         return False
 
+# ========== FUNÇÕES DE ESTATÍSTICAS ==========
+def obter_total_vendas():
+    """Obter total de vendas aprovadas"""
+    if not supabase:
+        return 0
+    
+    try:
+        response = supabase.table('rb_vendas').select('rb_quantidade').eq(
+            'rb_status', 'completed'
+        ).execute()
+        
+        total = sum(venda['rb_quantidade'] for venda in response.data or [])
+        return total
+    except Exception as e:
+        print(f"❌ Erro ao obter total de vendas: {str(e)}")
+        return 0
 
+def obter_total_ganhadores():
+    """Obter total de ganhadores (raspadinhas + roda)"""
+    if not supabase:
+        return 0
+    
+    try:
+        # Ganhadores de raspadinhas
+        response_raspa = supabase.table('rb_ganhadores').select('rb_id').execute()
+        total_raspa = len(response_raspa.data or [])
+        
+        # Ganhadores da roda
+        response_roda = supabase.table('rb_ganhadores_roda').select('rb_id').execute()
+        total_roda = len(response_roda.data or [])
+        
+        return total_raspa + total_roda
+    except Exception as e:
+        print(f"❌ Erro ao obter total de ganhadores: {str(e)}")
+        return 0
+
+def obter_total_afiliados():
+    """Obter total de afiliados"""
+    if not supabase:
+        return 0
+    
+    try:
+        response = supabase.table('rb_afiliados').select('rb_id').execute()
+        return len(response.data or [])
+    except Exception as e:
+        print(f"❌ Erro ao obter total de afiliados: {str(e)}")
+        return 0
+
+# ========== FUNÇÕES DE PRÊMIOS (RASPADINHAS) ==========
 def obter_premios_disponiveis():
-    """Obtém prêmios disponíveis do Supabase"""
+    """Obter quantidade de prêmios disponíveis"""
+    premios = {
+        'R$ 10,00': int(obter_configuracao('premios_r10', '100')),
+        'R$ 20,00': int(obter_configuracao('premios_r20', '50')),
+        'R$ 30,00': int(obter_configuracao('premios_r30', '30')),
+        'R$ 40,00': int(obter_configuracao('premios_r40', '20')),
+        'R$ 50,00': int(obter_configuracao('premios_r50', '15')),
+        'R$ 100,00': int(obter_configuracao('premios_r100', '10'))
+    }
+    return premios
+
+def decrementar_premio(valor):
+    """Decrementar quantidade de prêmio"""
+    if not supabase:
+        return False
+    
+    mapeamento = {
+        'R$ 10,00': 'premios_r10',
+        'R$ 20,00': 'premios_r20',
+        'R$ 30,00': 'premios_r30',
+        'R$ 40,00': 'premios_r40',
+        'R$ 50,00': 'premios_r50',
+        'R$ 100,00': 'premios_r100'
+    }
+    
+    chave = mapeamento.get(valor)
+    if not chave:
+        return False
+    
     try:
-        premios = {
-            'R$ 10,00': int(obter_configuracao('premios_r10', '100')),
-            'R$ 20,00': int(obter_configuracao('premios_r20', '50')),
-            'R$ 30,00': int(obter_configuracao('premios_r30', '30')),
-            'R$ 40,00': int(obter_configuracao('premios_r40', '20')),
-            'R$ 50,00': int(obter_configuracao('premios_r50', '15')),
-            'R$ 100,00': int(obter_configuracao('premios_r100', '10'))
-        }
-        return premios
+        quantidade_atual = int(obter_configuracao(chave, '0'))
+        if quantidade_atual > 0:
+            return atualizar_configuracao(chave, str(quantidade_atual - 1))
+        return False
     except Exception as e:
-        print(f"❌ Erro ao obter prêmios: {str(e)}")
-        return {
-            'R$ 10,00': 100,
-            'R$ 20,00': 50,
-            'R$ 30,00': 30,
-            'R$ 40,00': 20,
-            'R$ 50,00': 15,
-            'R$ 100,00': 10
-        }
-
-
-def obter_premios_roda_disponiveis():
-    """Obtém prêmios da Roda Brasil disponíveis"""
-    try:
-        premios = {
-            'R$ 1,00': int(obter_configuracao('premios_roda_r1', '50')),
-            'R$ 5,00': int(obter_configuracao('premios_roda_r5', '30')),
-            'R$ 10,00': int(obter_configuracao('premios_roda_r10', '20')),
-            'R$ 100,00': int(obter_configuracao('premios_roda_r100', '10')),
-            'R$ 300,00': int(obter_configuracao('premios_roda_r300', '5')),
-            'R$ 500,00': int(obter_configuracao('premios_roda_r500', '3')),
-            'R$ 1000,00': int(obter_configuracao('premios_roda_r1000', '2'))
-        }
-        return premios
-    except Exception as e:
-        print(f"❌ Erro ao obter prêmios da roda: {str(e)}")
-        return {
-            'R$ 1,00': 50,
-            'R$ 5,00': 30,
-            'R$ 10,00': 20,
-            'R$ 100,00': 10,
-            'R$ 300,00': 5,
-            'R$ 500,00': 3,
-            'R$ 1000,00': 2
-        }
-
+        print(f"❌ Erro ao decrementar prêmio {valor}: {str(e)}")
+        return False
 
 def sortear_premio():
-    """Sorteia prêmio baseado na probabilidade e disponibilidade"""
+    """Sorteia um prêmio baseado nas configurações"""
     try:
         # Verificar se o sistema está ativo
         sistema_ativo = obter_configuracao(
             'sistema_ativo', 'true'
         ).lower() == 'true'
         if not sistema_ativo:
-            return None
+            return None, "Sistema temporariamente desativado"
 
-        # Verificar se já passou do limite para liberar prêmios
+        # Verificar se já vendeu pelo menos 1000 unidades
         total_vendas = obter_total_vendas()
-        limite_premios = int(obter_configuracao('limite_premios', '1000'))
+        if total_vendas < 1000:
+            print(f"🚫 Prêmios bloqueados: {total_vendas}/1000 vendas")
+            return None, "Prêmios serão liberados após 1000 vendas"
 
-        if total_vendas < limite_premios:
-            print(f"🚫 Prêmios bloqueados: {total_vendas}/{limite_premios}")
-            return None
-
-        # Chance de ganhar configurável
-        chance_ganhar = float(obter_configuracao('chance_ganhar', '0.25'))
+        # Chance de ganhar (15% - difícil)
+        chance_ganhar = float(obter_configuracao('chance_ganhar', '0.15'))
         if random.random() > chance_ganhar:
-            return None
+            return None, "Não ganhou desta vez"
 
         # Obter prêmios disponíveis
-        premios = obter_premios_disponiveis()
-
-        # Criar lista ponderada de prêmios (menor valor = maior chance)
+        premios_disponiveis = obter_premios_disponiveis()
+        
+        # Lista de prêmios com pesos (mais chances para prêmios menores)
         premios_ponderados = []
-        pesos = {
-            'R$ 10,00': 40, 'R$ 20,00': 25, 'R$ 30,00': 15,
-            'R$ 40,00': 10, 'R$ 50,00': 7, 'R$ 100,00': 3
-        }
-
-        for valor, quantidade in premios.items():
+        for premio, quantidade in premios_disponiveis.items():
             if quantidade > 0:
-                peso = pesos.get(valor, 1)
-                premios_ponderados.extend([valor] * peso)
-
+                peso = {
+                    'R$ 10,00': 40,
+                    'R$ 20,00': 25,
+                    'R$ 30,00': 20,
+                    'R$ 40,00': 15,
+                    'R$ 50,00': 10,
+                    'R$ 100,00': 3
+                }.get(premio, 1)
+                
+                for _ in range(peso):
+                    premios_ponderados.append(premio)
+        
         if not premios_ponderados:
-            print("🚫 Nenhum prêmio disponível")
-            return None
-
-        # Sortear prêmio
-        premio = random.choice(premios_ponderados)
-
-        # Verificar se ainda há prêmios desse valor
-        if premios[premio] <= 0:
-            return None
-
-        # Diminuir a quantidade do prêmio sorteado
-        chave_premio = (
-            f"premios_r{premio.replace('R$ ', '').replace(',00', '')}"
-        )
-        quantidade_atual = int(obter_configuracao(chave_premio, '0'))
-        if quantidade_atual > 0:
-            atualizar_configuracao(chave_premio, quantidade_atual - 1)
-            print(
-                f"🎉 Prêmio sorteado: {premio} - "
-                f"Restam: {quantidade_atual - 1}"
-            )
-            return premio
-
-        return None
-
+            return None, "Todos os prêmios foram distribuídos"
+        
+        premio_sorteado = random.choice(premios_ponderados)
+        
+        # Decrementar prêmio
+        if decrementar_premio(premio_sorteado):
+            return premio_sorteado, f"Parabéns! Você ganhou {premio_sorteado}!"
+        else:
+            return None, "Erro ao processar prêmio"
+        
     except Exception as e:
-        print(f"❌ Erro ao sortear prêmio: {str(e)}")
-        return None
+        print(f"❌ Erro no sorteio: {str(e)}")
+        return None, "Erro interno do sistema"
 
+# ========== FUNÇÕES DA RODA BRASIL ==========
 
 def sortear_premio_roda():
     """Sorteia prêmio da Roda Brasil"""
@@ -314,820 +232,646 @@ def sortear_premio_roda():
             'sistema_ativo', 'true'
         ).lower() == 'true'
         if not sistema_ativo:
-            return None
+            return "VOCÊ PERDEU"
 
-        # Chance de ganhar na roda (mais generosa que raspadinhas)
-        chance_ganhar = float(obter_configuracao('chance_ganhar_roda', '0.4'))
+        # Verificar se já vendeu pelo menos 1000 unidades
+        total_vendas = obter_total_vendas()
+        if total_vendas < 1000:
+            print(f"🚫 Prêmios da roda bloqueados: {total_vendas}/1000 vendas")
+            return "VOCÊ PERDEU"
+
+        # Chance de ganhar na roda (15% - difícil)
+        chance_ganhar = float(obter_configuracao('chance_ganhar_roda', '0.15'))
         if random.random() > chance_ganhar:
-            return "TENTE NOVAMENTE"
+            return "VOCÊ PERDEU"
 
-        # Obter prêmios disponíveis
-        premios = obter_premios_roda_disponiveis()
-
-        # Criar lista ponderada de prêmios
+        # Obter prêmios disponíveis da roda
+        premios_disponiveis = obter_premios_roda_disponiveis()
+        
+        # Lista de prêmios com pesos
         premios_ponderados = []
-        pesos = {
-            'R$ 1,00': 35, 'R$ 5,00': 25, 'R$ 10,00': 20,
-            'R$ 100,00': 10, 'R$ 300,00': 5, 'R$ 500,00': 3, 'R$ 1000,00': 2
-        }
-
-        for valor, quantidade in premios.items():
+        for premio, quantidade in premios_disponiveis.items():
             if quantidade > 0:
-                peso = pesos.get(valor, 1)
-                premios_ponderados.extend([valor] * peso)
-
+                peso = {
+                    'R$ 1,00': 25,
+                    'R$ 5,00': 20, 
+                    'R$ 10,00': 15,
+                    'R$ 100,00': 10,
+                    'R$ 300,00': 5,
+                    'R$ 500,00': 3,
+                    'R$ 1000,00': 2
+                }.get(premio, 1)
+                
+                for _ in range(peso):
+                    premios_ponderados.append(premio)
+        
         if not premios_ponderados:
-            print("🚫 Nenhum prêmio da roda disponível")
-            return "TENTE NOVAMENTE"
+            return "VOCÊ PERDEU"
+        
+        premio_sorteado = random.choice(premios_ponderados)
+        
+        # Decrementar prêmio
+        decrementar_premio_roda(premio_sorteado)
+        
+        return premio_sorteado
+        
+    except Exception as e:
+        print(f"❌ Erro no sorteio da roda: {str(e)}")
+        return "VOCÊ PERDEU"
 
-        # Sortear prêmio
-        premio = random.choice(premios_ponderados)
+def obter_premios_roda_disponiveis():
+    """Obter quantidade de prêmios disponíveis da Roda Brasil"""
+    premios = {
+        'R$ 1,00': int(obter_configuracao('premios_roda_r1', '50')),
+        'R$ 5,00': int(obter_configuracao('premios_roda_r5', '30')),
+        'R$ 10,00': int(obter_configuracao('premios_roda_r10', '20')),
+        'R$ 100,00': int(obter_configuracao('premios_roda_r100', '10')),
+        'R$ 300,00': int(obter_configuracao('premios_roda_r300', '5')),
+        'R$ 500,00': int(obter_configuracao('premios_roda_r500', '3')),
+        'R$ 1000,00': int(obter_configuracao('premios_roda_r1000', '2'))
+    }
+    return premios
 
-        # Diminuir a quantidade do prêmio sorteado
-        chave_premio = (
-            f"premios_roda_r{premio.replace('R$ ', '').replace(',00', '').replace('.', '')}"
-        )
-        quantidade_atual = int(obter_configuracao(chave_premio, '0'))
+def decrementar_premio_roda(valor):
+    """Decrementar quantidade de prêmio da roda"""
+    if not supabase:
+        return False
+    
+    mapeamento = {
+        'R$ 1,00': 'premios_roda_r1',
+        'R$ 5,00': 'premios_roda_r5', 
+        'R$ 10,00': 'premios_roda_r10',
+        'R$ 100,00': 'premios_roda_r100',
+        'R$ 300,00': 'premios_roda_r300',
+        'R$ 500,00': 'premios_roda_r500',
+        'R$ 1000,00': 'premios_roda_r1000'
+    }
+    
+    chave = mapeamento.get(valor)
+    if not chave:
+        return False
+    
+    try:
+        quantidade_atual = int(obter_configuracao(chave, '0'))
         if quantidade_atual > 0:
-            atualizar_configuracao(chave_premio, quantidade_atual - 1)
-            print(
-                f"🎰 Prêmio da roda sorteado: {premio} - "
-                f"Restam: {quantidade_atual - 1}"
-            )
-            return premio
-
-        return "TENTE NOVAMENTE"
-
+            return atualizar_configuracao(chave, str(quantidade_atual - 1))
+        return False
     except Exception as e:
-        print(f"❌ Erro ao sortear prêmio da roda: {str(e)}")
-        return "TENTE NOVAMENTE"
+        print(f"❌ Erro ao decrementar prêmio da roda {valor}: {str(e)}")
+        return False
 
-
-def obter_total_vendas():
-    """Obtém total de vendas aprovadas do Supabase"""
-    if not supabase:
-        return 0
-    try:
-        response = supabase.table('rb_vendas').select('rb_quantidade').eq(
-            'rb_status', 'completed'
-        ).execute()
-        if response.data:
-            return sum(venda['rb_quantidade'] for venda in response.data)
-        return 0
-    except Exception as e:
-        print(f"❌ Erro ao obter total de vendas: {str(e)}")
-        return 0
-
-
-def obter_total_ganhadores():
-    """Obtém total de ganhadores do Supabase"""
-    if not supabase:
-        return 0
-    try:
-        response_raspa = supabase.table('rb_ganhadores').select('rb_id').execute()
-        response_roda = supabase.table('rb_ganhadores_roda').select('rb_id').execute()
+# ========== FUNÇÕES DE AFILIADOS ==========
+def gerar_codigo_afiliado():
+    """Gerar código único para afiliado"""
+    import string
+    
+    while True:
+        codigo = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         
-        total_raspa = len(response_raspa.data) if response_raspa.data else 0
-        total_roda = len(response_roda.data) if response_roda.data else 0
+        # Verificar se já existe no banco
+        if supabase:
+            try:
+                response = supabase.table('rb_afiliados').select('rb_codigo').eq(
+                    'rb_codigo', codigo
+                ).execute()
+                
+                if not response.data:
+                    return codigo
+            except:
+                pass
+        else:
+            return codigo
+
+def processar_comissao_afiliado(afiliado_id, valor_venda):
+    """Processar comissão do afiliado"""
+    if not supabase or not afiliado_id:
+        return False
+    
+    try:
+        percentual = float(obter_configuracao('percentual_comissao_afiliado', '50'))
+        comissao = (valor_venda * percentual) / 100
         
-        return total_raspa + total_roda
-    except Exception as e:
-        print(f"❌ Erro ao obter total de ganhadores: {str(e)}")
-        return 0
-
-
-def obter_total_afiliados():
-    """Obtém total de afiliados ativos do Supabase"""
-    if not supabase:
-        return 0
-    try:
-        response = supabase.table('rb_afiliados').select('rb_id').eq(
-            'rb_status', 'ativo'
+        # Atualizar totais do afiliado
+        response = supabase.table('rb_afiliados').select('*').eq(
+            'rb_id', afiliado_id
         ).execute()
+        
         if response.data:
-            return len(response.data)
-        return 0
+            afiliado = response.data[0]
+            novo_total_vendas = (afiliado['rb_total_vendas'] or 0) + 1
+            nova_comissao_total = (afiliado['rb_total_comissao'] or 0) + comissao
+            novo_saldo = (afiliado['rb_saldo_disponivel'] or 0) + comissao
+            
+            supabase.table('rb_afiliados').update({
+                'rb_total_vendas': novo_total_vendas,
+                'rb_total_comissao': nova_comissao_total,
+                'rb_saldo_disponivel': novo_saldo
+            }).eq('rb_id', afiliado_id).execute()
+            
+            return True
+            
     except Exception as e:
-        print(f"❌ Erro ao obter total de afiliados: {str(e)}")
-        return 0
-
-
-def validar_pagamento_aprovado(payment_id):
-    """Valida se o pagamento foi realmente aprovado"""
-    if not sdk or not payment_id:
+        print(f"❌ Erro ao processar comissão: {str(e)}")
         return False
 
-    try:
-        payment_response = sdk.payment().get(payment_id)
-        if payment_response["status"] == 200:
-            payment = payment_response["response"]
-            return payment['status'] == 'approved'
-        return False
-    except Exception as e:
-        print(f"❌ Erro ao validar pagamento {payment_id}: {str(e)}")
-        return False
-
-
+# ========== ROTAS PRINCIPAIS ==========
 @app.route('/')
 def index():
-    """Serve a página principal"""
-    try:
-        with open('index.html', 'r', encoding='utf-8') as f:
-            content = f.read()
-        return content
-    except Exception as e:
-        return f"""
-        <h1>❌ Erro ao carregar a página</h1>
-        <p>Erro: {str(e)}</p>
-        <p>Verifique se o arquivo index.html está na pasta correta.</p>
-        """, 500
+    """Página inicial"""
+    # Processar clique de afiliado se houver
+    ref_code = request.args.get('ref')
+    if ref_code and supabase:
+        try:
+            # Buscar afiliado
+            afiliado_response = supabase.table('rb_afiliados').select('rb_id').eq(
+                'rb_codigo', ref_code
+            ).eq('rb_status', 'ativo').execute()
+            
+            if afiliado_response.data:
+                afiliado_id = afiliado_response.data[0]['rb_id']
+                
+                # Registrar clique
+                supabase.table('rb_afiliado_clicks').insert({
+                    'rb_afiliado_id': afiliado_id,
+                    'rb_ip_visitor': request.remote_addr,
+                    'rb_user_agent': request.headers.get('User-Agent', '')[:500],
+                    'rb_referrer': request.headers.get('Referer', '')
+                }).execute()
+                
+                # Incrementar contador de cliques
+                supabase.table('rb_afiliados').update({
+                    'rb_total_clicks': supabase.table('rb_afiliados').select('rb_total_clicks').eq('rb_id', afiliado_id).execute().data[0]['rb_total_clicks'] + 1
+                }).eq('rb_id', afiliado_id).execute()
+                
+        except Exception as e:
+            print(f"❌ Erro ao processar clique de afiliado: {str(e)}")
+    
+    # Renderizar HTML (usar o HTML fornecido anteriormente)
+    with open('index.html', 'r', encoding='utf-8') as f:
+        html_content = f.read()
+    
+    return render_template_string(html_content)
 
-
-@app.route('/health')
-def health_check():
-    """Health check para o Render"""
-    return {
-        'status': 'healthy',
-        'supabase': supabase is not None,
-        'mercadopago': sdk is not None,
-        'timestamp': datetime.now().isoformat()
-    }
-
-
+# ========== ROTAS DE PAGAMENTO (RASPADINHAS) ==========
 @app.route('/create_payment', methods=['POST'])
 def create_payment():
-    """Cria pagamento PIX real via Mercado Pago"""
-    data = request.json
-    quantidade = data.get('quantidade', 1)
-    total = quantidade * 1.00
-    afiliado_codigo = data.get('ref_code') or session.get('ref_code')
-
-    if not sdk:
-        return jsonify({
-            'error': 'Mercado Pago não configurado.',
-            'details': 'Token do Mercado Pago necessário.'
-        }), 500
-
-    vendidas = obter_total_vendas()
-    if vendidas + quantidade > TOTAL_RASPADINHAS:
-        return jsonify({
-            'error': 'Raspadinhas esgotadas',
-            'details': (
-                f'Restam apenas {TOTAL_RASPADINHAS - vendidas} disponíveis'
-            )
-        }), 400
-
-    payment_data = {
-        "transaction_amount": float(total),
-        "description": f"Raspa Brasil - {quantidade} raspadinha(s)",
-        "payment_method_id": "pix",
-        "payer": {
-            "email": "cliente@raspabrasil.com",
-            "first_name": "Cliente",
-            "last_name": "Raspa Brasil"
-        },
-        "notification_url": (
-            f"{request.url_root.rstrip('/')}/webhook/mercadopago"
-        ),
-        "external_reference": (
-            f"RB_{int(datetime.now().timestamp())}_{quantidade}"
-        )
-    }
-
+    """Criar pagamento via Mercado Pago"""
     try:
-        print(f"📤 Criando pagamento: R$ {total:.2f}")
-        payment_response = sdk.payment().create(payment_data)
-
-        if payment_response["status"] == 201:
-            payment = payment_response["response"]
-
-            session['payment_id'] = str(payment['id'])
-            session['quantidade'] = quantidade
-            session['payment_created_at'] = datetime.now().isoformat()
-
+        data = request.json
+        quantidade = int(data.get('quantidade', 1))
+        ref_code = data.get('ref_code')
+        
+        if quantidade < 1 or quantidade > 10:
+            return jsonify({'error': 'Quantidade inválida'}), 400
+        
+        valor_total = quantidade * 1.00
+        
+        # Verificar se o sistema está ativo
+        sistema_ativo = obter_configuracao('sistema_ativo', 'true').lower() == 'true'
+        if not sistema_ativo:
+            return jsonify({'error': 'Sistema temporariamente desativado'}), 400
+        
+        if not sdk:
+            return jsonify({'error': 'Sistema de pagamento indisponível'}), 500
+        
+        # Buscar afiliado se houver código
+        afiliado_id = None
+        if ref_code and supabase:
+            try:
+                afiliado_response = supabase.table('rb_afiliados').select('rb_id').eq(
+                    'rb_codigo', ref_code
+                ).eq('rb_status', 'ativo').execute()
+                
+                if afiliado_response.data:
+                    afiliado_id = afiliado_response.data[0]['rb_id']
+            except Exception as e:
+                print(f"❌ Erro ao buscar afiliado: {str(e)}")
+        
+        # Criar pagamento no Mercado Pago
+        payment_data = {
+            "transaction_amount": valor_total,
+            "description": f"Raspa Brasil - {quantidade} raspadinha(s)",
+            "payment_method_id": "pix",
+            "payer": {"email": "cliente@email.com"},
+            "external_reference": f"raspa_{int(time.time())}_{quantidade}"
+        }
+        
+        payment = sdk.payment().create(payment_data)
+        payment_info = payment.get("response", {})
+        
+        if payment_info and payment_info.get("id"):
+            payment_id = payment_info["id"]
+            
+            # Salvar no banco
             if supabase:
                 try:
-                    venda_data = {
+                    supabase.table('rb_vendas').insert({
                         'rb_quantidade': quantidade,
-                        'rb_valor_total': total,
-                        'rb_payment_id': str(payment['id']),
+                        'rb_valor_total': valor_total,
+                        'rb_payment_id': str(payment_id),
                         'rb_status': 'pending',
                         'rb_tipo': 'raspadinha',
+                        'rb_afiliado_id': afiliado_id,
                         'rb_ip_cliente': request.remote_addr,
-                        'rb_user_agent': request.headers.get(
-                            'User-Agent', ''
-                        )[:500]
-                    }
-                    
-                    supabase.table('rb_vendas').insert(venda_data).execute()
-                    
+                        'rb_user_agent': request.headers.get('User-Agent', '')[:500],
+                    }).execute()
                 except Exception as e:
                     print(f"❌ Erro ao salvar venda: {str(e)}")
-
-            pix_data = payment.get(
-                'point_of_interaction', {}
-            ).get('transaction_data', {})
-
-            if not pix_data:
-                return jsonify({'error': 'Erro ao gerar dados PIX'}), 500
-
+            
             return jsonify({
-                'id': payment['id'],
-                'qr_code': pix_data.get('qr_code', ''),
-                'qr_code_base64': pix_data.get('qr_code_base64', ''),
-                'status': payment['status'],
-                'amount': payment['transaction_amount']
+                'id': payment_id,
+                'qr_code': payment_info.get("point_of_interaction", {}).get("transaction_data", {}).get("qr_code"),
+                'qr_code_base64': payment_info.get("point_of_interaction", {}).get("transaction_data", {}).get("qr_code_base64"),
+                'amount': valor_total
             })
         else:
-            return jsonify({
-                'error': 'Erro ao criar pagamento',
-                'details': payment_response.get('message', 'Erro desconhecido')
-            }), 500
-
+            return jsonify({'error': 'Erro ao criar pagamento'}), 500
+            
     except Exception as e:
-        print(f"❌ Exceção ao criar pagamento: {str(e)}")
-        return jsonify({
-            'error': 'Erro interno do servidor',
-            'details': str(e)
-        }), 500
-
-
-@app.route('/create_payment_roda', methods=['POST'])
-def create_payment_roda():
-    """Cria pagamento PIX para Roda Brasil"""
-    data = request.json
-    quantidade = data.get('quantidade', 1)
-    total = quantidade * 1.00
-
-    if not sdk:
-        return jsonify({
-            'error': 'Mercado Pago não configurado.',
-            'details': 'Token do Mercado Pago necessário.'
-        }), 500
-
-    payment_data = {
-        "transaction_amount": float(total),
-        "description": f"Roda Brasil - {quantidade} ficha(s)",
-        "payment_method_id": "pix",
-        "payer": {
-            "email": "cliente@rodabrasil.com",
-            "first_name": "Cliente",
-            "last_name": "Roda Brasil"
-        },
-        "notification_url": (
-            f"{request.url_root.rstrip('/')}/webhook/mercadopago"
-        ),
-        "external_reference": (
-            f"RR_{int(datetime.now().timestamp())}_{quantidade}"
-        )
-    }
-
-    try:
-        print(f"🎰 Criando pagamento Roda Brasil: R$ {total:.2f}")
-        payment_response = sdk.payment().create(payment_data)
-
-        if payment_response["status"] == 201:
-            payment = payment_response["response"]
-
-            session['payment_id_roda'] = str(payment['id'])
-            session['quantidade_roda'] = quantidade
-            session['payment_created_at_roda'] = datetime.now().isoformat()
-
-            if supabase:
-                try:
-                    venda_data = {
-                        'rb_quantidade': quantidade,
-                        'rb_valor_total': total,
-                        'rb_payment_id': str(payment['id']),
-                        'rb_status': 'pending',
-                        'rb_tipo': 'roda_brasil',
-                        'rb_ip_cliente': request.remote_addr,
-                        'rb_user_agent': request.headers.get(
-                            'User-Agent', ''
-                        )[:500]
-                    }
-                    
-                    supabase.table('rb_vendas').insert(venda_data).execute()
-                    
-                except Exception as e:
-                    print(f"❌ Erro ao salvar venda roda: {str(e)}")
-
-            pix_data = payment.get(
-                'point_of_interaction', {}
-            ).get('transaction_data', {})
-
-            if not pix_data:
-                return jsonify({'error': 'Erro ao gerar dados PIX'}), 500
-
-            return jsonify({
-                'id': payment['id'],
-                'qr_code': pix_data.get('qr_code', ''),
-                'qr_code_base64': pix_data.get('qr_code_base64', ''),
-                'status': payment['status'],
-                'amount': payment['transaction_amount']
-            })
-        else:
-            return jsonify({
-                'error': 'Erro ao criar pagamento',
-                'details': payment_response.get('message', 'Erro desconhecido')
-            }), 500
-
-    except Exception as e:
-        print(f"❌ Exceção ao criar pagamento roda: {str(e)}")
-        return jsonify({
-            'error': 'Erro interno do servidor',
-            'details': str(e)
-        }), 500
-
+        print(f"❌ Erro ao criar pagamento: {str(e)}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
 
 @app.route('/check_payment/<payment_id>')
 def check_payment(payment_id):
-    """Verifica status do pagamento no Mercado Pago"""
-    if not sdk:
-        return jsonify({'error': 'Mercado Pago não configurado'}), 500
-
+    """Verificar status do pagamento"""
     try:
-        print(f"🔍 Verificando pagamento: {payment_id}")
-
-        payment_response = sdk.payment().get(payment_id)
-
-        if payment_response["status"] == 200:
-            payment = payment_response["response"]
-            status = payment['status']
-
-            print(f"📊 Status do pagamento {payment_id}: {status}")
-
-            # Se aprovado e ainda não processado, atualizar no Supabase
-            payment_key = f'payment_processed_{payment_id}'
-            if status == 'approved' and payment_key not in session:
-                if supabase:
-                    try:
-                        # Atualizar status da venda
-                        supabase.table('rb_vendas').update({
-                            'rb_status': 'completed'
-                        }).eq('rb_payment_id', payment_id).execute()
-
-                        session[payment_key] = True
-                        print(f"✅ Pagamento aprovado: {payment_id}")
-
-                        # Log da mudança
-                        log_payment_change(
-                            payment_id, 'pending', 'completed', {
-                                'source': 'check_payment',
-                                'amount': payment.get('transaction_amount', 0)
-                            }
-                        )
-
-                    except Exception as e:
-                        print(
-                            f"❌ Erro ao atualizar status no Supabase: "
-                            f"{str(e)}"
-                        )
-
-            return jsonify({
-                'status': status,
-                'amount': payment.get('transaction_amount', 0),
-                'description': payment.get('description', ''),
-                'date_created': payment.get('date_created', ''),
-                'date_approved': payment.get('date_approved', '')
-            })
+        if not sdk:
+            return jsonify({'status': 'error', 'message': 'Sistema de pagamento indisponível'})
+        
+        payment = sdk.payment().get(payment_id)
+        payment_info = payment.get("response", {})
+        
+        if payment_info:
+            status = payment_info.get("status")
+            
+            # Atualizar no banco se aprovado
+            if status == "approved" and supabase:
+                try:
+                    # Atualizar status da venda
+                    venda_response = supabase.table('rb_vendas').update({
+                        'rb_status': 'completed'
+                    }).eq('rb_payment_id', payment_id).execute()
+                    
+                    # Processar comissão se for venda via afiliado
+                    if venda_response.data:
+                        venda = venda_response.data[0]
+                        if venda.get('rb_afiliado_id'):
+                            processar_comissao_afiliado(
+                                venda['rb_afiliado_id'], 
+                                venda['rb_valor_total']
+                            )
+                            
+                except Exception as e:
+                    print(f"❌ Erro ao atualizar status: {str(e)}")
+            
+            return jsonify({'status': status})
         else:
-            print(f"❌ Erro ao verificar pagamento: {payment_response}")
-            return jsonify({'error': 'Erro ao verificar pagamento'}), 500
-
+            return jsonify({'status': 'error'})
+            
     except Exception as e:
-        print(f"❌ Exceção ao verificar pagamento: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/check_payment_roda/<payment_id>')
-def check_payment_roda(payment_id):
-    """Verifica status do pagamento da Roda Brasil"""
-    if not sdk:
-        return jsonify({'error': 'Mercado Pago não configurado'}), 500
-
-    try:
-        print(f"🎰 Verificando pagamento Roda: {payment_id}")
-
-        payment_response = sdk.payment().get(payment_id)
-
-        if payment_response["status"] == 200:
-            payment = payment_response["response"]
-            status = payment['status']
-
-            print(f"📊 Status do pagamento Roda {payment_id}: {status}")
-
-            # Se aprovado e ainda não processado, atualizar no Supabase
-            payment_key = f'payment_roda_processed_{payment_id}'
-            if status == 'approved' and payment_key not in session:
-                if supabase:
-                    try:
-                        # Atualizar status da venda
-                        supabase.table('rb_vendas').update({
-                            'rb_status': 'completed'
-                        }).eq('rb_payment_id', payment_id).execute()
-
-                        session[payment_key] = True
-                        print(f"✅ Pagamento Roda aprovado: {payment_id}")
-
-                    except Exception as e:
-                        print(f"❌ Erro ao atualizar status Roda: {str(e)}")
-
-            return jsonify({
-                'status': status,
-                'amount': payment.get('transaction_amount', 0),
-                'description': payment.get('description', ''),
-                'date_created': payment.get('date_created', ''),
-                'date_approved': payment.get('date_approved', '')
-            })
-        else:
-            return jsonify({'error': 'Erro ao verificar pagamento'}), 500
-
-    except Exception as e:
-        print(f"❌ Exceção ao verificar pagamento Roda: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
+        print(f"❌ Erro ao verificar pagamento: {str(e)}")
+        return jsonify({'status': 'error'})
 
 @app.route('/raspar', methods=['POST'])
 def raspar():
-    """Processa raspagem - REQUER PAGAMENTO APROVADO"""
+    """Processar raspagem de uma bandeira"""
     try:
-        # Verificar se há pagamento aprovado na sessão
-        payment_id = session.get('payment_id')
-        quantidade_paga = session.get('quantidade', 0)
-
-        if not payment_id:
-            return jsonify({
-                'ganhou': False,
-                'erro': 'Nenhum pagamento encontrado. Pague primeiro.'
-            }), 400
-
-        # Validar se o pagamento foi realmente aprovado
-        if not validar_pagamento_aprovado(payment_id):
-            return jsonify({
-                'ganhou': False,
-                'erro': 'Pagamento não aprovado. Aguarde confirmação.'
-            }), 400
-
-        # Verificar se ainda há raspadinhas restantes
-        raspadas_key = f'raspadas_{payment_id}'
-        raspadas = session.get(raspadas_key, 0)
-
-        if raspadas >= quantidade_paga:
-            return jsonify({
-                'ganhou': False,
-                'erro': 'Todas as raspadinhas já foram utilizadas.'
-            }), 400
-
-        # Incrementar contador de raspadas
-        session[raspadas_key] = raspadas + 1
-
-        # Tentar sortear prêmio
-        premio = sortear_premio()
-
+        premio, mensagem = sortear_premio()
+        
         if premio:
-            codigo = gerar_codigo_unico()
-            print(
-                f"🎉 Prêmio sorteado: {premio} - "
-                f"Código: {codigo} - Payment: {payment_id}"
-            )
+            codigo = f"RB-{random.randint(10000, 99999)}-{random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}{random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}{random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}"
+            
             return jsonify({
                 'ganhou': True,
                 'valor': premio,
-                'codigo': codigo
+                'codigo': codigo,
+                'mensagem': mensagem
             })
         else:
-            print(
-                f"😔 Sem prêmio - Payment: {payment_id} - "
-                f"Raspada: {raspadas + 1}/{quantidade_paga}"
-            )
-            return jsonify({'ganhou': False})
-
+            return jsonify({
+                'ganhou': False,
+                'mensagem': mensagem or "Não foi desta vez!"
+            })
+            
     except Exception as e:
         print(f"❌ Erro ao processar raspagem: {str(e)}")
-        return jsonify({'ganhou': False, 'erro': str(e)}), 500
-
-
-@app.route('/girar_roda', methods=['POST'])
-def girar_roda():
-    """Processa giro da roleta - REQUER PAGAMENTO APROVADO"""
-    try:
-        # Verificar se há pagamento aprovado na sessão
-        payment_id = session.get('payment_id_roda')
-        fichas_pagas = session.get('quantidade_roda', 0)
-
-        if not payment_id:
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE',
-                'erro': 'Nenhum pagamento encontrado. Pague primeiro.'
-            }), 400
-
-        # Validar se o pagamento foi realmente aprovado
-        if not validar_pagamento_aprovado(payment_id):
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE',
-                'erro': 'Pagamento não aprovado. Aguarde confirmação.'
-            }), 400
-
-        # Verificar se ainda há fichas restantes
-        giradas_key = f'giradas_{payment_id}'
-        giradas = session.get(giradas_key, 0)
-
-        if giradas >= fichas_pagas:
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE',
-                'erro': 'Todas as fichas já foram utilizadas.'
-            }), 400
-
-        # Incrementar contador de giradas
-        session[giradas_key] = giradas + 1
-
-        # Sortear prêmio da roda
-        premio = sortear_premio_roda()
-
-        if premio != "TENTE NOVAMENTE":
-            codigo = gerar_codigo_unico_roda()
-            print(
-                f"🎰 Prêmio da roda: {premio} - "
-                f"Código: {codigo} - Payment: {payment_id}"
-            )
-            return jsonify({
-                'ganhou': True,
-                'premio': premio,
-                'codigo': codigo
-            })
-        else:
-            print(
-                f"🎰 Sem prêmio na roda - Payment: {payment_id} - "
-                f"Girada: {giradas + 1}/{fichas_pagas}"
-            )
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE'
-            })
-
-    except Exception as e:
-        print(f"❌ Erro ao girar roda: {str(e)}")
-        return jsonify({
-            'ganhou': False,
-            'premio': 'TENTE NOVAMENTE',
-            'erro': str(e)
-        }), 500
-
+        return jsonify({'erro': 'Erro interno do servidor'}), 500
 
 @app.route('/salvar_ganhador', methods=['POST'])
 def salvar_ganhador():
-    """Salva dados do ganhador no Supabase"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Supabase não conectado'
-        })
-
+    """Salvar dados do ganhador"""
     try:
         data = request.json
-
-        # Validar dados obrigatórios
-        campos_obrigatorios = [
-            'codigo', 'nome', 'valor', 'chave_pix', 'tipo_chave'
-        ]
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {campo} é obrigatório'
-                })
-
-        # Verificar se o código é válido (não foi usado antes)
-        existing = supabase.table('rb_ganhadores').select('rb_id').eq(
-            'rb_codigo', data['codigo']
-        ).execute()
-        if existing.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código já utilizado'
-            })
-
-        response = supabase.table('rb_ganhadores').insert({
-            'rb_codigo': data['codigo'],
-            'rb_nome': data['nome'].strip()[:255],
-            'rb_valor': data['valor'],
-            'rb_chave_pix': data['chave_pix'].strip()[:255],
-            'rb_tipo_chave': data['tipo_chave'],
-            'rb_telefone': data.get('telefone', '')[:20],
+        nome = data.get('nome', '').strip()
+        valor = data.get('valor', '').strip()
+        chave_pix = data.get('chave_pix', '').strip()
+        tipo_chave = data.get('tipo_chave', 'cpf')
+        codigo = data.get('codigo', '').strip()
+        
+        if not all([nome, valor, chave_pix, codigo]):
+            return jsonify({'sucesso': False, 'erro': 'Dados incompletos'})
+        
+        if len(nome) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
+        
+        if len(chave_pix) < 5:
+            return jsonify({'sucesso': False, 'erro': 'Chave PIX inválida'})
+        
+        if not supabase:
+            return jsonify({'sucesso': False, 'erro': 'Sistema de banco indisponível'})
+        
+        # Salvar ganhador
+        ganhador_data = {
+            'rb_codigo': codigo,
+            'rb_nome': nome,
+            'rb_valor': valor,
+            'rb_chave_pix': chave_pix,
+            'rb_tipo_chave': tipo_chave,
             'rb_status_pagamento': 'pendente'
-        }).execute()
-
-        if response.data:
-            print(
-                f"💾 Ganhador salvo: {data['nome']} - "
-                f"{data['valor']} - {data['codigo']}"
-            )
-            return jsonify({'sucesso': True, 'id': response.data[0]['rb_id']})
+        }
+        
+        ganhador_response = supabase.table('rb_ganhadores').insert(ganhador_data).execute()
+        
+        if ganhador_response.data:
+            ganhador_id = ganhador_response.data[0]['rb_id']
+            
+            # Criar solicitação de saque automaticamente
+            valor_numerico = float(valor.replace('R$ ', '').replace(',', '.'))
+            saque_data = {
+                'rb_ganhador_id': ganhador_id,
+                'rb_valor': valor_numerico,
+                'rb_chave_pix': chave_pix,
+                'rb_tipo_chave': tipo_chave,
+                'rb_status': 'solicitado'
+            }
+            
+            supabase.table('rb_saques_ganhadores').insert(saque_data).execute()
+            
+            return jsonify({'sucesso': True, 'codigo': codigo})
         else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao inserir ganhador'
-            })
-
+            return jsonify({'sucesso': False, 'erro': 'Erro ao salvar no banco'})
+            
     except Exception as e:
         print(f"❌ Erro ao salvar ganhador: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
+# ========== ROTAS DA RODA BRASIL ==========
+
+@app.route('/create_payment_roda', methods=['POST'])
+def create_payment_roda():
+    """Criar pagamento para Roda Brasil"""
+    try:
+        data = request.json
+        quantidade = int(data.get('quantidade', 1))
+        
+        if quantidade < 1 or quantidade > 10:
+            return jsonify({'error': 'Quantidade inválida'}), 400
+        
+        valor_total = quantidade * 1.00
+        
+        # Verificar se o sistema está ativo
+        sistema_ativo = obter_configuracao('sistema_ativo', 'true').lower() == 'true'
+        if not sistema_ativo:
+            return jsonify({'error': 'Sistema temporariamente desativado'}), 400
+        
+        if not sdk:
+            return jsonify({'error': 'Sistema de pagamento indisponível'}), 500
+        
+        # Criar pagamento no Mercado Pago
+        payment_data = {
+            "transaction_amount": valor_total,
+            "description": f"Roda Brasil - {quantidade} ficha(s)",
+            "payment_method_id": "pix",
+            "payer": {"email": "cliente@email.com"},
+            "external_reference": f"roda_{int(time.time())}_{quantidade}"
+        }
+        
+        payment = sdk.payment().create(payment_data)
+        payment_info = payment.get("response", {})
+        
+        if payment_info and payment_info.get("id"):
+            payment_id = payment_info["id"]
+            
+            # Salvar no banco
+            if supabase:
+                try:
+                    supabase.table('rb_vendas').insert({
+                        'rb_quantidade': quantidade,
+                        'rb_valor_total': valor_total,
+                        'rb_payment_id': str(payment_id),
+                        'rb_status': 'pending',
+                        'rb_tipo': 'roda_brasil',
+                        'rb_ip_cliente': request.remote_addr,
+                        'rb_user_agent': request.headers.get('User-Agent', '')[:500],
+                    }).execute()
+                except Exception as e:
+                    print(f"❌ Erro ao salvar venda da roda: {str(e)}")
+            
+            return jsonify({
+                'id': payment_id,
+                'qr_code': payment_info.get("point_of_interaction", {}).get("transaction_data", {}).get("qr_code"),
+                'qr_code_base64': payment_info.get("point_of_interaction", {}).get("transaction_data", {}).get("qr_code_base64"),
+                'amount': valor_total
+            })
+        else:
+            return jsonify({'error': 'Erro ao criar pagamento'}), 500
+            
+    except Exception as e:
+        print(f"❌ Erro ao criar pagamento da roda: {str(e)}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+
+@app.route('/check_payment_roda/<payment_id>')
+def check_payment_roda(payment_id):
+    """Verificar status do pagamento da Roda Brasil"""
+    try:
+        if not sdk:
+            return jsonify({'status': 'error', 'message': 'Sistema de pagamento indisponível'})
+        
+        payment = sdk.payment().get(payment_id)
+        payment_info = payment.get("response", {})
+        
+        if payment_info:
+            status = payment_info.get("status")
+            
+            # Atualizar no banco se aprovado
+            if status == "approved" and supabase:
+                try:
+                    supabase.table('rb_vendas').update({
+                        'rb_status': 'completed'
+                    }).eq('rb_payment_id', payment_id).execute()
+                except Exception as e:
+                    print(f"❌ Erro ao atualizar status da roda: {str(e)}")
+            
+            return jsonify({'status': status})
+        else:
+            return jsonify({'status': 'error'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao verificar pagamento da roda: {str(e)}")
+        return jsonify({'status': 'error'})
+
+@app.route('/girar_roda', methods=['POST'])
+def girar_roda():
+    """Endpoint para girar a roleta"""
+    try:
+        resultado = sortear_premio_roda()
+        return jsonify({'resultado': resultado})
+    except Exception as e:
+        print(f"❌ Erro ao girar roda: {str(e)}")
+        return jsonify({'resultado': 'VOCÊ PERDEU'})
 
 @app.route('/salvar_ganhador_roda', methods=['POST'])
 def salvar_ganhador_roda():
-    """Salva dados do ganhador da Roda Brasil no Supabase"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Supabase não conectado'
-        })
-
+    """Salvar ganhador da Roda Brasil"""
     try:
         data = request.json
-
-        # Validar dados obrigatórios
-        campos_obrigatorios = [
-            'codigo', 'nome', 'cpf', 'valor', 'chave_pix', 'tipo_chave'
-        ]
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {campo} é obrigatório'
-                })
-
-        # Validar CPF
-        cpf = data['cpf']
-        if len(cpf) != 11:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF deve ter 11 dígitos'
-            })
-
-        # Verificar se o código é válido (não foi usado antes)
-        existing = supabase.table('rb_ganhadores_roda').select('rb_id').eq(
-            'rb_codigo', data['codigo']
-        ).execute()
-        if existing.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código já utilizado'
-            })
-
-        response = supabase.table('rb_ganhadores_roda').insert({
-            'rb_codigo': data['codigo'],
-            'rb_nome': data['nome'].strip()[:255],
+        nome = data.get('nome', '').strip()
+        cpf = data.get('cpf', '').strip()
+        valor = data.get('valor', '').strip()
+        chave_pix = data.get('chave_pix', '').strip()
+        tipo_chave = data.get('tipo_chave', 'cpf')
+        codigo = data.get('codigo', '').strip()
+        
+        if not all([nome, cpf, valor, chave_pix, codigo]):
+            return jsonify({'sucesso': False, 'erro': 'Dados incompletos'})
+        
+        if len(nome) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
+        
+        if len(cpf) != 11 or not cpf.isdigit():
+            return jsonify({'sucesso': False, 'erro': 'CPF deve ter 11 dígitos'})
+        
+        if len(chave_pix) < 5:
+            return jsonify({'sucesso': False, 'erro': 'Chave PIX inválida'})
+        
+        if not supabase:
+            return jsonify({'sucesso': False, 'erro': 'Sistema de banco indisponível'})
+        
+        # Salvar ganhador da roda
+        ganhador_data = {
+            'rb_codigo': codigo,
+            'rb_nome': nome,
             'rb_cpf': cpf,
-            'rb_valor': data['valor'],
-            'rb_chave_pix': data['chave_pix'].strip()[:255],
-            'rb_tipo_chave': data['tipo_chave'],
+            'rb_valor': valor,
+            'rb_chave_pix': chave_pix,
+            'rb_tipo_chave': tipo_chave,
             'rb_status_pagamento': 'pendente'
-        }).execute()
-
-        if response.data:
-            print(
-                f"🎰 Ganhador da roda salvo: {data['nome']} - "
-                f"{data['valor']} - {data['codigo']}"
-            )
+        }
+        
+        ganhador_response = supabase.table('rb_ganhadores_roda').insert(ganhador_data).execute()
+        
+        if ganhador_response.data:
+            ganhador_id = ganhador_response.data[0]['rb_id']
             
             # Criar solicitação de saque automaticamente
-            try:
-                supabase.table('rb_saques_ganhadores').insert({
-                    'rb_ganhador_id': response.data[0]['rb_id'],
-                    'rb_valor': data['valor'],
-                    'rb_chave_pix': data['chave_pix'],
-                    'rb_tipo_chave': data['tipo_chave'],
-                    'rb_status': 'solicitado'
-                }).execute()
-                print(f"💰 Saque automático criado para ganhador da roda")
-            except Exception as e:
-                print(f"⚠️ Erro ao criar saque automático: {str(e)}")
+            valor_numerico = float(valor.replace('R$ ', '').replace(',', '.'))
+            saque_data = {
+                'rb_ganhador_id': ganhador_id,
+                'rb_valor': valor_numerico,
+                'rb_chave_pix': chave_pix,
+                'rb_tipo_chave': tipo_chave,
+                'rb_status': 'solicitado'
+            }
             
-            return jsonify({'sucesso': True, 'id': response.data[0]['rb_id']})
+            supabase.table('rb_saques_ganhadores').insert(saque_data).execute()
+            
+            return jsonify({'sucesso': True, 'codigo': codigo})
         else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao inserir ganhador'
-            })
-
+            return jsonify({'sucesso': False, 'erro': 'Erro ao salvar no banco'})
+            
     except Exception as e:
         print(f"❌ Erro ao salvar ganhador da roda: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
-
-# ========== ROTAS DE AFILIADOS (mantidas do código anterior) ==========
-
+# ========== ROTAS DE AFILIADOS ==========
 @app.route('/cadastrar_afiliado', methods=['POST'])
 def cadastrar_afiliado():
-    """Cadastra novo afiliado"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Sistema indisponível'
-        })
-
+    """Cadastrar novo afiliado"""
     try:
         data = request.json
-
-        # Validar dados obrigatórios
-        campos_obrigatorios = ['nome', 'email', 'telefone', 'cpf']
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {campo} é obrigatório'
-                })
-
-        # Limpar CPF
-        cpf = data['cpf'].replace('.', '').replace('-', '').replace(' ', '')
-        if len(cpf) != 11:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF inválido'
-            })
-
-        # Verificar se email ou CPF já existe
-        existing_email = supabase.table('rb_afiliados').select('rb_id').eq(
-            'rb_email', data['email']
-        ).execute()
+        nome = data.get('nome', '').strip()
+        telefone = data.get('telefone', '').strip()
+        email = data.get('email', '').strip()
+        cpf = data.get('cpf', '').strip()
         
-        existing_cpf = supabase.table('rb_afiliados').select('rb_id').eq(
+        if not all([nome, telefone, email, cpf]):
+            return jsonify({'sucesso': False, 'erro': 'Dados incompletos'})
+        
+        if len(nome) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
+        
+        if '@' not in email:
+            return jsonify({'sucesso': False, 'erro': 'E-mail inválido'})
+        
+        if len(cpf) != 11 or not cpf.isdigit():
+            return jsonify({'sucesso': False, 'erro': 'CPF deve ter 11 dígitos'})
+        
+        if not supabase:
+            return jsonify({'sucesso': False, 'erro': 'Sistema de banco indisponível'})
+        
+        # Verificar se CPF já existe
+        cpf_response = supabase.table('rb_afiliados').select('rb_id').eq(
             'rb_cpf', cpf
         ).execute()
         
-        if existing_email.data or existing_cpf.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'E-mail ou CPF já cadastrado'
-            })
-
-        # Gerar código único
-        codigo = gerar_codigo_afiliado_unico()
-
-        # Inserir afiliado
-        response = supabase.table('rb_afiliados').insert({
+        if cpf_response.data:
+            return jsonify({'sucesso': False, 'erro': 'CPF já cadastrado'})
+        
+        # Verificar se e-mail já existe
+        email_response = supabase.table('rb_afiliados').select('rb_id').eq(
+            'rb_email', email
+        ).execute()
+        
+        if email_response.data:
+            return jsonify({'sucesso': False, 'erro': 'E-mail já cadastrado'})
+        
+        # Criar afiliado
+        codigo = gerar_codigo_afiliado()
+        afiliado_data = {
             'rb_codigo': codigo,
-            'rb_nome': data['nome'].strip()[:255],
-            'rb_email': data['email'].strip().lower()[:255],
-            'rb_telefone': data['telefone'].strip()[:20],
+            'rb_nome': nome,
+            'rb_email': email,
+            'rb_telefone': telefone,
             'rb_cpf': cpf,
             'rb_status': 'ativo'
-        }).execute()
-
+        }
+        
+        response = supabase.table('rb_afiliados').insert(afiliado_data).execute()
+        
         if response.data:
             afiliado = response.data[0]
-            print(f"👥 Novo afiliado cadastrado: {data['nome']} - {codigo}")
-            
             return jsonify({
                 'sucesso': True,
                 'afiliado': {
-                    'id': afiliado['rb_id'],
-                    'codigo': codigo,
+                    'codigo': afiliado['rb_codigo'],
                     'nome': afiliado['rb_nome'],
                     'email': afiliado['rb_email'],
                     'total_clicks': 0,
                     'total_vendas': 0,
                     'total_comissao': 0,
-                    'saldo_disponivel': 0,
-                    'link': f"https://raspabrasil.com/?ref={codigo}"
+                    'saldo_disponivel': 0
                 }
             })
         else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao inserir afiliado'
-            })
-
+            return jsonify({'sucesso': False, 'erro': 'Erro ao criar afiliado'})
+            
     except Exception as e:
         print(f"❌ Erro ao cadastrar afiliado: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/login_afiliado', methods=['POST'])
 def login_afiliado():
     """Login do afiliado por CPF"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Sistema indisponível'
-        })
-
     try:
         data = request.json
-        cpf = data.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        cpf = data.get('cpf', '').strip()
         
         if not cpf or len(cpf) != 11:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF inválido'
-            })
-
-        # Buscar afiliado pelo CPF
+            return jsonify({'sucesso': False, 'erro': 'CPF inválido'})
+        
+        if not supabase:
+            return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        
         response = supabase.table('rb_afiliados').select('*').eq(
             'rb_cpf', cpf
         ).eq('rb_status', 'ativo').execute()
@@ -1137,179 +881,147 @@ def login_afiliado():
             return jsonify({
                 'sucesso': True,
                 'afiliado': {
-                    'id': afiliado['rb_id'],
                     'codigo': afiliado['rb_codigo'],
                     'nome': afiliado['rb_nome'],
                     'email': afiliado['rb_email'],
+                    'chave_pix': afiliado.get('rb_chave_pix'),
+                    'tipo_chave_pix': afiliado.get('rb_tipo_chave_pix'),
                     'total_clicks': afiliado['rb_total_clicks'] or 0,
                     'total_vendas': afiliado['rb_total_vendas'] or 0,
                     'total_comissao': float(afiliado['rb_total_comissao'] or 0),
-                    'saldo_disponivel': float(afiliado['rb_saldo_disponivel'] or 0),
-                    'chave_pix': afiliado['rb_chave_pix'],
-                    'tipo_chave_pix': afiliado['rb_tipo_chave_pix']
+                    'saldo_disponivel': float(afiliado['rb_saldo_disponivel'] or 0)
                 }
             })
         else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF não encontrado ou afiliado inativo'
-            })
-
+            return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+            
     except Exception as e:
         print(f"❌ Erro no login afiliado: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/atualizar_pix_afiliado', methods=['POST'])
 def atualizar_pix_afiliado():
-    """Atualiza chave PIX do afiliado"""
-    if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
-
+    """Atualizar chave PIX do afiliado"""
     try:
         data = request.json
-        codigo = data.get('codigo')
+        codigo = data.get('codigo', '').strip()
         chave_pix = data.get('chave_pix', '').strip()
         tipo_chave = data.get('tipo_chave', 'cpf')
-
-        if not codigo or not chave_pix:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código e chave PIX são obrigatórios'
-            })
-
+        
+        if not all([codigo, chave_pix]):
+            return jsonify({'sucesso': False, 'erro': 'Dados incompletos'})
+        
+        if not supabase:
+            return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        
         response = supabase.table('rb_afiliados').update({
             'rb_chave_pix': chave_pix,
             'rb_tipo_chave_pix': tipo_chave
-        }).eq('rb_codigo', codigo).eq('rb_status', 'ativo').execute()
-
+        }).eq('rb_codigo', codigo).execute()
+        
         if response.data:
             return jsonify({'sucesso': True})
         else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Afiliado não encontrado'
-            })
-
+            return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+            
     except Exception as e:
         print(f"❌ Erro ao atualizar PIX: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/solicitar_saque_afiliado', methods=['POST'])
 def solicitar_saque_afiliado():
-    """Processa solicitação de saque do afiliado"""
-    if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
-
+    """Solicitar saque de comissão"""
     try:
         data = request.json
-        codigo = data.get('codigo')
+        codigo = data.get('codigo', '').strip()
         
         if not codigo:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código do afiliado é obrigatório'
-            })
-
+            return jsonify({'sucesso': False, 'erro': 'Código não fornecido'})
+        
+        if not supabase:
+            return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        
         # Buscar afiliado
-        afiliado_response = supabase.table('rb_afiliados').select('*').eq(
+        response = supabase.table('rb_afiliados').select('*').eq(
             'rb_codigo', codigo
-        ).eq('rb_status', 'ativo').execute()
-
-        if not afiliado_response.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Afiliado não encontrado'
-            })
-
-        afiliado = afiliado_response.data[0]
+        ).execute()
+        
+        if not response.data:
+            return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+        
+        afiliado = response.data[0]
         saldo = float(afiliado['rb_saldo_disponivel'] or 0)
         saque_minimo = float(obter_configuracao('saque_minimo_afiliado', '10'))
-
+        
         if saldo < saque_minimo:
-            return jsonify({
-                'sucesso': False,
-                'erro': f'Saldo insuficiente. Mínimo: R$ {saque_minimo:.2f}'
-            })
-
-        if not afiliado['rb_chave_pix']:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Configure sua chave PIX primeiro'
-            })
-
-        # Inserir solicitação de saque
-        saque_response = supabase.table('rb_saques_afiliados').insert({
+            return jsonify({'sucesso': False, 'erro': f'Saldo mínimo para saque: R$ {saque_minimo:.2f}'})
+        
+        if not afiliado.get('rb_chave_pix'):
+            return jsonify({'sucesso': False, 'erro': 'Configure sua chave PIX primeiro'})
+        
+        # Criar solicitação de saque
+        saque_data = {
             'rb_afiliado_id': afiliado['rb_id'],
             'rb_valor': saldo,
             'rb_chave_pix': afiliado['rb_chave_pix'],
-            'rb_tipo_chave': afiliado['rb_tipo_chave_pix'],
+            'rb_tipo_chave': afiliado.get('rb_tipo_chave_pix', 'cpf'),
             'rb_status': 'solicitado'
-        }).execute()
-
-        if saque_response.data:
-            # Zerar saldo do afiliado
-            supabase.table('rb_afiliados').update({
-                'rb_saldo_disponivel': 0
-            }).eq('rb_id', afiliado['rb_id']).execute()
-
-            print(f"💰 Saque solicitado: {afiliado['rb_nome']} - R$ {saldo:.2f}")
-
-            return jsonify({
-                'sucesso': True,
-                'valor': saldo,
-                'saque_id': saque_response.data[0]['rb_id']
-            })
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao processar saque'
-            })
-
+        }
+        
+        supabase.table('rb_saques_afiliados').insert(saque_data).execute()
+        
+        # Zerar saldo do afiliado
+        supabase.table('rb_afiliados').update({
+            'rb_saldo_disponivel': 0
+        }).eq('rb_id', afiliado['rb_id']).execute()
+        
+        return jsonify({'sucesso': True, 'valor': saldo})
+        
     except Exception as e:
         print(f"❌ Erro ao solicitar saque: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
-
-# ========== ROTAS ADMIN (mantidas e atualizadas) ==========
-
+# ========== ROTAS ADMINISTRATIVAS ==========
 @app.route('/admin/login', methods=['POST'])
 def admin_login():
-    """Login do admin"""
-    data = request.json
-    senha = data.get('senha')
-    
-    if not senha:
-        return jsonify({'success': False, 'message': 'Senha é obrigatória'})
-    
-    # Por enquanto, usar senha simples até implementar tabela admin
-    if senha == 'paulo10@admin':
-        session['admin_logado'] = True
-        return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
-    
-    # Verificar no banco se existir
-    if supabase:
-        try:
-            response = supabase.table('rb_admins').select('*').eq(
-                'rb_senha', senha
-            ).eq('rb_ativo', True).execute()
-            if response.data:
-                admin = response.data[0]
-                session['admin_logado'] = True
-                session['admin_usuario'] = admin['rb_usuario']
-                
-                # Atualizar último login
-                supabase.table('rb_admins').update({
-                    'rb_ultimo_login': datetime.now().isoformat()
-                }).eq('rb_id', admin['rb_id']).execute()
-                
-                return jsonify({'success': True, 'message': f'Bem-vindo, {admin["rb_nome"]}'})
-        except Exception as e:
-            print(f"❌ Erro ao verificar admin no banco: {str(e)}")
-    
-    return jsonify({'success': False, 'message': 'Senha incorreta'})
-
+    """Login administrativo"""
+    try:
+        data = request.json
+        senha = data.get('senha', '').strip()
+        
+        if not senha:
+            return jsonify({'success': False, 'message': 'Senha não fornecida'})
+        
+        # Por enquanto, usar senha simples até implementar tabela admin
+        if senha == 'paulo10@admin':
+            session['admin_logado'] = True
+            return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
+        
+        # Verificar no banco se existir
+        if supabase:
+            try:
+                response = supabase.table('rb_admins').select('*').eq(
+                    'rb_senha', senha
+                ).eq('rb_ativo', True).execute()
+                if response.data:
+                    admin = response.data[0]
+                    session['admin_logado'] = True
+                    session['admin_usuario'] = admin['rb_usuario']
+                    
+                    # Atualizar último login
+                    supabase.table('rb_admins').update({
+                        'rb_ultimo_login': datetime.now().isoformat()
+                    }).eq('rb_id', admin['rb_id']).execute()
+                    
+                    return jsonify({'success': True, 'message': f'Bem-vindo, {admin["rb_nome"]}'})
+            except Exception as e:
+                print(f"❌ Erro ao verificar admin no banco: {str(e)}")
+        
+        return jsonify({'success': False, 'message': 'Senha incorreta'})
+        
+    except Exception as e:
+        print(f"❌ Erro no login admin: {str(e)}")
+        return jsonify({'success': False, 'message': 'Erro interno'})
 
 @app.route('/admin/toggle_sistema', methods=['POST'])
 def toggle_sistema():
@@ -1329,7 +1041,6 @@ def toggle_sistema():
     except Exception as e:
         print(f"❌ Erro ao alternar sistema: {str(e)}")
         return jsonify({'success': False, 'mensagem': str(e)})
-
 
 @app.route('/validar_codigo', methods=['POST'])
 def validar_codigo():
@@ -1374,7 +1085,6 @@ def validar_codigo():
         print(f"❌ Erro ao validar código: {str(e)}")
         return jsonify({'valido': False, 'mensagem': 'Erro ao validar código'})
 
-
 @app.route('/admin/premiados')
 def admin_premiados():
     """Lista de premiados para admin"""
@@ -1416,7 +1126,6 @@ def admin_premiados():
         print(f"❌ Erro ao listar premiados: {str(e)}")
         return jsonify({'premiados': []})
 
-
 @app.route('/admin/afiliados')
 def admin_afiliados():
     """Lista de afiliados para admin"""
@@ -1451,7 +1160,6 @@ def admin_afiliados():
     except Exception as e:
         print(f"❌ Erro ao listar afiliados: {str(e)}")
         return jsonify({'afiliados': []})
-
 
 @app.route('/admin/saques_ganhadores')
 def admin_saques_ganhadores():
@@ -1510,7 +1218,6 @@ def admin_saques_ganhadores():
         print(f"❌ Erro ao listar saques de ganhadores: {str(e)}")
         return jsonify({'saques': []})
 
-
 @app.route('/admin/saques_afiliados')
 def admin_saques_afiliados():
     """Lista de saques de afiliados para admin"""
@@ -1545,7 +1252,6 @@ def admin_saques_afiliados():
     except Exception as e:
         print(f"❌ Erro ao listar saques de afiliados: {str(e)}")
         return jsonify({'saques': []})
-
 
 @app.route('/admin/stats')
 def admin_stats():
@@ -1608,9 +1314,7 @@ def admin_stats():
             'sistema_ativo': True
         })
 
-
 # ========== ROTAS DE SAQUE ==========
-
 @app.route('/admin/pagar_saque_ganhador/<int:saque_id>', methods=['POST'])
 def pagar_saque_ganhador(saque_id):
     """Marca saque de ganhador como pago"""
@@ -1634,7 +1338,6 @@ def pagar_saque_ganhador(saque_id):
     except Exception as e:
         print(f"❌ Erro ao pagar saque: {str(e)}")
         return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
 
 @app.route('/admin/excluir_saque_ganhador/<int:saque_id>', methods=['DELETE'])
 def excluir_saque_ganhador(saque_id):
@@ -1668,7 +1371,6 @@ def excluir_saque_ganhador(saque_id):
         print(f"❌ Erro ao excluir saque: {str(e)}")
         return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
 
-
 @app.route('/admin/pagar_saque_afiliado/<int:saque_id>', methods=['POST'])
 def pagar_saque_afiliado(saque_id):
     """Marca saque de afiliado como pago"""
@@ -1692,7 +1394,6 @@ def pagar_saque_afiliado(saque_id):
     except Exception as e:
         print(f"❌ Erro ao pagar saque: {str(e)}")
         return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
 
 @app.route('/admin/excluir_saque_afiliado/<int:saque_id>', methods=['DELETE'])
 def excluir_saque_afiliado(saque_id):
@@ -1725,7 +1426,6 @@ def excluir_saque_afiliado(saque_id):
     except Exception as e:
         print(f"❌ Erro ao excluir saque: {str(e)}")
         return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
