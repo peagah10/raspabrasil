@@ -1,1742 +1,4422 @@
-import os
-import random
-import string
-from datetime import datetime, date
-from flask import Flask, request, jsonify, session
-from dotenv import load_dotenv
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspa Brasil - A Raspadinha Virtual Dos Brasileiros</title>
 
-# Inicializar Supabase com configuração compatível
-try:
-    from supabase import create_client, Client
-    supabase_available = True
-except ImportError:
-    supabase_available = False
-    print("⚠️ Supabase não disponível")
-
-import mercadopago
-import uuid
-
-load_dotenv()
-
-app = Flask(__name__)
-app.secret_key = os.getenv(
-    'SECRET_KEY', 'raspa-brasil-super-secret-key-2024-seguro'
-)
-
-# Configurações do Supabase
-SUPABASE_URL = os.getenv(
-    'SUPABASE_URL', "https://ngishqxtnkgvognszyep.supabase.co"
-)
-SUPABASE_KEY = os.getenv(
-    'SUPABASE_KEY',
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5naXNocXh0bmtndm9nbnN6eWVwIiwi"
-    "cm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTMwNjcsImV4cCI6MjA2ODE2OTA2N30."
-    "FOksPjvS2NyO6dcZ_j0Grj3Prn9OP_udSGQwswtFBXE"
-)
-
-# Configurações do Mercado Pago
-MP_ACCESS_TOKEN = os.getenv('MERCADOPAGO_ACCESS_TOKEN')
-sdk = None
-
-# Configurações da aplicação
-TOTAL_RASPADINHAS = 10000
-PREMIOS_TOTAIS = 2000
-WHATSAPP_NUMERO = "5582996092684"
-PERCENTUAL_COMISSAO_AFILIADO = 50  # 50% de comissão
-
-# Inicializar cliente Supabase
-supabase = None
-if supabase_available:
-    try:
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        # Testar conexão
-        test_response = supabase.table('rb_configuracoes').select(
-            'rb_chave'
-        ).limit(1).execute()
-        print("✅ Supabase conectado e testado com sucesso")
-    except Exception as e:
-        print(f"❌ Erro ao conectar com Supabase: {str(e)}")
-        supabase = None
-
-# Configurar Mercado Pago
-try:
-    if MP_ACCESS_TOKEN:
-        sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
-        print("✅ Mercado Pago SDK configurado com sucesso")
-    else:
-        print("❌ Token do Mercado Pago não encontrado")
-        print("⚠️ Sistema funcionará apenas com pagamentos simulados")
-except Exception as e:
-    print(f"❌ Erro ao configurar Mercado Pago: {str(e)}")
-    print("⚠️ Sistema funcionará apenas com pagamentos simulados")
-
-
-def log_payment_change(payment_id, status_anterior, status_novo,
-                       webhook_data=None):
-    """Registra mudanças de status de pagamento"""
-    if not supabase:
-        return False
-    try:
-        supabase.table('rb_logs_pagamento').insert({
-            'rb_payment_id': payment_id,
-            'rb_status_anterior': status_anterior,
-            'rb_status_novo': status_novo,
-            'rb_webhook_data': webhook_data
-        }).execute()
-        return True
-    except Exception as e:
-        print(f"❌ Erro ao registrar log: {str(e)}")
-        return False
-
-
-def gerar_codigo_antifraude():
-    """Gera código único no formato RB-XXXXX-YYY"""
-    numero = random.randint(10000, 99999)
-    letras = ''.join(random.choices(
-        string.ascii_uppercase + string.digits, k=3
-    ))
-    return f"RB-{numero}-{letras}"
-
-
-def gerar_codigo_roda():
-    """Gera código único para Roda Brasil no formato RR-XXXXX-YYY"""
-    numero = random.randint(10000, 99999)
-    letras = ''.join(random.choices(
-        string.ascii_uppercase + string.digits, k=3
-    ))
-    return f"RR-{numero}-{letras}"
-
-
-def gerar_codigo_afiliado():
-    """Gera código único para afiliado no formato AF-XXXXX"""
-    numero = random.randint(100000, 999999)
-    return f"AF{numero}"
-
-
-def verificar_codigo_unico(codigo, tabela='rb_ganhadores', campo='rb_codigo'):
-    """Verifica se o código é único no banco de dados"""
-    if not supabase:
-        return True
-    try:
-        response = supabase.table(tabela).select(campo).eq(
-            campo, codigo
-        ).execute()
-        return len(response.data) == 0
-    except Exception:
-        return True
-
-
-def gerar_codigo_unico():
-    """Gera um código antifraude único"""
-    max_tentativas = 10
-    for _ in range(max_tentativas):
-        codigo = gerar_codigo_antifraude()
-        if verificar_codigo_unico(codigo):
-            return codigo
-    return f"RB-{random.randint(10000, 99999)}-{uuid.uuid4().hex[:3].upper()}"
-
-
-def gerar_codigo_unico_roda():
-    """Gera um código único para Roda Brasil"""
-    max_tentativas = 10
-    for _ in range(max_tentativas):
-        codigo = gerar_codigo_roda()
-        if verificar_codigo_unico(codigo, 'rb_ganhadores_roda', 'rb_codigo'):
-            return codigo
-    return f"RR-{random.randint(10000, 99999)}-{uuid.uuid4().hex[:3].upper()}"
-
-
-def gerar_codigo_afiliado_unico():
-    """Gera um código de afiliado único"""
-    max_tentativas = 10
-    for _ in range(max_tentativas):
-        codigo = gerar_codigo_afiliado()
-        if verificar_codigo_unico(codigo, 'rb_afiliados', 'rb_codigo'):
-            return codigo
-    return f"AF{random.randint(100000, 999999)}"
-
-
-def obter_configuracao(chave, valor_padrao=None):
-    """Obtém valor de configuração do Supabase"""
-    if not supabase:
-        return valor_padrao
-    try:
-        response = supabase.table('rb_configuracoes').select('rb_valor').eq(
-            'rb_chave', chave
-        ).execute()
-        if response.data:
-            return response.data[0]['rb_valor']
-        return valor_padrao
-    except Exception as e:
-        print(f"❌ Erro ao obter configuração {chave}: {str(e)}")
-        return valor_padrao
-
-
-def atualizar_configuracao(chave, valor):
-    """Atualiza valor de configuração no Supabase"""
-    if not supabase:
-        return False
-    try:
-        response = supabase.table('rb_configuracoes').update({
-            'rb_valor': str(valor)
-        }).eq('rb_chave', chave).execute()
-        return response.data is not None
-    except Exception as e:
-        print(f"❌ Erro ao atualizar configuração {chave}: {str(e)}")
-        return False
-
-
-def obter_premios_disponiveis():
-    """Obtém prêmios disponíveis do Supabase"""
-    try:
-        premios = {
-            'R$ 10,00': int(obter_configuracao('premios_r10', '100')),
-            'R$ 20,00': int(obter_configuracao('premios_r20', '50')),
-            'R$ 30,00': int(obter_configuracao('premios_r30', '30')),
-            'R$ 40,00': int(obter_configuracao('premios_r40', '20')),
-            'R$ 50,00': int(obter_configuracao('premios_r50', '15')),
-            'R$ 100,00': int(obter_configuracao('premios_r100', '10'))
-        }
-        return premios
-    except Exception as e:
-        print(f"❌ Erro ao obter prêmios: {str(e)}")
-        return {
-            'R$ 10,00': 100,
-            'R$ 20,00': 50,
-            'R$ 30,00': 30,
-            'R$ 40,00': 20,
-            'R$ 50,00': 15,
-            'R$ 100,00': 10
+    <!-- Open Graph (Facebook, Instagram, WhatsApp) -->
+    <meta property="og:title" content="Raspa Brasil - A Raspadinha Virtual dos Brasileiros">
+    <meta property="og:description" content="Com apenas R$1 você pode ganhar até R$1.000. São R$30.000 em prêmios distribuídos em raspadinhas digitais de R$10 a R$1.000. Rápido, 100% online e com pagamento seguro via Pix.">
+    <meta property="og:image" content="https://raspabrasil.onrender.com/static/images/logo.jpg">
+    <meta property="og:url" content="https://raspabrasil.onrender.com">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #00b341;
+            --primary-yellow: #ffd700;
+            --primary-blue: #003087;
+            --primary-red: #dc2626;
+            --success-green: #28a745;
+            --affiliate-orange: #ff6b35;
+            --gradient-bg: linear-gradient(135deg, #00b341 0%, #ffd700 50%, #003087 100%);
+            --shadow-light: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.15);
+            --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --border-radius: 20px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-
-def obter_premios_roda_disponiveis():
-    """Obtém prêmios da Roda Brasil disponíveis"""
-    try:
-        premios = {
-            'R$ 1,00': int(obter_configuracao('premios_roda_r1', '50')),
-            'R$ 5,00': int(obter_configuracao('premios_roda_r5', '30')),
-            'R$ 10,00': int(obter_configuracao('premios_roda_r10', '20')),
-            'R$ 100,00': int(obter_configuracao('premios_roda_r100', '10')),
-            'R$ 300,00': int(obter_configuracao('premios_roda_r300', '5')),
-            'R$ 500,00': int(obter_configuracao('premios_roda_r500', '3')),
-            'R$ 1000,00': int(obter_configuracao('premios_roda_r1000', '2'))
-        }
-        return premios
-    except Exception as e:
-        print(f"❌ Erro ao obter prêmios da roda: {str(e)}")
-        return {
-            'R$ 1,00': 50,
-            'R$ 5,00': 30,
-            'R$ 10,00': 20,
-            'R$ 100,00': 10,
-            'R$ 300,00': 5,
-            'R$ 500,00': 3,
-            'R$ 1000,00': 2
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-
-def sortear_premio():
-    """Sorteia prêmio baseado na probabilidade e disponibilidade"""
-    try:
-        # Verificar se o sistema está ativo
-        sistema_ativo = obter_configuracao(
-            'sistema_ativo', 'true'
-        ).lower() == 'true'
-        if not sistema_ativo:
-            return None
-
-        # Verificar se já passou do limite para liberar prêmios
-        total_vendas = obter_total_vendas()
-        limite_premios = int(obter_configuracao('limite_premios', '1000'))
-
-        if total_vendas < limite_premios:
-            print(f"🚫 Prêmios bloqueados: {total_vendas}/{limite_premios}")
-            return None
-
-        # Chance de ganhar configurável
-        chance_ganhar = float(obter_configuracao('chance_ganhar', '0.25'))
-        if random.random() > chance_ganhar:
-            return None
-
-        # Obter prêmios disponíveis
-        premios = obter_premios_disponiveis()
-
-        # Criar lista ponderada de prêmios (menor valor = maior chance)
-        premios_ponderados = []
-        pesos = {
-            'R$ 10,00': 40, 'R$ 20,00': 25, 'R$ 30,00': 15,
-            'R$ 40,00': 10, 'R$ 50,00': 7, 'R$ 100,00': 3
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gradient-bg);
+            min-height: 100vh;
+            color: #1a1a1a;
+            line-height: 1.6;
+            overflow-x: hidden;
         }
 
-        for valor, quantidade in premios.items():
-            if quantidade > 0:
-                peso = pesos.get(valor, 1)
-                premios_ponderados.extend([valor] * peso)
-
-        if not premios_ponderados:
-            print("🚫 Nenhum prêmio disponível")
-            return None
-
-        # Sortear prêmio
-        premio = random.choice(premios_ponderados)
-
-        # Verificar se ainda há prêmios desse valor
-        if premios[premio] <= 0:
-            return None
-
-        # Diminuir a quantidade do prêmio sorteado
-        chave_premio = (
-            f"premios_r{premio.replace('R$ ', '').replace(',00', '')}"
-        )
-        quantidade_atual = int(obter_configuracao(chave_premio, '0'))
-        if quantidade_atual > 0:
-            atualizar_configuracao(chave_premio, quantidade_atual - 1)
-            print(
-                f"🎉 Prêmio sorteado: {premio} - "
-                f"Restam: {quantidade_atual - 1}"
-            )
-            return premio
-
-        return None
-
-    except Exception as e:
-        print(f"❌ Erro ao sortear prêmio: {str(e)}")
-        return None
-
-
-def sortear_premio_roda():
-    """Sorteia prêmio da Roda Brasil"""
-    try:
-        # Verificar se o sistema está ativo
-        sistema_ativo = obter_configuracao(
-            'sistema_ativo', 'true'
-        ).lower() == 'true'
-        if not sistema_ativo:
-            return None
-
-        # Chance de ganhar na roda (mais generosa que raspadinhas)
-        chance_ganhar = float(obter_configuracao('chance_ganhar_roda', '0.4'))
-        if random.random() > chance_ganhar:
-            return "TENTE NOVAMENTE"
-
-        # Obter prêmios disponíveis
-        premios = obter_premios_roda_disponiveis()
-
-        # Criar lista ponderada de prêmios
-        premios_ponderados = []
-        pesos = {
-            'R$ 1,00': 35, 'R$ 5,00': 25, 'R$ 10,00': 20,
-            'R$ 100,00': 10, 'R$ 300,00': 5, 'R$ 500,00': 3, 'R$ 1000,00': 2
+        /* Background Animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 179, 65, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(0, 48, 135, 0.15) 0%, transparent 50%);
+            animation: backgroundMove 25s ease-in-out infinite;
+            z-index: -1;
         }
 
-        for valor, quantidade in premios.items():
-            if quantidade > 0:
-                peso = pesos.get(valor, 1)
-                premios_ponderados.extend([valor] * peso)
+        @keyframes backgroundMove {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
 
-        if not premios_ponderados:
-            print("🚫 Nenhum prêmio da roda disponível")
-            return "TENTE NOVAMENTE"
+        /* Shake animation for winner alert */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
 
-        # Sortear prêmio
-        premio = random.choice(premios_ponderados)
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
 
-        # Diminuir a quantidade do prêmio sorteado
-        chave_premio = (
-            f"premios_roda_r{premio.replace('R$ ', '').replace(',00', '').replace('.', '')}"
-        )
-        quantidade_atual = int(obter_configuracao(chave_premio, '0'))
-        if quantidade_atual > 0:
-            atualizar_configuracao(chave_premio, quantidade_atual - 1)
-            print(
-                f"🎰 Prêmio da roda sorteado: {premio} - "
-                f"Restam: {quantidade_atual - 1}"
-            )
-            return premio
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-heavy);
+            margin-top: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
 
-        return "TENTE NOVAMENTE"
+        /* Header Moderno */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-yellow));
+            border-radius: var(--border-radius);
+            margin-bottom: 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
 
-    except Exception as e:
-        print(f"❌ Erro ao sortear prêmio da roda: {str(e)}")
-        return "TENTE NOVAMENTE"
+        .header.roda-brasil {
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-yellow));
+        }
 
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.8), rgba(255, 215, 0, 0.6));
+            animation: wave 4s ease-in-out infinite;
+        }
 
-def obter_total_vendas():
-    """Obtém total de vendas aprovadas do Supabase"""
-    if not supabase:
-        return 0
-    try:
-        response = supabase.table('rb_vendas').select('rb_quantidade').eq(
-            'rb_status', 'completed'
-        ).execute()
-        if response.data:
-            return sum(venda['rb_quantidade'] for venda in response.data)
-        return 0
-    except Exception as e:
-        print(f"❌ Erro ao obter total de vendas: {str(e)}")
-        return 0
+        .header.roda-brasil::before {
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.8), rgba(255, 215, 0, 0.6));
+        }
 
+        @keyframes wave {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-30px); }
+        }
 
-def obter_total_ganhadores():
-    """Obtém total de ganhadores do Supabase"""
-    if not supabase:
-        return 0
-    try:
-        response_raspa = supabase.table('rb_ganhadores').select('rb_id').execute()
-        response_roda = supabase.table('rb_ganhadores_roda').select('rb_id').execute()
+        .header h1 {
+            font-size: clamp(2.5em, 8vw, 4em);
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: clamp(1em, 4vw, 1.3em);
+            font-weight: 500;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-brasil {
+            margin: 0 auto 20px auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .logo-bandeira {
+            width: clamp(60px, 15vw, 90px);
+            height: clamp(60px, 15vw, 90px);
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            animation: pulse 3s infinite;
+            border: 3px solid #ffd700;
+            cursor: pointer;
+            transition: var(--transition);
+            background-image: url('https://pfst.cf2.poecdn.net/base/image/6334603f4a3905c7fd614b3b09aa286277d7dbe6636795bc8742d06a7e88e5b8?w=980&h=980');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .logo-bandeira:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.08) rotate(5deg); }
+        }
+
+        /* Banner Slider Melhorado */
+        .banner-slider {
+            position: relative;
+            height: clamp(300px, 50vw, 450px);
+            margin-bottom: 40px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-heavy);
+            background-image: url('https://pfst.cf2.poecdn.net/base/image/f5e5ea7363d8a169389771ca089524300491c180be4956341b918e8d3d1c474c?w=626&h=417');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .banner-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.3), rgba(255, 215, 0, 0.2));
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.8), rgba(255, 215, 0, 0.6));
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+        .slide-content {
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.95), rgba(255, 215, 0, 0.9));
+            color: white;
+            padding: clamp(20px, 6vw, 40px);
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            max-width: 90%;
+            animation: slideContentFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes slideContentFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .slide-content h1 {
+            font-size: clamp(2em, 7vw, 4em);
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-content p {
+            font-size: clamp(1em, 4vw, 1.4em);
+            font-weight: 600;
+            opacity: 0.95;
+        }
+
+        /* Botões Modernos */
+        .btn {
+            padding: clamp(14px, 4vw, 18px) clamp(28px, 6vw, 36px);
+            border: none;
+            border-radius: 15px;
+            font-size: clamp(14px, 4vw, 17px);
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: var(--transition);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--primary-yellow), #ffcc00);
+            color: #333;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn-affiliate {
+            background: linear-gradient(135deg, var(--affiliate-orange), #f7931e);
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-affiliate:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn-roda {
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-roda:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn-cta {
+            background: linear-gradient(135deg, var(--success-green), #1e7e34);
+            color: white;
+            font-size: clamp(18px, 5vw, 22px);
+            padding: clamp(18px, 5vw, 22px) clamp(36px, 8vw, 45px);
+            animation: ctaPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(40, 167, 69, 0.6);
+        }
+
+        @keyframes ctaPulse {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(40, 167, 69, 0.6);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 50px rgba(40, 167, 69, 0.9);
+            }
+            100% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(40, 167, 69, 0.6);
+            }
+        }
+
+        .btn-cta:hover {
+            animation-play-state: paused;
+            transform: scale(1.08);
+            box-shadow: 0 0 60px rgba(40, 167, 69, 1);
+        }
+
+        /* Seção Principal Melhorada */
+        .main-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .main-section h2 {
+            font-size: clamp(2em, 6vw, 3em);
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-section .subtitle {
+            font-size: clamp(1.1em, 4vw, 1.4em);
+            color: #555;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        /* Informações de segurança lado a lado */
+        .security-info {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .security-item {
+            font-size: clamp(0.85em, 2.5vw, 1em);
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            flex: 1;
+            min-width: 200px;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(40, 167, 69, 0.2);
+        }
+
+        .security-item i {
+            color: var(--success-green);
+            font-size: 1.2em;
+        }
+
+        /* CTA Messages */
+        .cta-message {
+            background: linear-gradient(135deg, var(--primary-red), #ef4444);
+            color: white;
+            padding: clamp(20px, 5vw, 30px);
+            border-radius: var(--border-radius);
+            margin: 30px 0;
+            text-align: center;
+            box-shadow: var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-message.success {
+            background: linear-gradient(135deg, var(--success-green), #1e7e34);
+        }
+
+        .cta-message.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .cta-message.affiliate {
+            background: linear-gradient(135deg, var(--primary-yellow), #ffcc00);
+            color: #1a1a1a;
+        }
+
+        .cta-message::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .cta-message h3 {
+            font-size: clamp(1.3em, 5vw, 1.8em);
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-message p {
+            position: relative;
+            z-index: 1;
+        }
+
+        .urgency-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            margin-top: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Quantidade Selector Melhorado */
+        .quantidade-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(15px, 5vw, 25px);
+            margin: 40px 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            padding: clamp(20px, 5vw, 30px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+            backdrop-filter: blur(10px);
+        }
+
+        .quantidade-btn {
+            width: clamp(45px, 12vw, 60px);
+            height: clamp(45px, 12vw, 60px);
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+            color: white;
+            font-size: clamp(20px, 5vw, 28px);
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-light);
+        }
+
+        .quantidade-btn.roda {
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+        }
+
+        .quantidade-btn:hover {
+            transform: scale(1.15);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .quantidade-display {
+            font-size: clamp(2.5em, 8vw, 4em);
+            font-weight: 900;
+            color: var(--primary-green);
+            min-width: clamp(60px, 15vw, 100px);
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .quantidade-display.roda {
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .total-display {
+            text-align: center;
+            font-size: clamp(1.5em, 6vw, 2.5em);
+            font-weight: 800;
+            color: var(--primary-blue);
+            margin: 30px 0;
+            padding: clamp(15px, 4vw, 25px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Winners Slider - Ganhadores das últimas horas */
+        .winners-slider {
+            background: linear-gradient(135deg, #f0f9f0, #e8f5e8);
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            margin: 40px 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-medium);
+            border: 3px solid #28a745;
+        }
+
+        .winners-container {
+            display: flex;
+            gap: 20px;
+            animation: scrollLeft 45s linear infinite;
+            width: max-content;
+        }
+
+        .winners-container:hover {
+            animation-play-state: paused;
+        }
+
+        @keyframes scrollLeft {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .winner-item {
+            min-width: 280px;
+            background: white;
+            padding: clamp(20px, 5vw, 25px);
+            border-radius: 15px;
+            box-shadow: var(--shadow-light);
+            text-align: center;
+            flex-shrink: 0;
+            border: 2px solid #28a745;
+            position: relative;
+        }
+
+        .winner-item::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 30px;
+            background: #28a745;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .winner-name {
+            font-size: clamp(1.1em, 3.5vw, 1.3em);
+            font-weight: 800;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .winner-prize {
+            font-size: clamp(1.3em, 4vw, 1.6em);
+            font-weight: 900;
+            color: #28a745;
+            margin-bottom: 8px;
+        }
+
+        .winner-time {
+            font-size: clamp(0.85em, 3vw, 1em);
+            color: #666;
+            font-weight: 600;
+        }
+
+        /* RODA BRASIL - Nova Roleta baseada na imagem */
+        .roulette-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 50px 0;
+            perspective: 1000px;
+        }
+
+        .roulette-wheel {
+            position: relative;
+            width: clamp(320px, 85vw, 420px);
+            height: clamp(320px, 85vw, 420px);
+            border-radius: 50%;
+            background: 
+                conic-gradient(
+                    from 0deg,
+                    #00b341 0deg 45deg,        /* R$ 1 - Verde */
+                    #dc2626 45deg 90deg,       /* Perdeu - Vermelho */
+                    #ffd700 90deg 135deg,      /* R$ 5 - Amarelo */
+                    #8b5cf6 135deg 180deg,     /* R$ 10 - Roxo */
+                    #06b6d4 180deg 225deg,     /* R$ 100 - Azul claro */
+                    #ff6b35 225deg 270deg,     /* R$ 300 - Laranja */
+                    #4f46e5 270deg 315deg,     /* R$ 500 - Azul escuro */
+                    #28a745 315deg 360deg      /* R$ 1000 - Verde escuro */
+                );
+            box-shadow: 
+                0 0 0 12px #ffd700,
+                0 0 0 16px #fff,
+                0 20px 80px rgba(0, 0, 0, 0.5),
+                inset 0 0 0 4px rgba(255, 255, 255, 0.2);
+            transition: transform 4s cubic-bezier(0.23, 1, 0.32, 1);
+            margin-bottom: 30px;
+            transform-style: preserve-3d;
+            border: 6px solid #fff;
+            overflow: visible;
+        }
+
+        .roulette-wheel.spinning {
+            transform: rotateZ(1800deg) rotateX(2deg);
+        }
+
+        .roulette-wheel::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ffd700, #ffaa00, #ffd700);
+            z-index: -1;
+            box-shadow: 0 12px 40px rgba(255, 215, 0, 0.7);
+        }
+
+        .roulette-pointer {
+            position: absolute;
+            top: 50%;
+            right: -30px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 25px solid transparent;
+            border-bottom: 25px solid transparent;
+            border-right: 40px solid #dc2626;
+            z-index: 15;
+            filter: drop-shadow(-6px 0 12px rgba(0, 0, 0, 0.6));
+        }
+
+        .roulette-pointer::after {
+            content: '';
+            position: absolute;
+            top: -18px;
+            right: -35px;
+            width: 0;
+            height: 0;
+            border-top: 18px solid transparent;
+            border-bottom: 18px solid transparent;
+            border-right: 30px solid #ffd700;
+        }
+
+        .roulette-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #333, #1a1a1a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                0 0 0 6px #ffd700,
+                0 0 0 10px #fff,
+                0 12px 30px rgba(0, 0, 0, 0.4),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            border: 3px solid #fff;
+            z-index: 10;
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Prêmios dentro da roleta posicionados corretamente */
+        .roulette-prize {
+            position: absolute;
+            font-size: clamp(11px, 2.8vw, 15px);
+            font-weight: 900;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+            transform-origin: center;
+            z-index: 5;
+            text-align: center;
+            line-height: 1.1;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 30px;
+        }
+
+        /* Posições dos prêmios baseadas nos 8 segmentos */
+        .roulette-prize.prize-1 {
+            top: 20%;
+            right: 25%;
+            transform: rotate(22.5deg);
+        }
+
+        .roulette-prize.prize-2 {
+            top: 10%;
+            right: 45%;
+            transform: rotate(67.5deg);
+            color: #000;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.9);
+        }
+
+        .roulette-prize.prize-3 {
+            top: 10%;
+            left: 45%;
+            transform: rotate(112.5deg);
+            color: #333;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+        }
+
+        .roulette-prize.prize-4 {
+            top: 20%;
+            left: 25%;
+            transform: rotate(157.5deg);
+        }
+
+        .roulette-prize.prize-5 {
+            bottom: 20%;
+            left: 25%;
+            transform: rotate(202.5deg);
+        }
+
+        .roulette-prize.prize-6 {
+            bottom: 10%;
+            left: 45%;
+            transform: rotate(247.5deg);
+        }
+
+        .roulette-prize.prize-7 {
+            bottom: 10%;
+            right: 45%;
+            transform: rotate(292.5deg);
+        }
+
+        .roulette-prize.prize-8 {
+            bottom: 20%;
+            right: 25%;
+            transform: rotate(337.5deg);
+        }
+
+        .roulette-prizes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+            width: 100%;
+            max-width: 800px;
+            padding: 0 20px;
+        }
+
+        .prize-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            padding: 20px 15px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid var(--primary-green);
+            transition: var(--transition);
+            box-shadow: var(--shadow-medium);
+            backdrop-filter: blur(10px);
+        }
+
+        .prize-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+            border-color: var(--primary-yellow);
+        }
+
+        .prize-item.special {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 255, 255, 0.95));
+        }
+
+        .prize-value {
+            font-size: clamp(1.2em, 4vw, 1.6em);
+            font-weight: 800;
+            color: var(--primary-green);
+            margin-bottom: 8px;
+        }
+
+        .prize-value.special {
+            color: #ffd700;
+        }
+
+        .prize-label {
+            font-size: clamp(0.9em, 3vw, 1.1em);
+            color: #666;
+            font-weight: 600;
+        }
+
+        .spin-button {
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+            color: white;
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 800;
+            padding: clamp(20px, 5vw, 25px) clamp(40px, 8vw, 50px);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 0 30px rgba(0, 179, 65, 0.6);
+            animation: spinPulse 2s ease-in-out infinite;
+            margin-top: 20px;
+        }
+
+        .spin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            animation: none;
+        }
+
+        @keyframes spinPulse {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(0, 179, 65, 0.6);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 50px rgba(0, 179, 65, 0.9);
+            }
+            100% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(0, 179, 65, 0.6);
+            }
+        }
+
+        .spin-button:hover:not(:disabled) {
+            animation-play-state: paused;
+            transform: scale(1.08);
+            box-shadow: 0 0 60px rgba(0, 179, 65, 1);
+        }
+
+        .roulette-result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: clamp(1.2em, 4vw, 1.5em);
+            font-weight: 700;
+            display: none;
+        }
+
+        .roulette-result.winner {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            display: block;
+            animation: winPulse 1s ease-in-out;
+        }
+
+        .roulette-result.loser {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            display: block;
+        }
+
+        .roulette-result.spin-again {
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: #1a1a1a;
+            display: block;
+        }
+
+        @keyframes winPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Animations para top buttons */
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 8px 25px rgba(0, 179, 65, 0.6);
+            }
+            50% {
+                box-shadow: 0 12px 35px rgba(0, 179, 65, 0.8), 0 0 0 10px rgba(0, 179, 65, 0.1);
+                transform: scale(1.05);
+            }
+            100% {
+                box-shadow: 0 8px 25px rgba(0, 179, 65, 0.6);
+            }
+        }
+
+        /* Affiliate Styles */
+        .affiliate-section {
+            background: linear-gradient(135deg, var(--primary-yellow), #ffcc00);
+            padding: clamp(30px, 6vw, 50px);
+            border-radius: var(--border-radius);
+            margin: 40px 0;
+            box-shadow: var(--shadow-medium);
+            color: #1a1a1a;
+        }
+
+        .affiliate-link-display {
+            background: white;
+            border: 3px solid var(--affiliate-orange);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: clamp(12px, 3vw, 14px);
+            color: var(--affiliate-orange);
+            font-weight: 700;
+        }
+
+        .affiliate-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .affiliate-stat-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid var(--affiliate-orange);
+            box-shadow: var(--shadow-light);
+        }
+
+        .affiliate-stat-number {
+            font-size: clamp(1.8em, 5vw, 2.5em);
+            font-weight: 900;
+            color: var(--affiliate-orange);
+            display: block;
+        }
+
+        .affiliate-stat-label {
+            font-size: clamp(0.9em, 3vw, 1.1em);
+            color: #666;
+            font-weight: 600;
+        }
+
+        /* Status Bar - Only for Admin */
+        .status-bar {
+            background: linear-gradient(90deg, var(--primary-green), var(--primary-yellow));
+            padding: clamp(15px, 4vw, 20px);
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .status-item {
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .status-item .number {
+            font-size: clamp(1.5em, 5vw, 2em);
+            font-weight: 800;
+            display: block;
+        }
+
+        .status-item .label {
+            font-size: clamp(0.8em, 3vw, 1em);
+            opacity: 0.9;
+        }
+
+        /* Modal Admin */
+        .admin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .admin-modal-content {
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            max-width: 900px;
+            width: 95%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Payment Page Melhorada */
+        .payment-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .qr-container {
+            background: linear-gradient(135deg, #f8f9fa, white);
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: var(--shadow-light);
+        }
+
+        .qr-code img {
+            max-width: min(200px, 50vw);
+            max-height: min(200px, 50vw);
+            width: auto;
+            height: auto;
+            border: 3px solid var(--primary-green);
+            border-radius: 12px;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .pix-code {
+            background: #f8f9fa;
+            padding: clamp(15px, 4vw, 20px);
+            border-radius: 12px;
+            margin: 25px 0;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(11px, 3vw, 14px);
+            border: 2px dashed var(--primary-green);
+            color: #1a1a1a;
+            font-weight: 600;
+            line-height: 1.4;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        /* Raspadinha Page Melhorada */
+        .raspadinha-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(160px, 40vw), 1fr));
+            gap: clamp(15px, 5vw, 30px);
+            margin: 50px 0;
+            padding: clamp(20px, 5vw, 30px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(248, 249, 250, 0.6));
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(15px);
+        }
+
+        .bandeira {
+            width: min(180px, 40vw);
+            height: min(120px, 28vw);
+            background: linear-gradient(45deg, var(--primary-green) 33%, var(--primary-yellow) 33% 66%, var(--primary-blue) 66%);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+            margin: 0 auto;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .bandeira:hover {
+            transform: scale(1.08) rotate(3deg);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .bandeira.raspada {
+            cursor: default;
+        }
+
+        .bandeira-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #d0d0d0, #silver);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: 700;
+            color: #666;
+            transition: opacity 0.6s ease;
+            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.7);
+        }
+
+        .bandeira-resultado {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-align: center;
+            font-size: clamp(14px, 3.5vw, 18px);
+        }
+
+        .ganhou {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            animation: winPulse 0.8s ease-in-out;
+        }
+
+        .perdeu {
+            background: linear-gradient(135deg, #f44336, #da190b);
+            color: white;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: #333;
+            font-size: clamp(14px, 3.5vw, 16px);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: clamp(14px, 4vw, 18px);
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            font-size: clamp(16px, 4vw, 18px);
+            transition: var(--transition);
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary-green);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(0, 179, 65, 0.15);
+        }
+
+        /* Loading Animation */
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Winner Alert Modal */
+        .winner-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+
+        .winner-alert-content {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: white;
+            padding: clamp(30px, 8vw, 50px);
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 25px 80px rgba(220, 38, 38, 0.6);
+            border: 4px solid #ffd700;
+            max-width: 90%;
+            animation: winnerPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes winnerPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 25px 80px rgba(220, 38, 38, 0.6);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 35px 100px rgba(220, 38, 38, 0.9);
+            }
+        }
+
+        .winner-alert h2 {
+            font-size: clamp(2em, 8vw, 4em);
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        .winner-alert p {
+            font-size: clamp(1.2em, 5vw, 1.8em);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .winner-alert .close-btn {
+            background: #ffd700;
+            color: #1a1a1a;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: clamp(1em, 4vw, 1.2em);
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: var(--transition);
+        }
+
+        .winner-alert .close-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Admin Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .admin-tab {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .admin-tab.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .admin-tab-content {
+            display: none;
+        }
+
+        .admin-tab-content.active {
+            display: block;
+        }
+
+        /* Resultado Validação */
+        .resultado-validacao {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .resultado-validacao.valido {
+            background: #d4edda;
+            color: #155724;
+            border: 3px solid #c3e6cb;
+        }
+
+        .resultado-validacao.invalido {
+            background: #f8d7da;
+            color: #721c24;
+            border: 3px solid #f5c6cb;
+        }
+
+        .premiados-table {
+            margin-top: 25px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .premiado-item {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            border-left: 6px solid #28a745;
+            box-shadow: var(--shadow-light);
+        }
+
+        /* WhatsApp Button */
+        .whatsapp-btn {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            padding: clamp(16px, 4vw, 20px) clamp(32px, 6vw, 40px);
+            border: none;
+            border-radius: 15px;
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 25px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .whatsapp-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Premio Form */
+        .premio-form {
+            background: linear-gradient(135deg, #e8f5e8, #f0f9f0);
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            margin: 40px 0;
+            border: 4px solid #4CAF50;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .premio-form h3 {
+            color: #4CAF50;
+            font-size: clamp(1.5em, 5vw, 2.2em);
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        /* Payment Status Messages */
+        .payment-status-waiting {
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+
+        .payment-status-approved {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .payment-status-error {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .winners-slider {
+                padding: 20px 15px;
+            }
+
+            .quantidade-selector {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .status-item {
+                min-width: auto;
+            }
+
+            .security-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .security-item {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .qr-code img {
+                max-width: min(180px, 70vw);
+                max-height: min(180px, 70vw);
+            }
+
+            .pix-code {
+                font-size: clamp(10px, 2.8vw, 12px);
+                padding: clamp(12px, 3vw, 15px);
+                line-height: 1.3;
+            }
+            
+            .affiliate-stats {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 15px;
+            }
+
+            .roulette-wheel {
+                width: clamp(250px, 90vw, 300px);
+                height: clamp(250px, 90vw, 300px);
+            }
+
+            .roulette-prizes {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .banner-slider {
+                height: clamp(250px, 60vw, 350px);
+            }
+
+            .slide-content {
+                padding: 20px 15px;
+                max-width: 95%;
+            }
+
+            .raspadinha-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 15px;
+                padding: 20px 15px;
+            }
+
+            .bandeira {
+                width: 140px;
+                height: 95px;
+            }
+
+            .qr-code img {
+                max-width: min(150px, 80vw);
+                max-height: min(150px, 80vw);
+            }
+
+            .pix-code {
+                font-size: 10px;
+                padding: 10px;
+                line-height: 1.2;
+            }
+
+            .roulette-wheel {
+                width: clamp(200px, 95vw, 250px);
+                height: clamp(200px, 95vw, 250px);
+            }
+
+            .roulette-prizes {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 10px;
+            }
+        }
+
+        /* Utility Classes */
+        .page {
+            display: none;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            .dark {
+                color-scheme: dark;
+            }
+            
+            .dark .container {
+                background: rgba(30, 30, 30, 0.98);
+                color: #f1f1f1;
+            }
+            
+            .dark .form-group input,
+            .dark .form-group select {
+                background: #2a2a2a;
+                color: #f1f1f1;
+                border-color: #555;
+            }
+            
+            .dark .form-group input:focus,
+            .dark .form-group select:focus {
+                border-color: var(--primary-green);
+                background: #333;
+            }
+            
+            .dark .modal-content,
+            .dark .admin-modal-content {
+                background: #2a2a2a;
+                color: #f1f1f1;
+            }
+            
+            .dark .winner-item {
+                background: #2a2a2a;
+                color: #f1f1f1;
+            }
+            
+            .dark .pix-code {
+                background: #2a2a2a;
+                color: #f1f1f1;
+                border-color: var(--primary-green);
+            }
+            
+            .dark .premiado-item {
+                background: #2a2a2a;
+                color: #f1f1f1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Botão do topo - Roda Brasil -->
+    <div style="text-align: center; margin-bottom: 20px; padding: 10px;">
+        <button onclick="abrirRodaBrasil()" 
+                style="
+                    background: linear-gradient(135deg, #00b341, #ffd700);
+                    border: 3px solid #ffd700;
+                    border-radius: 50px;
+                    padding: 18px 35px;
+                    color: #fff;
+                    font-size: clamp(16px, 4vw, 20px);
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 1.5px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 8px 25px rgba(0, 179, 65, 0.6);
+                    overflow: hidden;
+                    position: relative;
+                    animation: pulse-glow 2s infinite;
+                "
+                onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 35px rgba(0, 179, 65, 0.8)'; this.style.animationPlayState='paused';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0, 179, 65, 0.6)'; this.style.animationPlayState='running';">
+            <i class="fas fa-sync-alt" style="margin-right: 10px; font-size: 1.2em;"></i>
+            RODA BRASIL
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- Página Inicial -->
+        <div id="home-page" class="page active">
+            <!-- Banner de Cidades Brasileiras com Header Integrado -->
+            <div class="banner-slider">
+                <div class="banner-image"></div>
+                <div class="slide active">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>A Melhor Raspadinha Virtual do Brasil!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Prêmios de R$ 10 até R$ 1000!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Sistema 100% Seguro!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Pagamento feito na hora!</p>
+                    </div>
+                </div>
+                <div class="slide">
+                    <div class="slide-content">
+                        <div class="logo-brasil">
+                            <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                            </div>
+                        </div>
+                        <h1>RASPA BRASIL</h1>
+                        <p>Raspou, Achou, Ganhou!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Message -->
+            <div class="cta-message">
+                <h3>RASPADINHAS LIMITADAS!</h3>
+                <p>Poucas <strong>raspadinhas disponíveis</strong> - Ganhe de R$ 10 até R$ 1000!</p>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="abrirAfiliados()" 
+                            style="
+                                background: linear-gradient(135deg, #00b341, #ffd700);
+                                border: none;
+                                border-radius: 50px;
+                                padding: 12px 25px;
+                                color: #fff;
+                                font-size: clamp(14px, 3.5vw, 16px);
+                                font-weight: 700;
+                                text-transform: uppercase;
+                                letter-spacing: 1px;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 6px 20px rgba(0, 179, 65, 0.4);
+                            "
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0, 179, 65, 0.6)';"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 20px rgba(0, 179, 65, 0.4)';">
+                        <i class="fas fa-users" style="margin-right: 8px;"></i>
+                        INDIQUE E GANHE
+                    </button>
+                </div>
+            </div>
+
+            <div class="main-section">
+                <h2>Ganhe de R$ 10 até R$ 1000,00!</h2>
+                <p class="subtitle">Cada raspadinha custa apenas <strong>R$ 1,00</strong></p>
+                
+                <div class="quantidade-selector">
+                    <button class="quantidade-btn" onclick="diminuirQuantidade()">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <div id="quantidade-display" class="quantidade-display">1</div>
+                    <button class="quantidade-btn" onclick="aumentarQuantidade()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div id="total-display" class="total-display">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Total: R$ 1,00
+                </div>
+                
+                <button class="btn btn-cta" onclick="irParaPagamento()">
+                    <i class="fas fa-shopping-cart"></i>
+                    COMPRAR AGORA
+                </button>
+
+                <div class="security-info">
+                    <div class="security-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Pagamento 100% seguro</span>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Prêmios pagos na hora</span>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-lock"></i>
+                        <span>Sistema antifraude</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ganhadores das últimas horas -->
+            <div class="winners-slider">
+                <h3 style="text-align: center; margin-bottom: 30px; font-size: clamp(1.8em, 6vw, 2.5em); color: #28a745; font-weight: 800;">Ganhadores das últimas horas:</h3>
+                <div class="winners-container" id="winners-container">
+                    <!-- Primeiro conjunto de ganhadores -->
+                    <div class="winner-item">
+                        <div class="winner-name">Carlos Eduardo Silva</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 12 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Ana Maria Santos</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 28 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Roberto Fernandes</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 35 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Juliana Oliveira</div>
+                        <div class="winner-prize">R$ 20,00</div>
+                        <div class="winner-time">Há 47 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Pedro Henrique Costa</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 1 hora</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Mariana Pereira</div>
+                        <div class="winner-prize">R$ 40,00</div>
+                        <div class="winner-time">Há 1h 15min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">José Carlos Almeida</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 1h 32min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Fernanda Lima</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 1h 45min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">André Luiz Souza</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 2 horas</div>
+                    </div>
+                    <!-- Segundo conjunto duplicado para loop contínuo -->
+                    <div class="winner-item">
+                        <div class="winner-name">Carlos Eduardo Silva</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 12 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Ana Maria Santos</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 28 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Roberto Fernandes</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 35 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Juliana Oliveira</div>
+                        <div class="winner-prize">R$ 20,00</div>
+                        <div class="winner-time">Há 47 minutos</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Pedro Henrique Costa</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 1 hora</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Mariana Pereira</div>
+                        <div class="winner-prize">R$ 40,00</div>
+                        <div class="winner-time">Há 1h 15min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">José Carlos Almeida</div>
+                        <div class="winner-prize">R$ 50,00</div>
+                        <div class="winner-time">Há 1h 32min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">Fernanda Lima</div>
+                        <div class="winner-prize">R$ 30,00</div>
+                        <div class="winner-time">Há 1h 45min</div>
+                    </div>
+                    <div class="winner-item">
+                        <div class="winner-name">André Luiz Souza</div>
+                        <div class="winner-prize">R$ 100,00</div>
+                        <div class="winner-time">Há 2 horas</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página RODA BRASIL -->
+        <div id="roda-brasil-page" class="page">
+            <div class="header roda-brasil">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                    </div>
+                </div>
+                <h1>RODA BRASIL</h1>
+                <p>A Roleta Premiada Mais Divertida do Brasil!</p>
+            </div>
+
+            <!-- CTA Message -->
+            <div class="cta-message warning">
+                <h3>FICHAS LIMITADAS!</h3>
+                <p>Gire a <strong>Roda Brasil</strong> e ganhe de R$ 1 até R$ 1000!</p>
+                <div class="urgency-indicator">
+                    <i class="fas fa-fire"></i>
+                    <span>Teste sua sorte agora!</span>
+                </div>
+            </div>
+
+            <div class="main-section">
+                <h2 style="background: linear-gradient(135deg, var(--primary-green), var(--primary-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    Ganhe de R$ 1 até R$ 1000,00!
+                </h2>
+                <p class="subtitle">Cada ficha custa apenas <strong>R$ 1,00</strong></p>
+                
+                <div class="quantidade-selector">
+                    <button class="quantidade-btn roda" onclick="diminuirQuantidadeRoda()">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <div id="quantidade-display-roda" class="quantidade-display roda">1</div>
+                    <button class="quantidade-btn roda" onclick="aumentarQuantidadeRoda()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div id="total-display-roda" class="total-display">
+                    <i class="fas fa-coins"></i>
+                    Total: R$ 1,00
+                </div>
+                
+                <button class="btn btn-roda" onclick="irParaPagamentoRoda()" style="font-size: clamp(18px, 5vw, 22px); padding: clamp(18px, 5vw, 22px) clamp(36px, 8vw, 45px);">
+                    <i class="fas fa-credit-card"></i>
+                    COMPRAR FICHAS
+                </button>
+
+                <div class="security-info">
+                    <div class="security-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Pagamento 100% seguro</span>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Prêmios pagos na hora</span>
+                    </div>
+                    <div class="security-item">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Jogo totalmente justo</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prêmios Disponíveis -->
+            <div style="text-align: center; margin: 50px 0;">
+                <h3 style="font-size: clamp(1.8em, 6vw, 2.5em); color: var(--primary-green); font-weight: 800; margin-bottom: 30px;">
+                    Prêmios da Roda Brasil
+                </h3>
+                <div class="roulette-prizes">
+                    <div class="prize-item">
+                        <div class="prize-value">R$ 1,00</div>
+                        <div class="prize-label">Premiação</div>
+                    </div>
+                    <div class="prize-item">
+                        <div class="prize-value">R$ 5,00</div>
+                        <div class="prize-label">Premiação</div>
+                    </div>
+                    <div class="prize-item">
+                        <div class="prize-value">R$ 10,00</div>
+                        <div class="prize-label">Premiação</div>
+                    </div>
+                    <div class="prize-item">
+                        <div class="prize-value">R$ 100,00</div>
+                        <div class="prize-label">Premiação</div>
+                    </div>
+                    <div class="prize-item">
+                        <div class="prize-value">R$ 300,00</div>
+                        <div class="prize-label">Premiação</div>
+                    </div>
+                    <div class="prize-item">
+                        <div class="prize-value">R$ 500,00</div>
+                        <div class="prize-label">Premiação</div>
+                    </div>
+                    <div class="prize-item">
+                        <div class="prize-value">R$ 1000,00</div>
+                        <div class="prize-label">Grande Prêmio</div>
+                    </div>
+                    <div class="prize-item special">
+                        <div class="prize-value special">VOCÊ PERDEU</div>
+                        <div class="prize-label">Tente Novamente</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <button class="btn btn-secondary" onclick="voltarInicio()">
+                    <i class="fas fa-home"></i>
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+
+        <!-- Página da Roleta (após pagamento) -->
+        <div id="roleta-page" class="page">
+            <div class="header roda-brasil">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                    </div>
+                </div>
+                <h1>RODA BRASIL</h1>
+                <p>Gire a roleta e teste sua sorte!</p>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 50px;">
+                <h2 style="font-size: clamp(2em, 7vw, 3em); color: var(--primary-green); font-weight: 800;">
+                    <i class="fas fa-sync-alt"></i> Gire a Roda da Sorte!
+                </h2>
+                <p style="font-size: clamp(1.2em, 5vw, 1.5em); margin: 20px 0; font-weight: 600;">
+                    Você tem <strong><span id="fichas-restantes">1</span></strong> ficha(s) para jogar
+                </p>
+            </div>
+
+            <div class="roulette-container">
+                <div class="roulette-pointer"></div>
+                <div class="roulette-wheel" id="roulette-wheel">
+                    <!-- Prêmios dentro da roleta -->
+                    <div class="roulette-prize prize-1">R$ 1</div>
+                    <div class="roulette-prize prize-2">PERDEU</div>
+                    <div class="roulette-prize prize-3">R$ 5</div>
+                    <div class="roulette-prize prize-4">R$ 10</div>
+                    <div class="roulette-prize prize-5">R$ 100</div>
+                    <div class="roulette-prize prize-6">R$ 300</div>
+                    <div class="roulette-prize prize-7">R$ 500</div>
+                    <div class="roulette-prize prize-8">R$ 1000</div>
+                    
+                    <div class="roulette-center">
+                        GO
+                    </div>
+                </div>
+                
+                <button class="spin-button" id="spin-button" onclick="girarRoleta()">
+                    <i class="fas fa-sync-alt"></i>
+                    GIRAR ROLETA
+                </button>
+
+                <div class="roulette-result" id="roulette-result"></div>
+            </div>
+
+            <div id="premio-container-roda" style="display: none;"></div>
+
+            <div style="text-align: center; margin-top: 50px;">
+                <button class="btn btn-secondary" onclick="voltarInicio()">
+                    <i class="fas fa-home"></i>
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+
+        <!-- Continua com as outras páginas (Afiliados, Pagamento, etc.) -->
+        <!-- A implementação das outras páginas continua igual ao código anterior -->
         
-        total_raspa = len(response_raspa.data) if response_raspa.data else 0
-        total_roda = len(response_roda.data) if response_roda.data else 0
-        
-        return total_raspa + total_roda
-    except Exception as e:
-        print(f"❌ Erro ao obter total de ganhadores: {str(e)}")
-        return 0
+        <!-- Página de Afiliados -->
+        <div id="affiliate-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                    </div>
+                </div>
+                <h1>PROGRAMA DE AFILIADOS</h1>
+                <p>Ganhe 50% de comissão em cada venda!</p>
+            </div>
 
+            <!-- Formulário de Cadastro ou Área do Afiliado -->
+            <div id="affiliate-signup">
+                <div class="cta-message affiliate">
+                    <h3>SEJA UM AFILIADO RASPA BRASIL!</h3>
+                    <p>Ganhe <strong>50% de comissão</strong> em cada venda que você indicar!</p>
+                    <div class="urgency-indicator">
+                        <i class="fas fa-percentage"></i>
+                        <span>R$ 0,50 por raspadinha vendida!</span>
+                    </div>
+                </div>
 
-def obter_total_afiliados():
-    """Obtém total de afiliados ativos do Supabase"""
-    if not supabase:
-        return 0
-    try:
-        response = supabase.table('rb_afiliados').select('rb_id').eq(
-            'rb_status', 'ativo'
-        ).execute()
-        if response.data:
-            return len(response.data)
-        return 0
-    except Exception as e:
-        print(f"❌ Erro ao obter total de afiliados: {str(e)}")
-        return 0
+                <div style="background: white; padding: clamp(25px, 6vw, 40px); border-radius: var(--border-radius); box-shadow: var(--shadow-medium);">
+                    <h3 style="text-align: center; margin-bottom: 30px; color: var(--affiliate-orange);">
+                        <i class="fas fa-user-plus"></i> Cadastre-se como Afiliado
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome Completo:</label>
+                        <input type="text" id="affiliate-nome" placeholder="Digite seu nome completo">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> Telefone/WhatsApp:</label>
+                        <input type="tel" id="affiliate-telefone" placeholder="(11) 99999-9999">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope"></i> E-mail:</label>
+                        <input type="email" id="affiliate-email" placeholder="seu@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF:</label>
+                        <input type="text" id="affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
+                    </div>
+                    
+                    <button class="btn btn-affiliate" onclick="cadastrarAfiliado()" style="width: 100%; font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">
+                        <i class=""></i>
+                        CRIAR MINHA CONTA DE AFILIADO
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="mostrarLoginAfiliado()" style="width: 100%; font-size: clamp(14px, 3.5vw, 16px);">
+                        <i class="fas fa-sign-in-alt"></i>
+                        JÁ SOU AFILIADO
+                    </button>
+                </div>
 
+                <div style="background: linear-gradient(135deg, #e8f4f8, #d1ecf1); padding: 25px; border-radius: 15px; margin-top: 30px; text-align: center;">
+                    <h4 style="color: var(--affiliate-orange); margin-bottom: 20px;">
+                        <i class="fas fa-info-circle"></i> Como funciona:
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; text-align: left;">
+                        <div>
+                            <strong>1. Cadastre-se</strong><br>
+                            Preencha seus dados e receba seu link personalizado
+                        </div>
+                        <div>
+                            <strong>2. Compartilhe</strong><br>
+                            Envie seu link para amigos e redes sociais
+                        </div>
+                        <div>
+                            <strong>3. Ganhe</strong><br>
+                            Receba 50% de cada venda realizada pelo seu link
+                        </div>
+                        <div>
+                            <strong>4. Saque</strong><br>
+                            Solicite saque a partir de R$ 10,00 via PIX
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-def validar_pagamento_aprovado(payment_id):
-    """Valida se o pagamento foi realmente aprovado"""
-    if not sdk or not payment_id:
-        return False
+            <!-- Login do Afiliado -->
+            <div id="affiliate-login" style="display: none;">
+                <div style="background: white; padding: clamp(25px, 6vw, 40px); border-radius: var(--border-radius); box-shadow: var(--shadow-medium);">
+                    <h3 style="text-align: center; margin-bottom: 30px; color: var(--affiliate-orange);">
+                        <i class="fas fa-sign-in-alt"></i> Área do Afiliado
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF:</label>
+                        <input type="text" id="login-affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
+                    </div>
+                    
+                    <button class="btn btn-affiliate" onclick="loginAfiliado()" style="width: 100%; margin-bottom: 15px;">
+                        <i class="fas fa-sign-in-alt"></i>
+                        ENTRAR NA MINHA ÁREA
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="voltarCadastroAfiliado()" style="width: 100%;">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar ao Cadastro
+                    </button>
+                    
+                    <div id="login-affiliate-message" style="margin-top: 20px;"></div>
+                </div>
+            </div>
 
-    try:
-        payment_response = sdk.payment().get(payment_id)
-        if payment_response["status"] == 200:
-            payment = payment_response["response"]
-            return payment['status'] == 'approved'
-        return False
-    except Exception as e:
-        print(f"❌ Erro ao validar pagamento {payment_id}: {str(e)}")
-        return False
+            <!-- Área do Afiliado (após login) -->
+            <div id="affiliate-dashboard" style="display: none;">
+                <div class="affiliate-section">
+                    <h3 style="text-align: center; color: var(--affiliate-orange); margin-bottom: 25px;">
+                        <i class="fas fa-chart-line"></i> Painel do Afiliado
+                    </h3>
+                    
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h4>Bem-vindo(a), <span id="affiliate-name-display">Afiliado</span>!</h4>
+                        <p>Seu link personalizado:</p>
+                        <div class="affiliate-link-display" id="affiliate-link-display">
+                            https://raspabrasil.com/?ref=SEUCODIGO
+                        </div>
+                        <button class="btn btn-secondary" onclick="copiarLinkAfiliado()" style="margin-top: 15px;">
+                            <i class="fas fa-copy"></i>
+                            Copiar Link
+                        </button>
+                    </div>
+                    
+                    <div class="affiliate-stats">
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-clicks">0</span>
+                            <span class="affiliate-stat-label">Cliques</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-sales">0</span>
+                            <span class="affiliate-stat-label">Vendas</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-commission">R$ 0,00</span>
+                            <span class="affiliate-stat-label">Comissão Total</span>
+                        </div>
+                        <div class="affiliate-stat-item">
+                            <span class="affiliate-stat-number" id="affiliate-balance">R$ 0,00</span>
+                            <span class="affiliate-stat-label">Saldo</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: white; padding: 25px; border-radius: 15px; margin-top: 30px;">
+                        <h4 style="color: var(--affiliate-orange); margin-bottom: 20px;">
+                            <i class=""></i> Configurar PIX para Saque
+                        </h4>
+                        
+                        <div class="form-group">
+                            <label>Tipo de Chave PIX:</label>
+                            <select id="affiliate-pix-type">
+                                <option value="cpf">CPF</option>
+                                <option value="email">E-mail</option>
+                                <option value="telefone">Telefone</option>
+                                <option value="aleatoria">Chave Aleatória</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Chave PIX:</label>
+                            <input type="text" id="affiliate-pix-key" placeholder="Digite sua chave PIX">
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="salvarChavePix()" style="margin-right: 15px;">
+                            <i class="fas fa-save"></i>
+                            Salvar Chave PIX
+                        </button>
+                        
+                        <button class="btn btn-affiliate" onclick="solicitarSaque()" id="btn-saque" disabled>
+                            <i class="fas fa-money-bill-wave"></i>
+                            Solicitar Saque (Min. R$ 10,00)
+                        </button>
+                    </div>
+                    
+                    <div class="cta-message success" style="margin-top: 30px;">
+                        <h4>Dicas para Aumentar suas Vendas:</h4>
+                        <ul style="text-align: left; margin: 15px 0; padding-left: 20px;">
+                            <li>Compartilhe nas redes sociais (Instagram, Facebook, TikTok)</li>
+                            <li>Envie para grupos de WhatsApp e Telegram</li>
+                            <li>Conte para amigos e família sobre os prêmios</li>
+                            <li>Mostre os ganhadores para aumentar a credibilidade</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="btn btn-secondary" onclick="logoutAfiliado()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Sair da Conta
+                        </button>
+                    </div>
+                </div>
+            </div>
 
+            <div style="text-align: center; margin-top: 40px;">
+                <button class="btn btn-secondary" onclick="voltarInicio()">
+                    <i class="fas fa-home"></i>
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
 
-@app.route('/')
-def index():
-    """Serve a página principal"""
-    try:
-        with open('index.html', 'r', encoding='utf-8') as f:
-            content = f.read()
-        return content
-    except Exception as e:
-        return f"""
-        <h1>❌ Erro ao carregar a página</h1>
-        <p>Erro: {str(e)}</p>
-        <p>Verifique se o arquivo index.html está na pasta correta.</p>
-        """, 500
+        <!-- Página de Pagamento -->
+        <div id="payment-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                    </div>
+                </div>
+                <h1>RASPA BRASIL</h1>
+                <p>Finalize seu pagamento</p>
+            </div>
 
+            <div class="payment-container">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <h2 style="color: #1a1a1a;"><i class="fas fa-credit-card"></i> Pagamento via PIX</h2>
+                    <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin: 15px 0; font-weight: 600; color: #1a1a1a;">
+                        Quantidade: <strong><span id="quantidade-pagamento">1</span> raspadinha(s)</strong>
+                    </p>
+                    <div style="background: linear-gradient(135deg, #00b341, #003087); color: white; padding: clamp(15px, 4vw, 25px); border-radius: 15px; font-size: clamp(1.3em, 5vw, 1.8em); font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+                        Total: R$ <span id="total-pagamento">1,00</span>
+                    </div>
+                </div>
 
-@app.route('/health')
-def health_check():
-    """Health check para o Render"""
-    return {
-        'status': 'healthy',
-        'supabase': supabase is not None,
-        'mercadopago': sdk is not None,
-        'timestamp': datetime.now().isoformat()
-    }
+                <div id="payment-status">
+                    <div class="loading">
+                        <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin-bottom: 25px; font-weight: 600; color: #1a1a1a;">Gerando seu QR Code PIX...</p>
+                    </div>
+                </div>
 
+                <div class="qr-container" id="qr-section" style="display: none;">
+                    <h3 style="color: #1a1a1a;"><i class="fas fa-qrcode"></i> Escaneie o QR Code</h3>
+                    <div id="qr-code" class="qr-code"></div>
+                    
+                    <div style="margin: 25px 0;">
+                        <p style="font-weight: 700; margin-bottom: 15px; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a;">
+                            <i class="fas fa-copy"></i> Ou copie o código PIX:
+                        </p>
+                        <div class="pix-code" id="pix-code"></div>
+                        <button class="btn btn-secondary" onclick="copiarCodigoPix()">
+                            <i class="fas fa-clipboard"></i>
+                            Copiar Código PIX
+                        </button>
+                    </div>
 
-@app.route('/create_payment', methods=['POST'])
-def create_payment():
-    """Cria pagamento PIX real via Mercado Pago"""
-    data = request.json
-    quantidade = data.get('quantidade', 1)
-    total = quantidade * 1.00
-    afiliado_codigo = data.get('ref_code') or session.get('ref_code')
+                    <div id="payment-actions">
+                        <button class="btn btn-primary" onclick="criarPagamentoReal()" style="width: 100%; margin-top: 25px;" id="btn-real-payment">
+                            <i class="fas fa-credit-card"></i>
+                            Pagar com PIX
+                        </button>
 
-    if not sdk:
-        return jsonify({
-            'error': 'Mercado Pago não configurado.',
-            'details': 'Token do Mercado Pago necessário.'
-        }), 500
+                        <div class="cta-message warning" style="margin: 25px 0;">
+                            <h4><i class="fas fa-exclamation-triangle"></i> Importante!</h4>
+                            <p style="margin: 10px 0; font-size: clamp(0.9em, 3vw, 1.1em);">
+                                • Pagamento deve ser aprovado para liberar as raspadinhas<br>
+                                • Aguarde a confirmação automática após o PIX<br>
+                                • Não feche esta página durante o pagamento
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-    vendidas = obter_total_vendas()
-    if vendidas + quantidade > TOTAL_RASPADINHAS:
-        return jsonify({
-            'error': 'Raspadinhas esgotadas',
-            'details': (
-                f'Restam apenas {TOTAL_RASPADINHAS - vendidas} disponíveis'
-            )
-        }), 400
+                <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: clamp(20px, 5vw, 30px); border-radius: 15px; margin: 35px 0; border: 3px solid #ffc107;">
+                    <h4 style="margin-bottom: 20px; font-size: clamp(1.1em, 4vw, 1.4em); font-weight: 800; color: #1a1a1a;">
+                        <i class="fas fa-info-circle"></i> Como pagar:
+                    </h4>
+                    <ol style="line-height: 2; padding-left: 25px; font-size: clamp(0.95em, 3.5vw, 1.1em); color: #1a1a1a; font-weight: 600;">
+                        <li><strong>Clique em "Pagar com PIX"</strong></li>
+                        <li><strong>Abra o app do seu banco</strong></li>
+                        <li><strong>Escolha a opção PIX</strong></li>
+                        <li><strong>Escaneie o QR Code ou cole o código</strong></li>
+                        <li><strong>Confirme o pagamento de R$ <span id="total-pagamento-info">1,00</span></strong></li>
+                        <li><strong>Aguarde a confirmação automática</strong></li>
+                    </ol>
+                </div>
 
-    payment_data = {
-        "transaction_amount": float(total),
-        "description": f"Raspa Brasil - {quantidade} raspadinha(s)",
-        "payment_method_id": "pix",
-        "payer": {
-            "email": "cliente@raspabrasil.com",
-            "first_name": "Cliente",
-            "last_name": "Raspa Brasil"
-        },
-        "notification_url": (
-            f"{request.url_root.rstrip('/')}/webhook/mercadopago"
-        ),
-        "external_reference": (
-            f"RB_{int(datetime.now().timestamp())}_{quantidade}"
-        )
-    }
+                <div style="text-align: center;">
+                    <button class="btn btn-secondary" onclick="voltarInicio()">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar ao Início
+                    </button>
+                </div>
+            </div>
+        </div>
 
-    try:
-        print(f"📤 Criando pagamento: R$ {total:.2f}")
-        payment_response = sdk.payment().create(payment_data)
+        <!-- Página de Pagamento Roda Brasil -->
+        <div id="payment-page-roda" class="page">
+            <div class="header roda-brasil">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                    </div>
+                </div>
+                <h1>RODA BRASIL</h1>
+                <p>Finalize seu pagamento</p>
+            </div>
 
-        if payment_response["status"] == 201:
-            payment = payment_response["response"]
+            <div class="payment-container">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <h2 style="color: #1a1a1a;"><i class="fas fa-credit-card"></i> Pagamento via PIX</h2>
+                    <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin: 15px 0; font-weight: 600; color: #1a1a1a;">
+                        Quantidade: <strong><span id="quantidade-pagamento-roda">1</span> ficha(s)</strong>
+                    </p>
+                    <div style="background: linear-gradient(135deg, #00b341, #003087); color: white; padding: clamp(15px, 4vw, 25px); border-radius: 15px; font-size: clamp(1.3em, 5vw, 1.8em); font-weight: 800; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+                        Total: R$ <span id="total-pagamento-roda">1,00</span>
+                    </div>
+                </div>
 
-            session['payment_id'] = str(payment['id'])
-            session['quantidade'] = quantidade
-            session['payment_created_at'] = datetime.now().isoformat()
+                <div id="payment-status-roda">
+                    <div class="loading">
+                        <p style="font-size: clamp(1.1em, 4vw, 1.3em); margin-bottom: 25px; font-weight: 600; color: #1a1a1a;">Gerando seu QR Code PIX...</p>
+                    </div>
+                </div>
 
-            if supabase:
-                try:
-                    venda_data = {
-                        'rb_quantidade': quantidade,
-                        'rb_valor_total': total,
-                        'rb_payment_id': str(payment['id']),
-                        'rb_status': 'pending',
-                        'rb_tipo': 'raspadinha',
-                        'rb_ip_cliente': request.remote_addr,
-                        'rb_user_agent': request.headers.get(
-                            'User-Agent', ''
-                        )[:500]
+                <div class="qr-container" id="qr-section-roda" style="display: none;">
+                    <h3 style="color: #1a1a1a;"><i class="fas fa-qrcode"></i> Escaneie o QR Code</h3>
+                    <div id="qr-code-roda" class="qr-code"></div>
+                    
+                    <div style="margin: 25px 0;">
+                        <p style="font-weight: 700; margin-bottom: 15px; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a;">
+                            <i class="fas fa-copy"></i> Ou copie o código PIX:
+                        </p>
+                        <div class="pix-code" id="pix-code-roda"></div>
+                        <button class="btn btn-secondary" onclick="copiarCodigoPixRoda()">
+                            <i class="fas fa-clipboard"></i>
+                            Copiar Código PIX
+                        </button>
+                    </div>
+
+                    <div id="payment-actions-roda">
+                        <button class="btn btn-roda" onclick="criarPagamentoRealRoda()" style="width: 100%; margin-top: 25px;" id="btn-real-payment-roda">
+                            <i class="fas fa-credit-card"></i>
+                            Pagar com PIX
+                        </button>
+
+                        <div class="cta-message warning" style="margin: 25px 0;">
+                            <h4><i class="fas fa-exclamation-triangle"></i> Importante!</h4>
+                            <p style="margin: 10px 0; font-size: clamp(0.9em, 3vw, 1.1em);">
+                                • Pagamento deve ser aprovado para liberar as fichas<br>
+                                • Aguarde a confirmação automática após o PIX<br>
+                                • Não feche esta página durante o pagamento
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: clamp(20px, 5vw, 30px); border-radius: 15px; margin: 35px 0; border: 3px solid #ffc107;">
+                    <h4 style="margin-bottom: 20px; font-size: clamp(1.1em, 4vw, 1.4em); font-weight: 800; color: #1a1a1a;">
+                        <i class="fas fa-info-circle"></i> Como pagar:
+                    </h4>
+                    <ol style="line-height: 2; padding-left: 25px; font-size: clamp(0.95em, 3.5vw, 1.1em); color: #1a1a1a; font-weight: 600;">
+                        <li><strong>Clique em "Pagar com PIX"</strong></li>
+                        <li><strong>Abra o app do seu banco</strong></li>
+                        <li><strong>Escolha a opção PIX</strong></li>
+                        <li><strong>Escaneie o QR Code ou cole o código</strong></li>
+                        <li><strong>Confirme o pagamento de R$ <span id="total-pagamento-info-roda">1,00</span></strong></li>
+                        <li><strong>Aguarde a confirmação automática</strong></li>
+                    </ol>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn btn-secondary" onclick="voltarInicio()">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar ao Início
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página de Raspadinhas -->
+        <div id="raspadinha-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira" onclick="abrirAdmin()" title="">
+                    </div>
+                </div>
+                <h1>RASPA BRASIL</h1>
+                <p>Suas raspadinhas estão prontas!</p>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 50px;">
+                <h2 style="font-size: clamp(2em, 7vw, 3em); color: #00b341; font-weight: 800;">
+                    <i class=""></i> Clique nas bandeiras para raspar!
+                </h2>
+                <p style="font-size: clamp(1.2em, 5vw, 1.5em); margin: 20px 0; font-weight: 600;">
+                    Você tem <strong><span id="quantidade-raspadinhas">1</span></strong> raspadinha(s) para jogar
+                </p>
+                <div class="cta-message success" style="margin: 25px auto; max-width: 600px;">
+                    <h3>Boa sorte!</h3>
+                    <p>Toque nas bandeiras do Brasil e descubra se você ganhou!</p>
+                </div>
+            </div>
+
+            <div class="raspadinha-grid" id="raspadinha-grid">
+                <!-- Raspadinhas serão geradas dinamicamente -->
+            </div>
+
+            <div id="premio-container" style="display: none;"></div>
+
+            <div style="text-align: center; margin-top: 50px;">
+                <button class="btn btn-secondary" onclick="voltarInicio()">
+                    <i class="fas fa-home"></i>
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Admin -->
+    <div id="admin-modal" class="admin-modal">
+        <div class="admin-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2><i class="fas fa-user-shield"></i> Área Administrativa</h2>
+                <button onclick="fecharAdmin()" style="background: none; border: none; font-size: 30px; cursor: pointer; color: #666;">×</button>
+            </div>
+
+            <div id="admin-login">
+                <div class="form-group">
+                    <label>Senha Administrativa:</label>
+                    <input type="password" id="admin-senha" placeholder="Digite a senha">
+                </div>
+                <button class="btn btn-primary" onclick="loginAdmin()" style="width: 100%;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Entrar
+                </button>
+                <div id="admin-message" style="margin-top: 20px;"></div>
+            </div>
+
+            <div id="admin-panel" style="display: none;">
+                <!-- Abas do Admin -->
+                <div class="admin-tabs">
+                    <div class="admin-tab active" onclick="trocarAbaAdmin('dashboard')">Dashboard</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-afiliados')">Afiliados</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-saques')">Saques</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-ganhadores')">Ganhadores</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('controle-vendas')">Vendas</div>
+                </div>
+
+                <!-- Dashboard -->
+                <div id="admin-dashboard" class="admin-tab-content active">
+                    <!-- Estatísticas -->
+                    <div class="status-bar">
+                        <div class="status-item">
+                            <span class="number" id="admin-vendidas">0</span>
+                            <span class="label">Vendas</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-restantes">10000</span>
+                            <span class="label">Restantes</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-porcentagem">0%</span>
+                            <span class="label">Progresso</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-ganhadores">0</span>
+                            <span class="label">Ganhadores</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-afiliados">0</span>
+                            <span class="label">Afiliados</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-premios-restantes">345</span>
+                            <span class="label">Prêmios Restantes</span>
+                        </div>
+                    </div>
+
+                    <!-- Validador de Códigos -->
+                    <div style="background: #f8f9fa; padding: 25px; border-radius: 15px; margin-bottom: 25px;">
+                        <h4><i class="fas fa-shield-alt"></i> Validador de Códigos</h4>
+                        <div class="form-group">
+                            <input type="text" id="codigo-validacao-admin" placeholder="Ex: RB-38472-X9F">
+                        </div>
+                        <button class="btn btn-secondary" onclick="validarCodigoAdmin()">
+                            <i class="fas fa-search"></i>
+                            Validar Código
+                        </button>
+                        <div id="resultado-validacao-admin"></div>
+                    </div>
+
+                    <!-- Controles Admin -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="carregarEstatisticas()">
+                            <i class="fas fa-chart-bar"></i>
+                            Atualizar Stats
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleSistema()" id="btn-toggle-sistema">
+                            <i class="fas fa-power-off"></i>
+                            Toggle Sistema
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Afiliados -->
+                <div id="admin-controle-afiliados" class="admin-tab-content">
+                    <h4><i class="fas fa-users"></i> Gerenciar Afiliados</h4>
+                    <div id="lista-afiliados">
+                        <p>Carregando afiliados...</p>
+                    </div>
+                </div>
+
+                <!-- Saques -->
+                <div id="admin-controle-saques" class="admin-tab-content">
+                    <h4><i class="fas fa-money-bill-wave"></i> Solicitações de Saque</h4>
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="carregarSaquesGanhadores()">Saques Ganhadores</button>
+                        <button class="btn btn-affiliate" onclick="carregarSaquesAfiliados()">Saques Afiliados</button>
+                    </div>
+                    <div id="lista-saques">
+                        <p>Selecione um tipo de saque acima.</p>
+                    </div>
+                </div>
+
+                <!-- Ganhadores -->
+                <div id="admin-controle-ganhadores" class="admin-tab-content">
+                    <h4><i class="fas fa-trophy"></i> Lista de Ganhadores</h4>
+                    <button class="btn btn-primary" onclick="listarPremiados()">
+                        <i class="fas fa-trophy"></i>
+                        Carregar Ganhadores
+                    </button>
+                    <div id="lista-premiados"></div>
+                </div>
+
+                <!-- Vendas -->
+                <div id="admin-controle-vendas" class="admin-tab-content">
+                    <h4><i class="fas fa-chart-line"></i> Relatório de Vendas</h4>
+                    <div id="vendas-stats">
+                        <div class="status-bar">
+                            <div class="status-item">
+                                <span class="number" id="vendas-hoje">0</span>
+                                <span class="label">Vendas Hoje</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="number" id="vendas-afiliados">0</span>
+                                <span class="label">Via Afiliados</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="number" id="premios-restantes">0</span>
+                                <span class="label">Prêmios Restantes</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="carregarRelatorioVendas()">
+                        <i class="fas fa-refresh"></i>
+                        Atualizar Relatório
+                    </button>
+                    <div id="vendas-detalhes" style="margin-top: 25px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal personalizado -->
+    <div id="custom-modal" class="modal">
+        <div class="modal-content">
+            <div id="modal-message"></div>
+            <div style="margin-top: 25px;">
+                <button class="btn btn-secondary" onclick="fecharModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Winner Alert Modal -->
+    <div id="winner-alert" class="winner-alert">
+        <div class="winner-alert-content">
+            <h2>ALGUÉM ACABOU DE GANHAR!</h2>
+            <p><strong id="winner-name-alert">Maria Santos</strong></p>
+            <p>acabou de ganhar <strong style="font-size: 1.5em;">R$ 1.000,00!</strong></p>
+            <p>Seja o próximo ganhador!</p>
+            <button class="close-btn" onclick="closeWinnerAlert()">QUERO JOGAR AGORA!</button>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let quantidade = 1;
+        let quantidadeRoda = 1;
+        let paymentCheckInterval;
+        let paymentCheckIntervalRoda;
+        let currentPaymentId = null;
+        let currentPaymentIdRoda = null;
+        let currentRodaFichas = 0;
+        let isSpinning = false;
+        let vendidas = 0;
+        let totalRaspadinhas = 10000;
+        let currentSlide = 0;
+        let currentAffiliate = null;
+        let currentAdminTab = 'dashboard';
+        const WHATSAPP_NUMERO = "5582996092684";
+        const LIMITE_PREMIOS = 1000; // Limite de vendas antes de liberar prêmios
+
+        // Array de ganhadores fictícios para o alerta
+        const ganhadoresFicticios = [
+            { nome: "Ana Marta Soares", valor: 1000 },
+            { nome: "Carlos Santos", valor: 500 },
+            { nome: "Maria Menezes Oliveira", valor: 1000 },
+            { nome: "João Paulo Pereira", valor: 800 },
+            { nome: "Fernanda Costa", valor: 1000 },
+            { nome: "Roberto Lima", valor: 600 },
+            { nome: "Juliana Souza", valor: 1000 },
+            { nome: "Pedro Augusto Alves", valor: 750 }
+        ];
+
+        // Prêmios da roleta com suas probabilidades e ângulos corretos
+        const premiosRoleta = [
+            { valor: "R$ 1,00", peso: 25, angulo: 22.5, segmento: 1 },      // Verde
+            { valor: "VOCÊ PERDEU", peso: 30, angulo: 67.5, segmento: 2 },   // Vermelho
+            { valor: "R$ 5,00", peso: 20, angulo: 112.5, segmento: 3 },     // Amarelo
+            { valor: "R$ 10,00", peso: 15, angulo: 157.5, segmento: 4 },    // Roxo
+            { valor: "R$ 100,00", peso: 7, angulo: 202.5, segmento: 5 },    // Azul claro
+            { valor: "R$ 300,00", peso: 2, angulo: 247.5, segmento: 6 },    // Laranja
+            { valor: "R$ 500,00", peso: 1, angulo: 292.5, segmento: 7 },    // Azul escuro
+            { valor: "R$ 1000,00", peso: 0.5, angulo: 337.5, segmento: 8 }  // Verde escuro
+        ];
+
+        // Função para mostrar alerta de ganhador
+        function showWinnerAlert() {
+            const ganhador = ganhadoresFicticios[Math.floor(Math.random() * ganhadoresFicticios.length)];
+            document.getElementById('winner-name-alert').textContent = ganhador.nome;
+            document.querySelector('#winner-alert .winner-alert-content p:nth-child(3)').innerHTML = 
+                `acabou de ganhar <strong style="font-size: 1.5em;">R$ ${ganhador.valor},00!</strong>`;
+            
+            document.getElementById('winner-alert').style.display = 'flex';
+            document.body.classList.add('shake');
+            
+            setTimeout(() => {
+                document.body.classList.remove('shake');
+            }, 500);
+        }
+
+        function closeWinnerAlert() {
+            document.getElementById('winner-alert').style.display = 'none';
+        }
+
+        // Mostrar alerta para novos usuários
+        function initWinnerAlerts() {
+            // Mostrar primeiro alerta após 5 segundos
+            setTimeout(showWinnerAlert, 5000);
+            
+            // Mostrar alertas a cada 30-60 segundos
+            setInterval(() => {
+                if (Math.random() < 0.3) { // 30% de chance
+                    showWinnerAlert();
+                }
+            }, 45000);
+        }
+
+        // Função para formatar valores monetários com vírgula
+        function formatarDinheiro(valor) {
+            return valor.toFixed(2).replace('.', ',');
+        }
+
+        // Função para mostrar modal personalizado
+        function mostrarModal(mensagem) {
+            document.getElementById('modal-message').innerHTML = mensagem;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('custom-modal').style.display = 'none';
+        }
+
+        // Função para máscara de CPF
+        function mascaraCPF(input) {
+            let cpf = input.value.replace(/\D/g, '');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            input.value = cpf;
+        }
+
+        // Banner Slider
+        function initBannerSlider() {
+            const slides = document.querySelectorAll('.banner-slider .slide');
+            
+            setInterval(() => {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = (currentSlide + 1) % slides.length;
+                slides[currentSlide].classList.add('active');
+            }, 5000);
+        }
+
+        // Função para alternar páginas
+        function mostrarPagina(pageId) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // Funções para quantidade (Raspadinhas)
+        function aumentarQuantidade() {
+            if (quantidade < 10) {
+                quantidade++;
+                atualizarDisplay();
+            }
+        }
+
+        function diminuirQuantidade() {
+            if (quantidade > 1) {
+                quantidade--;
+                atualizarDisplay();
+            }
+        }
+
+        function atualizarDisplay() {
+            document.getElementById('quantidade-display').textContent = quantidade;
+            document.getElementById('total-display').innerHTML = `
+                <i class="fas fa-money-bill-wave"></i>
+                Total: R$ ${formatarDinheiro(quantidade * 1.00)}
+            `;
+        }
+
+        // Funções para quantidade (Roda Brasil)
+        function aumentarQuantidadeRoda() {
+            if (quantidadeRoda < 10) {
+                quantidadeRoda++;
+                atualizarDisplayRoda();
+            }
+        }
+
+        function diminuirQuantidadeRoda() {
+            if (quantidadeRoda > 1) {
+                quantidadeRoda--;
+                atualizarDisplayRoda();
+            }
+        }
+
+        function atualizarDisplayRoda() {
+            document.getElementById('quantidade-display-roda').textContent = quantidadeRoda;
+            document.getElementById('total-display-roda').innerHTML = `
+                <i class="fas fa-coins"></i>
+                Total: R$ ${formatarDinheiro(quantidadeRoda * 1.00)}
+            `;
+        }
+
+        // Função para abrir Roda Brasil
+        function abrirRodaBrasil() {
+            mostrarPagina('roda-brasil-page');
+        }
+
+        // Funções da Roleta CORRIGIDAS
+        function sortearPremioRoleta() {
+            // Verificar se há vendas suficientes para liberar prêmios
+            if (vendidas < LIMITE_PREMIOS) {
+                console.log(`🚫 Prêmios bloqueados: ${vendidas}/${LIMITE_PREMIOS}`);
+                return { valor: "VOCÊ PERDEU", angulo: 67.5, segmento: 2 };
+            }
+
+            // Criar array ponderado
+            const premiosPonderados = [];
+            premiosRoleta.forEach(premio => {
+                for (let i = 0; i < Math.round(premio.peso * 10); i++) {
+                    premiosPonderados.push(premio);
+                }
+            });
+            
+            // Sortear prêmio
+            const premioSorteado = premiosPonderados[Math.floor(Math.random() * premiosPonderados.length)];
+            console.log(`🎰 Prêmio sorteado: ${premioSorteado.valor} - Ângulo: ${premioSorteado.angulo}`);
+            return premioSorteado;
+        }
+
+        function girarRoleta() {
+            if (isSpinning || currentRodaFichas <= 0) return;
+            
+            const spinButton = document.getElementById('spin-button');
+            const rouletteWheel = document.getElementById('roulette-wheel');
+            const resultDiv = document.getElementById('roulette-result');
+            
+            isSpinning = true;
+            spinButton.disabled = true;
+            spinButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GIRANDO...';
+            
+            // Diminuir ficha
+            currentRodaFichas--;
+            document.getElementById('fichas-restantes').textContent = currentRodaFichas;
+            
+            // Sortear prêmio
+            const premioSorteado = sortearPremioRoleta();
+            
+            // Calcular rotação (múltiplos de 360 + posição correta do prêmio)
+            const rotacoesExtras = 360 * (5 + Math.floor(Math.random() * 5)); // 5-10 voltas extras
+            const anguloFinal = premioSorteado.angulo;
+            const rotacaoTotal = rotacoesExtras + (360 - anguloFinal); // Subtrair para que pare no prêmio correto
+            
+            console.log(`🎯 Girando para: ${premioSorteado.valor} - Rotação total: ${rotacaoTotal}°`);
+            
+            // Reproduzir som de roleta (se possível)
+            playRouletteSound();
+            
+            // Animar roleta
+            rouletteWheel.style.transform = `rotate(${rotacaoTotal}deg)`;
+            rouletteWheel.classList.add('spinning');
+            
+            // Parar animação e mostrar resultado após 4 segundos
+            setTimeout(() => {
+                rouletteWheel.classList.remove('spinning');
+                isSpinning = false;
+                
+                // Mostrar resultado
+                mostrarResultadoRoleta(premioSorteado.valor);
+                
+                // Reativar botão se ainda há fichas
+                if (currentRodaFichas > 0) {
+                    spinButton.disabled = false;
+                    spinButton.innerHTML = '<i class="fas fa-sync-alt"></i> GIRAR ROLETA';
+                } else {
+                    spinButton.innerHTML = '<i class="fas fa-times"></i> SEM FICHAS';
+                }
+            }, 4000);
+        }
+
+        function mostrarResultadoRoleta(premio) {
+            const resultDiv = document.getElementById('roulette-result');
+            
+            if (premio === "VOCÊ PERDEU") {
+                resultDiv.className = 'roulette-result loser';
+                resultDiv.innerHTML = `
+                    <h3><i class="fas fa-times-circle"></i> QUE PENA!</h3>
+                    <p>Você perdeu! Compre mais fichas para tentar novamente.</p>
+                `;
+                
+            } else {
+                // Prêmio em dinheiro
+                resultDiv.className = 'roulette-result winner';
+                resultDiv.innerHTML = `
+                    <h3><i class="fas fa-trophy"></i> PARABÉNS!</h3>
+                    <p>Você ganhou <strong>${premio}</strong>!</p>
+                `;
+                
+                // Mostrar formulário de prêmio
+                mostrarFormularioPremioRoda(premio, gerarCodigoUnicoRoda());
+            }
+        }
+
+        function playRouletteSound() {
+            try {
+                // Criar som sintético da roleta usando Web Audio API
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Som de clique da roleta
+                const duration = 3;
+                const sampleRate = audioContext.sampleRate;
+                const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < buffer.length; i++) {
+                    const t = i / sampleRate;
+                    const frequency = 200 + Math.sin(t * 10) * 50;
+                    const volume = Math.max(0, 1 - t / duration) * 0.3;
+                    data[i] = Math.sin(2 * Math.PI * frequency * t) * volume * (Math.random() * 0.1 + 0.9);
+                }
+                
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start();
+            } catch (error) {
+                console.log('Som da roleta não disponível:', error);
+            }
+        }
+
+        function gerarCodigoUnicoRoda() {
+            const numero = Math.floor(Math.random() * 90000) + 10000;
+            const letras = Math.random().toString(36).substring(2, 5).toUpperCase();
+            return `RR-${numero}-${letras}`;
+        }
+
+        // Função para mostrar formulário de prêmio da Roda Brasil
+        function mostrarFormularioPremioRoda(valor, codigo) {
+            const container = document.getElementById('premio-container-roda');
+            container.innerHTML = `
+                <div class="premio-form">
+                    <h3>PARABÉNS! VOCÊ GANHOU ${valor}!</h3>
+                    <p style="text-align: center; font-size: clamp(1em, 4vw, 1.2em); margin-bottom: 30px; font-weight: 600;">
+                        Preencha seus dados para receber o prêmio em até 24 horas:
+                    </p>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome Completo:</label>
+                        <input type="text" id="nome-ganhador-roda" placeholder="Digite seu nome completo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF:</label>
+                        <input type="text" id="cpf-ganhador-roda" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-key"></i> Tipo de Chave PIX:</label>
+                        <select id="tipo-chave-roda">
+                            <option value="cpf">CPF</option>
+                            <option value="email">E-mail</option>
+                            <option value="telefone">Telefone</option>
+                            <option value="aleatoria">Chave Aleatória</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-credit-card"></i> Chave PIX:</label>
+                        <input type="text" id="chave-pix-roda" placeholder="Digite sua chave PIX" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-shield-alt"></i> Código de Validação:</label>
+                        <input type="text" id="codigo-antifraude-roda" value="${codigo}" readonly style="background: #f8f9fa; font-weight: 700; color: #00b341;">
+                    </div>
+                    
+                    <button class="btn btn-roda" onclick="solicitarPagamentoRoda('${valor}', '${codigo}')" style="width: 100%; font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">
+                        <i class="fas fa-paper-plane"></i>
+                        SOLICITAR PAGAMENTO
+                    </button>
+
+                    <div style="background: linear-gradient(135deg, #e8f4f8, #d1ecf1); padding: 20px; border-radius: 12px; margin-top: 25px; font-size: clamp(0.85em, 3vw, 1em); text-align: center; border: 2px solid #17a2b8;">
+                        <p><strong><i class="fas fa-shield-alt"></i> Seus dados estão seguros!</strong></p>
+                        <p>Use o código de validação <strong>${codigo}</strong> para comprovar seu prêmio a qualquer momento.</p>
+                        <p><strong>Prazo para pagamento:</strong> até 24 horas</p>
+                    </div>
+                </div>
+            `;
+            container.style.display = 'block';
+            
+            // Scroll para o formulário
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Função para solicitar pagamento da Roda Brasil
+        async function solicitarPagamentoRoda(valor, codigo) {
+            const nome = document.getElementById('nome-ganhador-roda').value.trim();
+            const cpf = document.getElementById('cpf-ganhador-roda').value.trim();
+            const tipoChave = document.getElementById('tipo-chave-roda').value;
+            const chavePix = document.getElementById('chave-pix-roda').value.trim();
+            
+            if (!nome || !cpf || !chavePix) {
+                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos antes de continuar!</p>');
+                return;
+            }
+
+            if (nome.length < 3) {
+                mostrarModal('<h3>Atenção</h3><p>Nome deve ter pelo menos 3 caracteres!</p>');
+                return;
+            }
+
+            if (cpf.replace(/\D/g, '').length !== 11) {
+                mostrarModal('<h3>Atenção</h3><p>CPF deve ter 11 dígitos!</p>');
+                return;
+            }
+
+            if (chavePix.length < 5) {
+                mostrarModal('<h3>Atenção</h3><p>Chave PIX inválida!</p>');
+                return;
+            }
+            
+            try {
+                // Salvar no backend
+                const response = await fetch('/salvar_ganhador_roda', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        cpf: cpf.replace(/\D/g, ''),
+                        valor,
+                        chave_pix: chavePix,
+                        tipo_chave: tipoChave,
+                        codigo
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (!resultado.sucesso) {
+                    throw new Error(resultado.erro || 'Erro ao salvar dados');
+                }
+                
+                mostrarModal(`
+                    <h3>✅ Dados Enviados com Sucesso!</h3>
+                    <p>Sua solicitação de pagamento foi enviada!</p>
+                    <p><strong>Seu código de validação:</strong></p>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 1.2em; color: #00b341; font-weight: bold; margin: 10px 0;">${codigo}</div>
+                    <p><strong>IMPORTANTE:</strong> Guarde este código para validação!</p>
+                    <p>Prazo para pagamento: <strong>até 24 horas</strong></p>
+                `);
+                
+            } catch (error) {
+                console.error('Erro ao salvar ganhador da roda:', error);
+                mostrarModal(`<h3>Erro</h3><p>${error.message}</p><p>Tente novamente.</p>`);
+            }
+        }
+
+        // Funções de Afiliados
+        function abrirAfiliados() {
+            mostrarPagina('affiliate-page');
+            // Verificar se já está logado como afiliado
+            if (currentAffiliate) {
+                exibirDashboardAfiliado();
+            } else {
+                document.getElementById('affiliate-signup').style.display = 'block';
+                document.getElementById('affiliate-login').style.display = 'none';
+                document.getElementById('affiliate-dashboard').style.display = 'none';
+            }
+        }
+
+        function mostrarLoginAfiliado() {
+            document.getElementById('affiliate-signup').style.display = 'none';
+            document.getElementById('affiliate-login').style.display = 'block';
+            document.getElementById('affiliate-dashboard').style.display = 'none';
+        }
+
+        function voltarCadastroAfiliado() {
+            document.getElementById('affiliate-signup').style.display = 'block';
+            document.getElementById('affiliate-login').style.display = 'none';
+            document.getElementById('affiliate-dashboard').style.display = 'none';
+        }
+
+        async function cadastrarAfiliado() {
+            const nome = document.getElementById('affiliate-nome').value.trim();
+            const telefone = document.getElementById('affiliate-telefone').value.trim();
+            const email = document.getElementById('affiliate-email').value.trim();
+            const cpf = document.getElementById('affiliate-cpf').value.trim();
+
+            if (!nome || !telefone || !email || !cpf) {
+                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos!</p>');
+                return;
+            }
+
+            if (nome.length < 3) {
+                mostrarModal('<h3>Atenção</h3><p>Nome deve ter pelo menos 3 caracteres!</p>');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                mostrarModal('<h3>Atenção</h3><p>Digite um e-mail válido!</p>');
+                return;
+            }
+
+            if (cpf.replace(/\D/g, '').length !== 11) {
+                mostrarModal('<h3>Atenção</h3><p>CPF deve ter 11 dígitos!</p>');
+                return;
+            }
+
+            try {
+                const response = await fetch('/cadastrar_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome,
+                        telefone,
+                        email,
+                        cpf: cpf.replace(/\D/g, '')
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate = resultado.afiliado;
+                    localStorage.setItem('affiliate_cpf', cpf.replace(/\D/g, ''));
+                    
+                    exibirDashboardAfiliado();
+                    mostrarModal(`
+                        <h3>✅ Cadastro Realizado!</h3>
+                        <p>Bem-vindo ao programa de afiliados!</p>
+                        <p><strong>Seu código:</strong> ${resultado.afiliado.codigo}</p>
+                        <p>Comece a compartilhar seu link e ganhar!</p>
+                    `);
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+
+            } catch (error) {
+                console.error('Erro ao cadastrar afiliado:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao criar conta de afiliado. Tente novamente.</p>');
+            }
+        }
+
+        async function loginAfiliado() {
+            const cpf = document.getElementById('login-affiliate-cpf').value.replace(/\D/g, '');
+            const messageDiv = document.getElementById('login-affiliate-message');
+            
+            if (!cpf || cpf.length !== 11) {
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Digite um CPF válido</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/login_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cpf })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate = resultado.afiliado;
+                    localStorage.setItem('affiliate_cpf', cpf);
+                    
+                    exibirDashboardAfiliado();
+                    messageDiv.innerHTML = '<div class="resultado-validacao valido">Login realizado com sucesso!</div>';
+                } else {
+                    messageDiv.innerHTML = `<div class="resultado-validacao invalido">${resultado.erro}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('Erro no login afiliado:', error);
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao fazer login. Tente novamente.</div>';
+            }
+        }
+
+        function exibirDashboardAfiliado() {
+            document.getElementById('affiliate-signup').style.display = 'none';
+            document.getElementById('affiliate-login').style.display = 'none';
+            document.getElementById('affiliate-dashboard').style.display = 'block';
+            
+            document.getElementById('affiliate-name-display').textContent = currentAffiliate.nome;
+            document.getElementById('affiliate-link-display').textContent = `${window.location.origin}/?ref=${currentAffiliate.codigo}`;
+            document.getElementById('affiliate-clicks').textContent = currentAffiliate.total_clicks || 0;
+            document.getElementById('affiliate-sales').textContent = currentAffiliate.total_vendas || 0;
+            document.getElementById('affiliate-commission').textContent = `R$ ${formatarDinheiro(currentAffiliate.total_comissao || 0)}`;
+            document.getElementById('affiliate-balance').textContent = `R$ ${formatarDinheiro(currentAffiliate.saldo_disponivel || 0)}`;
+            
+            if (currentAffiliate.chave_pix) {
+                document.getElementById('affiliate-pix-type').value = currentAffiliate.tipo_chave_pix || 'cpf';
+                document.getElementById('affiliate-pix-key').value = currentAffiliate.chave_pix;
+            }
+            
+            atualizarBotaoSaque();
+        }
+
+        function logoutAfiliado() {
+            currentAffiliate = null;
+            localStorage.removeItem('affiliate_cpf');
+            voltarCadastroAfiliado();
+        }
+
+        function copiarLinkAfiliado() {
+            const link = document.getElementById('affiliate-link-display').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                mostrarModal(`
+                    <h3>✅ Link Copiado!</h3>
+                    <p>Seu link de afiliado foi copiado para a área de transferência.</p>
+                    <p>Compartilhe e comece a ganhar!</p>
+                `);
+            }).catch(() => {
+                mostrarModal('<h3>Link copiado!</h3><p>Compartilhe e comece a ganhar!</p>');
+            });
+        }
+
+        async function salvarChavePix() {
+            const tipo = document.getElementById('affiliate-pix-type').value;
+            const chave = document.getElementById('affiliate-pix-key').value.trim();
+            
+            if (!chave) {
+                mostrarModal('<h3>Atenção</h3><p>Digite sua chave PIX!</p>');
+                return;
+            }
+            
+            if (chave.length < 5) {
+                mostrarModal('<h3>Atenção</h3><p>Chave PIX inválida!</p>');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/atualizar_pix_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        codigo: currentAffiliate.codigo,
+                        chave_pix: chave,
+                        tipo_chave: tipo
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate.chave_pix = chave;
+                    currentAffiliate.tipo_chave_pix = tipo;
+                    atualizarBotaoSaque();
+                    mostrarModal('<h3>✅ Chave PIX Salva!</h3><p>Agora você pode solicitar saques.</p>');
+                } else {
+                    mostrarModal('<h3>Erro</h3><p>Erro ao salvar chave PIX</p>');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar PIX:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao salvar chave PIX</p>');
+            }
+        }
+
+        function atualizarBotaoSaque() {
+            const btnSaque = document.getElementById('btn-saque');
+            if ((currentAffiliate.saldo_disponivel || 0) >= 10 && currentAffiliate.chave_pix) {
+                btnSaque.disabled = false;
+            } else {
+                btnSaque.disabled = true;
+            }
+        }
+
+        async function solicitarSaque() {
+            if ((currentAffiliate.saldo_disponivel || 0) < 10) {
+                mostrarModal('<h3>Saldo Insuficiente</h3><p>Saldo mínimo para saque: R$ 10,00</p>');
+                return;
+            }
+            
+            if (!currentAffiliate.chave_pix) {
+                mostrarModal('<h3>Atenção</h3><p>Configure sua chave PIX primeiro!</p>');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/solicitar_saque_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        codigo: currentAffiliate.codigo
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    currentAffiliate.saldo_disponivel = 0;
+                    document.getElementById('affiliate-balance').textContent = 'R$ 0,00';
+                    atualizarBotaoSaque();
+                    
+                    mostrarModal(`
+                        <h3>✅ Saque Solicitado!</h3>
+                        <p>Valor: R$ ${formatarDinheiro(resultado.valor)}</p>
+                        <p>PIX: ${currentAffiliate.chave_pix}</p>
+                        <p>Processamento: até 24 horas</p>
+                    `);
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao solicitar saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao solicitar saque</p>');
+            }
+        }
+
+        // Admin functions
+        function abrirAdmin() {
+            document.getElementById('admin-modal').style.display = 'flex';
+        }
+
+        function fecharAdmin() {
+            document.getElementById('admin-modal').style.display = 'none';
+        }
+
+        function trocarAbaAdmin(aba) {
+            // Atualizar tabs
+            document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`admin-${aba}`).classList.add('active');
+            
+            currentAdminTab = aba;
+            
+            // Carregar conteúdo específico da aba
+            switch(aba) {
+                case 'controle-afiliados':
+                    carregarAfiliados();
+                    break;
+                case 'controle-vendas':
+                    carregarRelatorioVendas();
+                    break;
+            }
+        }
+
+        async function loginAdmin() {
+            const senha = document.getElementById('admin-senha').value;
+            const messageDiv = document.getElementById('admin-message');
+            
+            if (!senha) {
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Digite a senha</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ senha })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    document.getElementById('admin-login').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    messageDiv.innerHTML = '<div class="resultado-validacao valido">Login realizado com sucesso!</div>';
+                    await carregarEstatisticas();
+                } else {
+                    messageDiv.innerHTML = '<div class="resultado-validacao invalido">Senha incorreta</div>';
+                }
+                
+            } catch (error) {
+                console.error('Erro no login admin:', error);
+                messageDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao fazer login</div>';
+            }
+        }
+
+        async function carregarEstatisticas() {
+            try {
+                const response = await fetch('/admin/stats');
+                const stats = await response.json();
+                
+                document.getElementById('admin-vendidas').textContent = stats.vendidas || 0;
+                document.getElementById('admin-restantes').textContent = (stats.total_raspadinhas || totalRaspadinhas) - (stats.vendidas || 0);
+                document.getElementById('admin-porcentagem').textContent = `${Math.round(((stats.vendidas || 0) / (stats.total_raspadinhas || totalRaspadinhas)) * 100)}%`;
+                document.getElementById('admin-ganhadores').textContent = stats.ganhadores || 0;
+                document.getElementById('admin-afiliados').textContent = stats.afiliados || 0;
+                document.getElementById('admin-premios-restantes').textContent = stats.premios_restantes || 0;
+                
+                // Atualizar variável global de vendas
+                vendidas = stats.vendidas || 0;
+                
+                // Atualizar botão do sistema
+                const btnToggle = document.getElementById('btn-toggle-sistema');
+                if (btnToggle) {
+                    btnToggle.innerHTML = `
+                        <i class="fas fa-power-off"></i>
+                        ${stats.sistema_ativo ? 'Desativar' : 'Ativar'} Sistema
+                    `;
+                    btnToggle.style.background = stats.sistema_ativo ? 
+                        'linear-gradient(135deg, #dc3545, #c82333)' : 
+                        'linear-gradient(135deg, #28a745, #20c997)';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function carregarAfiliados() {
+            // Carregar lista real de afiliados
+            try {
+                const response = await fetch('/admin/afiliados');
+                const resultado = await response.json();
+                
+                if (resultado.afiliados && resultado.afiliados.length > 0) {
+                    let html = '';
+                    resultado.afiliados.forEach(afiliado => {
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
+                                <h5>${afiliado.nome} (${afiliado.codigo})</h5>
+                                <p><strong>E-mail:</strong> ${afiliado.email}</p>
+                                <p><strong>Telefone:</strong> ${afiliado.telefone}</p>
+                                <p><strong>Clicks:</strong> ${afiliado.total_clicks} | <strong>Vendas:</strong> ${afiliado.total_vendas}</p>
+                                <p><strong>Comissão Total:</strong> R$ ${afiliado.total_comissao.toFixed(2)} | <strong>Saldo:</strong> R$ ${afiliado.saldo_disponivel.toFixed(2)}</p>
+                                <p><strong>Status:</strong> ${afiliado.status}</p>
+                                <p><strong>Cadastrado em:</strong> ${new Date(afiliado.data_criacao).toLocaleString('pt-BR')}</p>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('lista-afiliados').innerHTML = html;
+                } else {
+                    document.getElementById('lista-afiliados').innerHTML = '<p>Nenhum afiliado cadastrado ainda.</p>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar afiliados:', error);
+                document.getElementById('lista-afiliados').innerHTML = '<p>Erro ao carregar afiliados.</p>';
+            }
+        }
+
+        async function carregarSaquesGanhadores() {
+            try {
+                const response = await fetch('/admin/saques_ganhadores');
+                const resultado = await response.json();
+                
+                let html = '<h5>Solicitações de Saque - Ganhadores</h5>';
+                
+                if (resultado.saques && resultado.saques.length > 0) {
+                    resultado.saques.forEach(saque => {
+                        const statusClass = saque.rb_status === 'pago' ? 'success' : 'warning';
+                        const statusText = saque.rb_status === 'pago' ? 'Pago' : 'Pendente';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
+                                <p><strong>${saque.rb_ganhadores?.rb_nome || 'Nome não encontrado'}</strong> - R$ ${parseFloat(saque.rb_valor).toFixed(2)}</p>
+                                <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
+                                <p><strong>Código:</strong> ${saque.rb_ganhadores?.rb_codigo || 'N/A'}</p>
+                                <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
+                                <p><strong>Data:</strong> ${new Date(saque.rb_data_solicitacao).toLocaleString('pt-BR')}</p>
+                                <div style="margin-top: 15px;">
+                                    ${saque.rb_status === 'pago' ? 
+                                        `<button class="btn btn-primary" onclick="excluirSaqueGanhador(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </button>` :
+                                        `<button class="btn btn-primary" onclick="pagarSaqueGanhador(${saque.rb_id})">
+                                            <i class="fas fa-money-bill-wave"></i> Pagar
+                                        </button>`
+                                    }
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>Nenhuma solicitação de saque encontrada.</p>';
+                }
+                
+                document.getElementById('lista-saques').innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar saques de ganhadores:', error);
+                document.getElementById('lista-saques').innerHTML = '<p>Erro ao carregar saques.</p>';
+            }
+        }
+
+        async function carregarSaquesAfiliados() {
+            try {
+                const response = await fetch('/admin/saques_afiliados');
+                const resultado = await response.json();
+                
+                let html = '<h5>Solicitações de Saque - Afiliados</h5>';
+                
+                if (resultado.saques && resultado.saques.length > 0) {
+                    resultado.saques.forEach(saque => {
+                        const statusClass = saque.rb_status === 'pago' ? 'success' : 'warning';
+                        const statusText = saque.rb_status === 'pago' ? 'Pago' : 'Pendente';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
+                                <p><strong>${saque.rb_afiliados?.rb_nome || 'Nome não encontrado'} (${saque.rb_afiliados?.rb_codigo || 'N/A'})</strong> - R$ ${parseFloat(saque.rb_valor).toFixed(2)}</p>
+                                <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
+                                <p><strong>Comissão de:</strong> ${saque.rb_afiliados?.rb_total_vendas || 0} vendas</p>
+                                <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
+                                <p><strong>Data:</strong> ${new Date(saque.rb_data_solicitacao).toLocaleString('pt-BR')}</p>
+                                <div style="margin-top: 15px;">
+                                    ${saque.rb_status === 'pago' ? 
+                                        `<button class="btn btn-affiliate" onclick="excluirSaqueAfiliado(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </button>` :
+                                        `<button class="btn btn-affiliate" onclick="pagarSaqueAfiliado(${saque.rb_id})">
+                                            <i class="fas fa-money-bill-wave"></i> Pagar
+                                        </button>`
+                                    }
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>Nenhuma solicitação de saque encontrada.</p>';
+                }
+                
+                document.getElementById('lista-saques').innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar saques de afiliados:', error);
+                document.getElementById('lista-saques').innerHTML = '<p>Erro ao carregar saques.</p>';
+            }
+        }
+
+        async function carregarRelatorioVendas() {
+            try {
+                const response = await fetch('/admin/stats');
+                const stats = await response.json();
+                
+                document.getElementById('vendas-hoje').textContent = stats.vendas_hoje || 0;
+                document.getElementById('vendas-afiliados').textContent = stats.vendas_afiliados_hoje || 0;
+                document.getElementById('premios-restantes').textContent = stats.premios_restantes || 0;
+                
+                const vendasDiretas = (stats.vendas_hoje || 0) - (stats.vendas_afiliados_hoje || 0);
+                const totalArrecadado = stats.vendas_hoje || 0;
+                const comissoesPagas = (stats.vendas_afiliados_hoje || 0) * 0.5;
+                const lucroLiquido = totalArrecadado - comissoesPagas;
+                
+                document.getElementById('vendas-detalhes').innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 15px;">
+                        <h5>Detalhes das Vendas de Hoje</h5>
+                        <p><strong>Vendas Diretas:</strong> ${vendasDiretas} raspadinhas (R$ ${vendasDiretas.toFixed(2)})</p>
+                        <p><strong>Vendas via Afiliados:</strong> ${stats.vendas_afiliados_hoje || 0} raspadinhas (R$ ${(stats.vendas_afiliados_hoje || 0).toFixed(2)})</p>
+                        <p><strong>Total Arrecadado:</strong> R$ ${totalArrecadado.toFixed(2)}</p>
+                        <p><strong>Comissões Pagas:</strong> R$ ${comissoesPagas.toFixed(2)}</p>
+                        <p><strong>Lucro Líquido:</strong> R$ ${lucroLiquido.toFixed(2)}</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Erro ao carregar relatório de vendas:', error);
+                document.getElementById('vendas-detalhes').innerHTML = '<p>Erro ao carregar relatório.</p>';
+            }
+        }
+
+        async function toggleSistema() {
+            try {
+                const response = await fetch('/admin/toggle_sistema', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    mostrarModal(`<h3>✅ ${resultado.mensagem}</h3>`);
+                    await carregarEstatisticas();
+                } else {
+                    mostrarModal(`<h3>❌ ${resultado.mensagem}</h3>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao alternar sistema:', error);
+                mostrarModal('<h3>❌ Erro ao alternar sistema</h3>');
+            }
+        }
+
+        async function validarCodigoAdmin() {
+            const codigo = document.getElementById('codigo-validacao-admin').value.trim();
+            const resultadoDiv = document.getElementById('resultado-validacao-admin');
+            
+            if (!codigo) {
+                resultadoDiv.innerHTML = '<div class="resultado-validacao invalido">Por favor, insira um código</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/validar_codigo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ codigo })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.valido) {
+                    resultadoDiv.innerHTML = `<div class="resultado-validacao valido">${resultado.mensagem}</div>`;
+                } else {
+                    resultadoDiv.innerHTML = `<div class="resultado-validacao invalido">${resultado.mensagem}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao validar código:', error);
+                resultadoDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao validar código</div>';
+            }
+        }
+
+        async function listarPremiados() {
+            const listDiv = document.getElementById('lista-premiados');
+            
+            try {
+                const response = await fetch('/admin/premiados');
+                const resultado = await response.json();
+                
+                if (resultado.premiados && resultado.premiados.length > 0) {
+                    let html = '<h4><i class="fas fa-trophy"></i> Lista de Ganhadores:</h4><div class="premiados-table">';
+                    resultado.premiados.forEach(premiado => {
+                        html += `
+                            <div class="premiado-item">
+                                <strong>Código:</strong> ${premiado.rb_codigo}<br>
+                                <strong>Nome:</strong> ${premiado.rb_nome}<br>
+                                <strong>Valor:</strong> ${premiado.rb_valor}<br>
+                                <strong>PIX:</strong> ${premiado.rb_chave_pix}<br>
+                                <strong>Status:</strong> ${premiado.rb_status_pagamento || 'pendente'}<br>
+                                <strong>Data:</strong> ${new Date(premiado.rb_data_criacao).toLocaleString('pt-BR')}<br>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = '<p>Nenhum ganhador encontrado.</p>';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao listar premiados:', error);
+                listDiv.innerHTML = '<p>Erro ao carregar ganhadores.</p>';
+            }
+        }
+
+        // Navegação
+        function irParaPagamento() {
+            // Verificar se há código de afiliado armazenado
+            const refCode = localStorage.getItem('raspa_ref');
+            
+            document.getElementById('quantidade-pagamento').textContent = quantidade;
+            document.getElementById('total-pagamento').textContent = formatarDinheiro(quantidade * 1.00);
+            document.getElementById('total-pagamento-info').textContent = formatarDinheiro(quantidade * 1.00);
+            mostrarPagina('payment-page');
+            setTimeout(() => criarPagamentoReal(refCode), 1500);
+        }
+
+        function irParaPagamentoRoda() {
+            document.getElementById('quantidade-pagamento-roda').textContent = quantidadeRoda;
+            document.getElementById('total-pagamento-roda').textContent = formatarDinheiro(quantidadeRoda * 1.00);
+            document.getElementById('total-pagamento-info-roda').textContent = formatarDinheiro(quantidadeRoda * 1.00);
+            mostrarPagina('payment-page-roda');
+            setTimeout(() => criarPagamentoRealRoda(), 1500);
+        }
+
+        function voltarInicio() {
+            mostrarPagina('home-page');
+            // Limpar intervalo de verificação de pagamento se existir
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+                paymentCheckInterval = null;
+            }
+            if (paymentCheckIntervalRoda) {
+                clearInterval(paymentCheckIntervalRoda);
+                paymentCheckIntervalRoda = null;
+            }
+        }
+
+        function irParaRaspadinhas() {
+            document.getElementById('quantidade-raspadinhas').textContent = quantidade;
+            gerarRaspadinhas();
+            mostrarPagina('raspadinha-page');
+        }
+
+        function irParaRoleta() {
+            currentRodaFichas = quantidadeRoda;
+            document.getElementById('fichas-restantes').textContent = currentRodaFichas;
+            mostrarPagina('roleta-page');
+        }
+
+        // Função para criar pagamento real no Mercado Pago
+        async function criarPagamentoReal(refCode) {
+            const btn = document.getElementById('btn-real-payment');
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando pagamento...';
+                btn.disabled = true;
+            }
+
+            // Esconder ações de pagamento
+            const paymentActions = document.getElementById('payment-actions');
+            if (paymentActions) {
+                paymentActions.style.display = 'none';
+            }
+
+            try {
+                const paymentData = { quantidade: quantidade };
+                if (refCode) {
+                    paymentData.ref_code = refCode;
+                }
+
+                const response = await fetch('/create_payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(paymentData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.id) {
+                    currentPaymentId = data.id;
+                    
+                    // Atualizar QR Code com dados reais
+                    if (data.qr_code_base64) {
+                        document.getElementById('qr-code').innerHTML = `<img src="data:image/png;base64,${data.qr_code_base64}" alt="QR Code PIX Real">`;
+                    }
+                    if (data.qr_code) {
+                        document.getElementById('pix-code').textContent = data.qr_code;
+                    }
+
+                    document.getElementById('qr-section').style.display = 'block';
+                    document.getElementById('payment-status').innerHTML = `
+                        <div class="cta-message payment-status-waiting">
+                            <h3><i class="fas fa-clock"></i> Aguardando Pagamento</h3>
+                            <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a; font-weight: 700;">ID: ${data.id}</p>
+                            <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8; color: #1a1a1a; font-weight: 600;"><em>Escaneie o QR Code ou cole o código PIX no seu banco</em></p>
+                        </div>
+                    `;
+
+                    // Iniciar verificação automática do pagamento
+                    iniciarVerificacaoPagamento(data.id);
+
+                } else {
+                    throw new Error(data.error || 'Erro ao criar pagamento');
+                }
+
+            } catch (error) {
+                console.error('Erro ao criar pagamento real:', error);
+                document.getElementById('payment-status').innerHTML = `
+                    <div class="cta-message payment-status-error">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Erro ao Criar Pagamento</h3>
+                        <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">${error.message}</p>
+                        <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Tente novamente ou entre em contato</em></p>
+                    </div>
+                `;
+                
+                // Mostrar ações novamente em caso de erro
+                if (paymentActions) {
+                    paymentActions.style.display = 'block';
+                }
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-redo"></i> Tentar Novamente';
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        // Função para criar pagamento real da Roda Brasil
+        async function criarPagamentoRealRoda() {
+            const btn = document.getElementById('btn-real-payment-roda');
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando pagamento...';
+                btn.disabled = true;
+            }
+
+            // Esconder ações de pagamento
+            const paymentActions = document.getElementById('payment-actions-roda');
+            if (paymentActions) {
+                paymentActions.style.display = 'none';
+            }
+
+            try {
+                const paymentData = { 
+                    quantidade: quantidadeRoda,
+                    tipo: 'roda_brasil'
+                };
+
+                const response = await fetch('/create_payment_roda', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(paymentData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.id) {
+                    currentPaymentIdRoda = data.id;
+                    
+                    // Atualizar QR Code com dados reais
+                    if (data.qr_code_base64) {
+                        document.getElementById('qr-code-roda').innerHTML = `<img src="data:image/png;base64,${data.qr_code_base64}" alt="QR Code PIX Real">`;
+                    }
+                    if (data.qr_code) {
+                        document.getElementById('pix-code-roda').textContent = data.qr_code;
+                    }
+
+                    document.getElementById('qr-section-roda').style.display = 'block';
+                    document.getElementById('payment-status-roda').innerHTML = `
+                        <div class="cta-message payment-status-waiting">
+                            <h3><i class="fas fa-clock"></i> Aguardando Pagamento</h3>
+                            <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em); color: #1a1a1a; font-weight: 700;">ID: ${data.id}</p>
+                            <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8; color: #1a1a1a; font-weight: 600;"><em>Escaneie o QR Code ou cole o código PIX no seu banco</em></p>
+                        </div>
+                    `;
+
+                    // Iniciar verificação automática do pagamento
+                    iniciarVerificacaoPagamentoRoda(data.id);
+
+                } else {
+                    throw new Error(data.error || 'Erro ao criar pagamento');
+                }
+
+            } catch (error) {
+                console.error('Erro ao criar pagamento real:', error);
+                document.getElementById('payment-status-roda').innerHTML = `
+                    <div class="cta-message payment-status-error">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Erro ao Criar Pagamento</h3>
+                        <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">${error.message}</p>
+                        <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Tente novamente ou entre em contato</em></p>
+                    </div>
+                `;
+                
+                // Mostrar ações novamente em caso de erro
+                if (paymentActions) {
+                    paymentActions.style.display = 'block';
+                }
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-redo"></i> Tentar Novamente';
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        // Função para verificar pagamento automaticamente
+        function iniciarVerificacaoPagamento(paymentId) {
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+            }
+
+            let tentativas = 0;
+            const maxTentativas = 120; // 10 minutos (120 * 5 segundos)
+
+            paymentCheckInterval = setInterval(async () => {
+                tentativas++;
+                
+                try {
+                    const response = await fetch(`/check_payment/${paymentId}`);
+                    const data = await response.json();
+
+                    console.log(`Verificação ${tentativas}/${maxTentativas} - Status: ${data.status}`);
+
+                    if (data.status === 'approved') {
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+
+                        document.getElementById('payment-status').innerHTML = `
+                            <div class="cta-message payment-status-approved">
+                                <h3><i class="fas fa-check-circle"></i> Pagamento Aprovado!</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">Redirecionando para suas raspadinhas...</p>
+                                <div style="margin-top: 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 2.5em;"></i>
+                                </div>
+                            </div>
+                        `;
+
+                        // Atualizar vendas para controle de prêmios
+                        vendidas += quantidade;
+                        
+                        setTimeout(() => {
+                            irParaRaspadinhas();
+                        }, 3000);
+
+                    } else if (data.status === 'rejected' || data.status === 'cancelled') {
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+
+                        document.getElementById('payment-status').innerHTML = `
+                            <div class="cta-message payment-status-error">
+                                <h3><i class="fas fa-times-circle"></i> Pagamento ${data.status === 'rejected' ? 'Rejeitado' : 'Cancelado'}</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">Tente novamente com outro método</p>
+                            </div>
+                        `;
+
+                        // Reativar botão para tentar novamente
+                        const paymentActions = document.getElementById('payment-actions');
+                        if (paymentActions) {
+                            paymentActions.style.display = 'block';
+                        }
+                        const btn = document.getElementById('btn-real-payment');
+                        if (btn) {
+                            btn.innerHTML = '<i class="fas fa-redo"></i> Tentar Novamente';
+                            btn.disabled = false;
+                        }
+
+                    } else if (tentativas >= maxTentativas) {
+                        // Timeout após 10 minutos
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+
+                        document.getElementById('payment-status').innerHTML = `
+                            <div class="cta-message payment-status-error">
+                                <h3><i class="fas fa-clock"></i> Tempo Esgotado</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">O pagamento demorou muito para ser confirmado</p>
+                                <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Se você já pagou, aguarde alguns minutos e recarregue a página</em></p>
+                            </div>
+                        `;
+                    }
+
+                } catch (error) {
+                    console.error('Erro ao verificar pagamento:', error);
+                    
+                    if (tentativas >= maxTentativas) {
+                        clearInterval(paymentCheckInterval);
+                        paymentCheckInterval = null;
+                    }
+                }
+            }, 5000); // Verificar a cada 5 segundos
+        }
+
+        // Função para verificar pagamento automaticamente da Roda Brasil
+        function iniciarVerificacaoPagamentoRoda(paymentId) {
+            if (paymentCheckIntervalRoda) {
+                clearInterval(paymentCheckIntervalRoda);
+            }
+
+            let tentativas = 0;
+            const maxTentativas = 120; // 10 minutos (120 * 5 segundos)
+
+            paymentCheckIntervalRoda = setInterval(async () => {
+                tentativas++;
+                
+                try {
+                    const response = await fetch(`/check_payment_roda/${paymentId}`);
+                    const data = await response.json();
+
+                    console.log(`Verificação Roda ${tentativas}/${maxTentativas} - Status: ${data.status}`);
+
+                    if (data.status === 'approved') {
+                        clearInterval(paymentCheckIntervalRoda);
+                        paymentCheckIntervalRoda = null;
+
+                        document.getElementById('payment-status-roda').innerHTML = `
+                            <div class="cta-message payment-status-approved">
+                                <h3><i class="fas fa-check-circle"></i> Pagamento Aprovado!</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">Redirecionando para a Roleta...</p>
+                                <div style="margin-top: 20px;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 2.5em;"></i>
+                                </div>
+                            </div>
+                        `;
+
+                        // Atualizar vendas para controle de prêmios
+                        vendidas += quantidadeRoda;
+
+                        setTimeout(() => {
+                            irParaRoleta();
+                        }, 3000);
+
+                    } else if (data.status === 'rejected' || data.status === 'cancelled') {
+                        clearInterval(paymentCheckIntervalRoda);
+                        paymentCheckIntervalRoda = null;
+
+                        document.getElementById('payment-status-roda').innerHTML = `
+                            <div class="cta-message payment-status-error">
+                                <h3><i class="fas fa-times-circle"></i> Pagamento ${data.status === 'rejected' ? 'Rejeitado' : 'Cancelado'}</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">Tente novamente com outro método</p>
+                            </div>
+                        `;
+
+                        // Reativar botão para tentar novamente
+                        const paymentActions = document.getElementById('payment-actions-roda');
+                        if (paymentActions) {
+                            paymentActions.style.display = 'block';
+                        }
+                        const btn = document.getElementById('btn-real-payment-roda');
+                        if (btn) {
+                            btn.innerHTML = '<i class="fas fa-redo"></i> Tentar Novamente';
+                            btn.disabled = false;
+                        }
+
+                    } else if (tentativas >= maxTentativas) {
+                        // Timeout após 10 minutos
+                        clearInterval(paymentCheckIntervalRoda);
+                        paymentCheckIntervalRoda = null;
+
+                        document.getElementById('payment-status-roda').innerHTML = `
+                            <div class="cta-message payment-status-error">
+                                <h3><i class="fas fa-clock"></i> Tempo Esgotado</h3>
+                                <p style="margin: 15px 0; font-size: clamp(1em, 3.5vw, 1.2em);">O pagamento demorou muito para ser confirmado</p>
+                                <p style="font-size: clamp(0.85em, 3vw, 1em); opacity: 0.8;"><em>Se você já pagou, aguarde alguns minutos e recarregue a página</em></p>
+                            </div>
+                        `;
+                    }
+
+                } catch (error) {
+                    console.error('Erro ao verificar pagamento Roda:', error);
+                    
+                    if (tentativas >= maxTentativas) {
+                        clearInterval(paymentCheckIntervalRoda);
+                        paymentCheckIntervalRoda = null;
+                    }
+                }
+            }, 5000); // Verificar a cada 5 segundos
+        }
+
+        // Função para copiar código PIX
+        function copiarCodigoPix() {
+            const codigo = document.getElementById('pix-code').textContent;
+            navigator.clipboard.writeText(codigo).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                btn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 3000);
+            }).catch(() => {
+                mostrarModal('Código PIX copiado para a área de transferência!');
+            });
+        }
+
+        // Função para copiar código PIX da Roda Brasil
+        function copiarCodigoPixRoda() {
+            const codigo = document.getElementById('pix-code-roda').textContent;
+            navigator.clipboard.writeText(codigo).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                btn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 3000);
+            }).catch(() => {
+                mostrarModal('Código PIX copiado para a área de transferência!');
+            });
+        }
+
+        // Função para gerar raspadinhas
+        function gerarRaspadinhas() {
+            const grid = document.getElementById('raspadinha-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < quantidade; i++) {
+                const bandeira = document.createElement('div');
+                bandeira.className = 'bandeira';
+                bandeira.id = `bandeira-${i}`;
+                bandeira.onclick = () => rasparBandeira(i);
+                
+                bandeira.innerHTML = `
+                    <div class="bandeira-overlay">
+                        <div><i class=""></i><br>Clique para raspar</div>
+                    </div>
+                    <div class="bandeira-resultado"></div>
+                `;
+                
+                grid.appendChild(bandeira);
+            }
+        }
+
+        // Função para raspar bandeira (simulação offline com prêmios limitados)
+        async function rasparBandeira(index) {
+            const bandeira = document.getElementById(`bandeira-${index}`);
+            
+            if (bandeira.classList.contains('raspada')) {
+                return;
+            }
+            
+            bandeira.classList.add('raspada');
+            
+            // Animação de raspagem
+            const overlay = bandeira.querySelector('.bandeira-overlay');
+            overlay.style.opacity = '0';
+            
+            // Simular processamento
+            setTimeout(() => {
+                const resultadoDiv = bandeira.querySelector('.bandeira-resultado');
+                
+                // Sistema de prêmios limitados - só libera prêmios após 1000 vendas
+                const sistemaLiberado = vendidas >= LIMITE_PREMIOS;
+                console.log(`Raspando - Vendas: ${vendidas}, Limite: ${LIMITE_PREMIOS}, Sistema liberado: ${sistemaLiberado}`);
+                
+                // Chance de ganho muito baixa para ser realista
+                const chanceGanho = sistemaLiberado ? 0.10 : 0; // 10% quando liberado, 0% antes
+                const ganhou = Math.random() < chanceGanho;
+                
+                if (ganhou) {
+                    // Prêmios possíveis
+                    const premios = ['R$ 10,00', 'R$ 20,00', 'R$ 30,00', 'R$ 50,00', 'R$ 100,00', 'R$ 300,00', 'R$ 500,00', 'R$ 1000,00'];
+                    const pesos = [40, 25, 20, 10, 3, 1.5, 0.4, 0.1]; // Probabilidades
+                    
+                    const totalPeso = pesos.reduce((a, b) => a + b, 0);
+                    let random = Math.random() * totalPeso;
+                    let premioIndex = 0;
+                    
+                    for (let i = 0; i < pesos.length; i++) {
+                        random -= pesos[i];
+                        if (random <= 0) {
+                            premioIndex = i;
+                            break;
+                        }
                     }
                     
-                    supabase.table('rb_vendas').insert(venda_data).execute()
+                    const premioSorteado = premios[premioIndex];
+                    const codigo = gerarCodigoUnico();
                     
-                except Exception as e:
-                    print(f"❌ Erro ao salvar venda: {str(e)}")
-
-            pix_data = payment.get(
-                'point_of_interaction', {}
-            ).get('transaction_data', {})
-
-            if not pix_data:
-                return jsonify({'error': 'Erro ao gerar dados PIX'}), 500
-
-            return jsonify({
-                'id': payment['id'],
-                'qr_code': pix_data.get('qr_code', ''),
-                'qr_code_base64': pix_data.get('qr_code_base64', ''),
-                'status': payment['status'],
-                'amount': payment['transaction_amount']
-            })
-        else:
-            return jsonify({
-                'error': 'Erro ao criar pagamento',
-                'details': payment_response.get('message', 'Erro desconhecido')
-            }), 500
-
-    except Exception as e:
-        print(f"❌ Exceção ao criar pagamento: {str(e)}")
-        return jsonify({
-            'error': 'Erro interno do servidor',
-            'details': str(e)
-        }), 500
-
-
-@app.route('/create_payment_roda', methods=['POST'])
-def create_payment_roda():
-    """Cria pagamento PIX para Roda Brasil"""
-    data = request.json
-    quantidade = data.get('quantidade', 1)
-    total = quantidade * 1.00
-
-    if not sdk:
-        return jsonify({
-            'error': 'Mercado Pago não configurado.',
-            'details': 'Token do Mercado Pago necessário.'
-        }), 500
-
-    payment_data = {
-        "transaction_amount": float(total),
-        "description": f"Roda Brasil - {quantidade} ficha(s)",
-        "payment_method_id": "pix",
-        "payer": {
-            "email": "cliente@rodabrasil.com",
-            "first_name": "Cliente",
-            "last_name": "Roda Brasil"
-        },
-        "notification_url": (
-            f"{request.url_root.rstrip('/')}/webhook/mercadopago"
-        ),
-        "external_reference": (
-            f"RR_{int(datetime.now().timestamp())}_{quantidade}"
-        )
-    }
-
-    try:
-        print(f"🎰 Criando pagamento Roda Brasil: R$ {total:.2f}")
-        payment_response = sdk.payment().create(payment_data)
-
-        if payment_response["status"] == 201:
-            payment = payment_response["response"]
-
-            session['payment_id_roda'] = str(payment['id'])
-            session['quantidade_roda'] = quantidade
-            session['payment_created_at_roda'] = datetime.now().isoformat()
-
-            if supabase:
-                try:
-                    venda_data = {
-                        'rb_quantidade': quantidade,
-                        'rb_valor_total': total,
-                        'rb_payment_id': str(payment['id']),
-                        'rb_status': 'pending',
-                        'rb_tipo': 'roda_brasil',
-                        'rb_ip_cliente': request.remote_addr,
-                        'rb_user_agent': request.headers.get(
-                            'User-Agent', ''
-                        )[:500]
-                    }
+                    resultadoDiv.innerHTML = `
+                        <div style="font-size: clamp(1.5em, 5vw, 2.2em);">GANHOU!</div>
+                        <div style="font-size: clamp(1em, 4vw, 1.4em);">${premioSorteado}</div>
+                    `;
+                    resultadoDiv.className = 'bandeira-resultado ganhou';
                     
-                    supabase.table('rb_vendas').insert(venda_data).execute()
-                    
-                except Exception as e:
-                    print(f"❌ Erro ao salvar venda roda: {str(e)}")
-
-            pix_data = payment.get(
-                'point_of_interaction', {}
-            ).get('transaction_data', {})
-
-            if not pix_data:
-                return jsonify({'error': 'Erro ao gerar dados PIX'}), 500
-
-            return jsonify({
-                'id': payment['id'],
-                'qr_code': pix_data.get('qr_code', ''),
-                'qr_code_base64': pix_data.get('qr_code_base64', ''),
-                'status': payment['status'],
-                'amount': payment['transaction_amount']
-            })
-        else:
-            return jsonify({
-                'error': 'Erro ao criar pagamento',
-                'details': payment_response.get('message', 'Erro desconhecido')
-            }), 500
-
-    except Exception as e:
-        print(f"❌ Exceção ao criar pagamento roda: {str(e)}")
-        return jsonify({
-            'error': 'Erro interno do servidor',
-            'details': str(e)
-        }), 500
-
-
-@app.route('/check_payment/<payment_id>')
-def check_payment(payment_id):
-    """Verifica status do pagamento no Mercado Pago"""
-    if not sdk:
-        return jsonify({'error': 'Mercado Pago não configurado'}), 500
-
-    try:
-        print(f"🔍 Verificando pagamento: {payment_id}")
-
-        payment_response = sdk.payment().get(payment_id)
-
-        if payment_response["status"] == 200:
-            payment = payment_response["response"]
-            status = payment['status']
-
-            print(f"📊 Status do pagamento {payment_id}: {status}")
-
-            # Se aprovado e ainda não processado, atualizar no Supabase
-            payment_key = f'payment_processed_{payment_id}'
-            if status == 'approved' and payment_key not in session:
-                if supabase:
-                    try:
-                        # Atualizar status da venda
-                        supabase.table('rb_vendas').update({
-                            'rb_status': 'completed'
-                        }).eq('rb_payment_id', payment_id).execute()
-
-                        session[payment_key] = True
-                        print(f"✅ Pagamento aprovado: {payment_id}")
-
-                        # Log da mudança
-                        log_payment_change(
-                            payment_id, 'pending', 'completed', {
-                                'source': 'check_payment',
-                                'amount': payment.get('transaction_amount', 0)
-                            }
-                        )
-
-                    except Exception as e:
-                        print(
-                            f"❌ Erro ao atualizar status no Supabase: "
-                            f"{str(e)}"
-                        )
-
-            return jsonify({
-                'status': status,
-                'amount': payment.get('transaction_amount', 0),
-                'description': payment.get('description', ''),
-                'date_created': payment.get('date_created', ''),
-                'date_approved': payment.get('date_approved', '')
-            })
-        else:
-            print(f"❌ Erro ao verificar pagamento: {payment_response}")
-            return jsonify({'error': 'Erro ao verificar pagamento'}), 500
-
-    except Exception as e:
-        print(f"❌ Exceção ao verificar pagamento: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/check_payment_roda/<payment_id>')
-def check_payment_roda(payment_id):
-    """Verifica status do pagamento da Roda Brasil"""
-    if not sdk:
-        return jsonify({'error': 'Mercado Pago não configurado'}), 500
-
-    try:
-        print(f"🎰 Verificando pagamento Roda: {payment_id}")
-
-        payment_response = sdk.payment().get(payment_id)
-
-        if payment_response["status"] == 200:
-            payment = payment_response["response"]
-            status = payment['status']
-
-            print(f"📊 Status do pagamento Roda {payment_id}: {status}")
-
-            # Se aprovado e ainda não processado, atualizar no Supabase
-            payment_key = f'payment_roda_processed_{payment_id}'
-            if status == 'approved' and payment_key not in session:
-                if supabase:
-                    try:
-                        # Atualizar status da venda
-                        supabase.table('rb_vendas').update({
-                            'rb_status': 'completed'
-                        }).eq('rb_payment_id', payment_id).execute()
-
-                        session[payment_key] = True
-                        print(f"✅ Pagamento Roda aprovado: {payment_id}")
-
-                    except Exception as e:
-                        print(f"❌ Erro ao atualizar status Roda: {str(e)}")
-
-            return jsonify({
-                'status': status,
-                'amount': payment.get('transaction_amount', 0),
-                'description': payment.get('description', ''),
-                'date_created': payment.get('date_created', ''),
-                'date_approved': payment.get('date_approved', '')
-            })
-        else:
-            return jsonify({'error': 'Erro ao verificar pagamento'}), 500
-
-    except Exception as e:
-        print(f"❌ Exceção ao verificar pagamento Roda: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/raspar', methods=['POST'])
-def raspar():
-    """Processa raspagem - REQUER PAGAMENTO APROVADO"""
-    try:
-        # Verificar se há pagamento aprovado na sessão
-        payment_id = session.get('payment_id')
-        quantidade_paga = session.get('quantidade', 0)
-
-        if not payment_id:
-            return jsonify({
-                'ganhou': False,
-                'erro': 'Nenhum pagamento encontrado. Pague primeiro.'
-            }), 400
-
-        # Validar se o pagamento foi realmente aprovado
-        if not validar_pagamento_aprovado(payment_id):
-            return jsonify({
-                'ganhou': False,
-                'erro': 'Pagamento não aprovado. Aguarde confirmação.'
-            }), 400
-
-        # Verificar se ainda há raspadinhas restantes
-        raspadas_key = f'raspadas_{payment_id}'
-        raspadas = session.get(raspadas_key, 0)
-
-        if raspadas >= quantidade_paga:
-            return jsonify({
-                'ganhou': False,
-                'erro': 'Todas as raspadinhas já foram utilizadas.'
-            }), 400
-
-        # Incrementar contador de raspadas
-        session[raspadas_key] = raspadas + 1
-
-        # Tentar sortear prêmio
-        premio = sortear_premio()
-
-        if premio:
-            codigo = gerar_codigo_unico()
-            print(
-                f"🎉 Prêmio sorteado: {premio} - "
-                f"Código: {codigo} - Payment: {payment_id}"
-            )
-            return jsonify({
-                'ganhou': True,
-                'valor': premio,
-                'codigo': codigo
-            })
-        else:
-            print(
-                f"😔 Sem prêmio - Payment: {payment_id} - "
-                f"Raspada: {raspadas + 1}/{quantidade_paga}"
-            )
-            return jsonify({'ganhou': False})
-
-    except Exception as e:
-        print(f"❌ Erro ao processar raspagem: {str(e)}")
-        return jsonify({'ganhou': False, 'erro': str(e)}), 500
-
-
-@app.route('/girar_roda', methods=['POST'])
-def girar_roda():
-    """Processa giro da roleta - REQUER PAGAMENTO APROVADO"""
-    try:
-        # Verificar se há pagamento aprovado na sessão
-        payment_id = session.get('payment_id_roda')
-        fichas_pagas = session.get('quantidade_roda', 0)
-
-        if not payment_id:
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE',
-                'erro': 'Nenhum pagamento encontrado. Pague primeiro.'
-            }), 400
-
-        # Validar se o pagamento foi realmente aprovado
-        if not validar_pagamento_aprovado(payment_id):
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE',
-                'erro': 'Pagamento não aprovado. Aguarde confirmação.'
-            }), 400
-
-        # Verificar se ainda há fichas restantes
-        giradas_key = f'giradas_{payment_id}'
-        giradas = session.get(giradas_key, 0)
-
-        if giradas >= fichas_pagas:
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE',
-                'erro': 'Todas as fichas já foram utilizadas.'
-            }), 400
-
-        # Incrementar contador de giradas
-        session[giradas_key] = giradas + 1
-
-        # Sortear prêmio da roda
-        premio = sortear_premio_roda()
-
-        if premio != "TENTE NOVAMENTE":
-            codigo = gerar_codigo_unico_roda()
-            print(
-                f"🎰 Prêmio da roda: {premio} - "
-                f"Código: {codigo} - Payment: {payment_id}"
-            )
-            return jsonify({
-                'ganhou': True,
-                'premio': premio,
-                'codigo': codigo
-            })
-        else:
-            print(
-                f"🎰 Sem prêmio na roda - Payment: {payment_id} - "
-                f"Girada: {giradas + 1}/{fichas_pagas}"
-            )
-            return jsonify({
-                'ganhou': False,
-                'premio': 'TENTE NOVAMENTE'
-            })
-
-    except Exception as e:
-        print(f"❌ Erro ao girar roda: {str(e)}")
-        return jsonify({
-            'ganhou': False,
-            'premio': 'TENTE NOVAMENTE',
-            'erro': str(e)
-        }), 500
-
-
-@app.route('/salvar_ganhador', methods=['POST'])
-def salvar_ganhador():
-    """Salva dados do ganhador no Supabase"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Supabase não conectado'
-        })
-
-    try:
-        data = request.json
-
-        # Validar dados obrigatórios
-        campos_obrigatorios = [
-            'codigo', 'nome', 'valor', 'chave_pix', 'tipo_chave'
-        ]
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {campo} é obrigatório'
-                })
-
-        # Verificar se o código é válido (não foi usado antes)
-        existing = supabase.table('rb_ganhadores').select('rb_id').eq(
-            'rb_codigo', data['codigo']
-        ).execute()
-        if existing.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código já utilizado'
-            })
-
-        response = supabase.table('rb_ganhadores').insert({
-            'rb_codigo': data['codigo'],
-            'rb_nome': data['nome'].strip()[:255],
-            'rb_valor': data['valor'],
-            'rb_chave_pix': data['chave_pix'].strip()[:255],
-            'rb_tipo_chave': data['tipo_chave'],
-            'rb_telefone': data.get('telefone', '')[:20],
-            'rb_status_pagamento': 'pendente'
-        }).execute()
-
-        if response.data:
-            print(
-                f"💾 Ganhador salvo: {data['nome']} - "
-                f"{data['valor']} - {data['codigo']}"
-            )
-            return jsonify({'sucesso': True, 'id': response.data[0]['rb_id']})
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao inserir ganhador'
-            })
-
-    except Exception as e:
-        print(f"❌ Erro ao salvar ganhador: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
-
-@app.route('/salvar_ganhador_roda', methods=['POST'])
-def salvar_ganhador_roda():
-    """Salva dados do ganhador da Roda Brasil no Supabase"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Supabase não conectado'
-        })
-
-    try:
-        data = request.json
-
-        # Validar dados obrigatórios
-        campos_obrigatorios = [
-            'codigo', 'nome', 'cpf', 'valor', 'chave_pix', 'tipo_chave'
-        ]
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {campo} é obrigatório'
-                })
-
-        # Validar CPF
-        cpf = data['cpf']
-        if len(cpf) != 11:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF deve ter 11 dígitos'
-            })
-
-        # Verificar se o código é válido (não foi usado antes)
-        existing = supabase.table('rb_ganhadores_roda').select('rb_id').eq(
-            'rb_codigo', data['codigo']
-        ).execute()
-        if existing.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código já utilizado'
-            })
-
-        response = supabase.table('rb_ganhadores_roda').insert({
-            'rb_codigo': data['codigo'],
-            'rb_nome': data['nome'].strip()[:255],
-            'rb_cpf': cpf,
-            'rb_valor': data['valor'],
-            'rb_chave_pix': data['chave_pix'].strip()[:255],
-            'rb_tipo_chave': data['tipo_chave'],
-            'rb_status_pagamento': 'pendente'
-        }).execute()
-
-        if response.data:
-            print(
-                f"🎰 Ganhador da roda salvo: {data['nome']} - "
-                f"{data['valor']} - {data['codigo']}"
-            )
-            
-            # Criar solicitação de saque automaticamente
-            try:
-                supabase.table('rb_saques_ganhadores').insert({
-                    'rb_ganhador_id': response.data[0]['rb_id'],
-                    'rb_valor': data['valor'],
-                    'rb_chave_pix': data['chave_pix'],
-                    'rb_tipo_chave': data['tipo_chave'],
-                    'rb_status': 'solicitado'
-                }).execute()
-                print(f"💰 Saque automático criado para ganhador da roda")
-            except Exception as e:
-                print(f"⚠️ Erro ao criar saque automático: {str(e)}")
-            
-            return jsonify({'sucesso': True, 'id': response.data[0]['rb_id']})
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao inserir ganhador'
-            })
-
-    except Exception as e:
-        print(f"❌ Erro ao salvar ganhador da roda: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
-
-# ========== ROTAS DE AFILIADOS (mantidas do código anterior) ==========
-
-@app.route('/cadastrar_afiliado', methods=['POST'])
-def cadastrar_afiliado():
-    """Cadastra novo afiliado"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Sistema indisponível'
-        })
-
-    try:
-        data = request.json
-
-        # Validar dados obrigatórios
-        campos_obrigatorios = ['nome', 'email', 'telefone', 'cpf']
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {campo} é obrigatório'
-                })
-
-        # Limpar CPF
-        cpf = data['cpf'].replace('.', '').replace('-', '').replace(' ', '')
-        if len(cpf) != 11:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF inválido'
-            })
-
-        # Verificar se email ou CPF já existe
-        existing_email = supabase.table('rb_afiliados').select('rb_id').eq(
-            'rb_email', data['email']
-        ).execute()
-        
-        existing_cpf = supabase.table('rb_afiliados').select('rb_id').eq(
-            'rb_cpf', cpf
-        ).execute()
-        
-        if existing_email.data or existing_cpf.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'E-mail ou CPF já cadastrado'
-            })
-
-        # Gerar código único
-        codigo = gerar_codigo_afiliado_unico()
-
-        # Inserir afiliado
-        response = supabase.table('rb_afiliados').insert({
-            'rb_codigo': codigo,
-            'rb_nome': data['nome'].strip()[:255],
-            'rb_email': data['email'].strip().lower()[:255],
-            'rb_telefone': data['telefone'].strip()[:20],
-            'rb_cpf': cpf,
-            'rb_status': 'ativo'
-        }).execute()
-
-        if response.data:
-            afiliado = response.data[0]
-            print(f"👥 Novo afiliado cadastrado: {data['nome']} - {codigo}")
-            
-            return jsonify({
-                'sucesso': True,
-                'afiliado': {
-                    'id': afiliado['rb_id'],
-                    'codigo': codigo,
-                    'nome': afiliado['rb_nome'],
-                    'email': afiliado['rb_email'],
-                    'total_clicks': 0,
-                    'total_vendas': 0,
-                    'total_comissao': 0,
-                    'saldo_disponivel': 0,
-                    'link': f"https://raspabrasil.com/?ref={codigo}"
+                    // Mostrar formulário de prêmio
+                    mostrarFormularioPremio(premioSorteado, codigo);
+                } else {
+                    resultadoDiv.innerHTML = `
+                        <div style="font-size: clamp(1.5em, 5vw, 2.2em);">VOCÊ</div>
+                        <div style="font-size: clamp(0.9em, 3.5vw, 1.2em);">PERDEU</div>
+                    `;
+                    resultadoDiv.className = 'bandeira-resultado perdeu';
                 }
-            })
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao inserir afiliado'
-            })
+            }, 600);
+        }
 
-    except Exception as e:
-        print(f"❌ Erro ao cadastrar afiliado: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
+        function gerarCodigoUnico() {
+            const numero = Math.floor(Math.random() * 90000) + 10000;
+            const letras = Math.random().toString(36).substring(2, 5).toUpperCase();
+            return `RB-${numero}-${letras}`;
+        }
 
+        // Função para mostrar formulário de prêmio
+        function mostrarFormularioPremio(valor, codigo) {
+            const container = document.getElementById('premio-container');
+            container.innerHTML = `
+                <div class="premio-form">
+                    <h3>PARABÉNS! VOCÊ GANHOU ${valor}!</h3>
+                    <p style="text-align: center; font-size: clamp(1em, 4vw, 1.2em); margin-bottom: 30px; font-weight: 600;">
+                        Preencha seus dados para receber o prêmio em até 24 horas:
+                    </p>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome Completo:</label>
+                        <input type="text" id="nome-ganhador" placeholder="Digite seu nome completo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-key"></i> Tipo de Chave PIX:</label>
+                        <select id="tipo-chave">
+                            <option value="cpf">CPF</option>
+                            <option value="email">E-mail</option>
+                            <option value="telefone">Telefone</option>
+                            <option value="aleatoria">Chave Aleatória</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-credit-card"></i> Chave PIX:</label>
+                        <input type="text" id="chave-pix" placeholder="Digite sua chave PIX" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-shield-alt"></i> Código de Validação:</label>
+                        <input type="text" id="codigo-antifraude" value="${codigo}" readonly style="background: #f8f9fa; font-weight: 700; color: #00b341;">
+                    </div>
+                    
+                    <button class="whatsapp-btn" onclick="enviarWhatsApp('${valor}', '${codigo}')">
+                        <i class="fab fa-whatsapp"></i>
+                        Enviar dados via WhatsApp
+                    </button>
 
-@app.route('/login_afiliado', methods=['POST'])
-def login_afiliado():
-    """Login do afiliado por CPF"""
-    if not supabase:
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Sistema indisponível'
-        })
+                    <div style="background: linear-gradient(135deg, #e8f4f8, #d1ecf1); padding: 20px; border-radius: 12px; margin-top: 25px; font-size: clamp(0.85em, 3vw, 1em); text-align: center; border: 2px solid #17a2b8;">
+                        <p><strong><i class="fas fa-shield-alt"></i> Seus dados estão seguros!</strong></p>
+                        <p>Use o código de validação <strong>${codigo}</strong> para comprovar seu prêmio a qualquer momento.</p>
+                        <p><strong>WhatsApp:</strong> ${WHATSAPP_NUMERO.replace('55', '+55 ')}</p>
+                    </div>
+                </div>
+            `;
+            container.style.display = 'block';
+            
+            // Scroll para o formulário
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
 
-    try:
-        data = request.json
-        cpf = data.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
-        
-        if not cpf or len(cpf) != 11:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF inválido'
-            })
+        // Função para enviar via WhatsApp (conectada ao backend)
+        async function enviarWhatsApp(valor, codigo) {
+            const nome = document.getElementById('nome-ganhador').value.trim();
+            const tipoChave = document.getElementById('tipo-chave').value;
+            const chavePix = document.getElementById('chave-pix').value.trim();
+            
+            if (!nome || !chavePix) {
+                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos antes de continuar!</p>');
+                return;
+            }
 
-        # Buscar afiliado pelo CPF
-        response = supabase.table('rb_afiliados').select('*').eq(
-            'rb_cpf', cpf
-        ).eq('rb_status', 'ativo').execute()
-        
-        if response.data:
-            afiliado = response.data[0]
-            return jsonify({
-                'sucesso': True,
-                'afiliado': {
-                    'id': afiliado['rb_id'],
-                    'codigo': afiliado['rb_codigo'],
-                    'nome': afiliado['rb_nome'],
-                    'email': afiliado['rb_email'],
-                    'total_clicks': afiliado['rb_total_clicks'] or 0,
-                    'total_vendas': afiliado['rb_total_vendas'] or 0,
-                    'total_comissao': float(afiliado['rb_total_comissao'] or 0),
-                    'saldo_disponivel': float(afiliado['rb_saldo_disponivel'] or 0),
-                    'chave_pix': afiliado['rb_chave_pix'],
-                    'tipo_chave_pix': afiliado['rb_tipo_chave_pix']
+            if (nome.length < 3) {
+                mostrarModal('<h3>Atenção</h3><p>Nome deve ter pelo menos 3 caracteres!</p>');
+                return;
+            }
+
+            if (chavePix.length < 5) {
+                mostrarModal('<h3>Atenção</h3><p>Chave PIX inválida!</p>');
+                return;
+            }
+            
+            try {
+                // Salvar no backend
+                const response = await fetch('/salvar_ganhador', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        valor,
+                        chave_pix: chavePix,
+                        tipo_chave: tipoChave,
+                        codigo
+                    })
+                });
+
+                const resultado = await response.json();
+                
+                if (!resultado.sucesso) {
+                    throw new Error(resultado.erro || 'Erro ao salvar dados');
                 }
-            })
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF não encontrado ou afiliado inativo'
-            })
-
-    except Exception as e:
-        print(f"❌ Erro no login afiliado: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
-
-@app.route('/atualizar_pix_afiliado', methods=['POST'])
-def atualizar_pix_afiliado():
-    """Atualiza chave PIX do afiliado"""
-    if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
-
-    try:
-        data = request.json
-        codigo = data.get('codigo')
-        chave_pix = data.get('chave_pix', '').strip()
-        tipo_chave = data.get('tipo_chave', 'cpf')
-
-        if not codigo or not chave_pix:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código e chave PIX são obrigatórios'
-            })
-
-        response = supabase.table('rb_afiliados').update({
-            'rb_chave_pix': chave_pix,
-            'rb_tipo_chave_pix': tipo_chave
-        }).eq('rb_codigo', codigo).eq('rb_status', 'ativo').execute()
-
-        if response.data:
-            return jsonify({'sucesso': True})
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Afiliado não encontrado'
-            })
-
-    except Exception as e:
-        print(f"❌ Erro ao atualizar PIX: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
-
-@app.route('/solicitar_saque_afiliado', methods=['POST'])
-def solicitar_saque_afiliado():
-    """Processa solicitação de saque do afiliado"""
-    if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
-
-    try:
-        data = request.json
-        codigo = data.get('codigo')
-        
-        if not codigo:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Código do afiliado é obrigatório'
-            })
-
-        # Buscar afiliado
-        afiliado_response = supabase.table('rb_afiliados').select('*').eq(
-            'rb_codigo', codigo
-        ).eq('rb_status', 'ativo').execute()
-
-        if not afiliado_response.data:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Afiliado não encontrado'
-            })
-
-        afiliado = afiliado_response.data[0]
-        saldo = float(afiliado['rb_saldo_disponivel'] or 0)
-        saque_minimo = float(obter_configuracao('saque_minimo_afiliado', '10'))
-
-        if saldo < saque_minimo:
-            return jsonify({
-                'sucesso': False,
-                'erro': f'Saldo insuficiente. Mínimo: R$ {saque_minimo:.2f}'
-            })
-
-        if not afiliado['rb_chave_pix']:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Configure sua chave PIX primeiro'
-            })
-
-        # Inserir solicitação de saque
-        saque_response = supabase.table('rb_saques_afiliados').insert({
-            'rb_afiliado_id': afiliado['rb_id'],
-            'rb_valor': saldo,
-            'rb_chave_pix': afiliado['rb_chave_pix'],
-            'rb_tipo_chave': afiliado['rb_tipo_chave_pix'],
-            'rb_status': 'solicitado'
-        }).execute()
-
-        if saque_response.data:
-            # Zerar saldo do afiliado
-            supabase.table('rb_afiliados').update({
-                'rb_saldo_disponivel': 0
-            }).eq('rb_id', afiliado['rb_id']).execute()
-
-            print(f"💰 Saque solicitado: {afiliado['rb_nome']} - R$ {saldo:.2f}")
-
-            return jsonify({
-                'sucesso': True,
-                'valor': saldo,
-                'saque_id': saque_response.data[0]['rb_id']
-            })
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Erro ao processar saque'
-            })
-
-    except Exception as e:
-        print(f"❌ Erro ao solicitar saque: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
-
-
-# ========== ROTAS ADMIN (mantidas e atualizadas) ==========
-
-@app.route('/admin/login', methods=['POST'])
-def admin_login():
-    """Login do admin"""
-    data = request.json
-    senha = data.get('senha')
-    
-    if not senha:
-        return jsonify({'success': False, 'message': 'Senha é obrigatória'})
-    
-    # Por enquanto, usar senha simples até implementar tabela admin
-    if senha == 'paulo10@admin':
-        session['admin_logado'] = True
-        return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
-    
-    # Verificar no banco se existir
-    if supabase:
-        try:
-            response = supabase.table('rb_admins').select('*').eq(
-                'rb_senha', senha
-            ).eq('rb_ativo', True).execute()
-            if response.data:
-                admin = response.data[0]
-                session['admin_logado'] = True
-                session['admin_usuario'] = admin['rb_usuario']
                 
-                # Atualizar último login
-                supabase.table('rb_admins').update({
-                    'rb_ultimo_login': datetime.now().isoformat()
-                }).eq('rb_id', admin['rb_id']).execute()
+                const mensagem = `GANHEI NA RASPA BRASIL!
+
+DADOS DO GANHADOR:
+• Nome: ${nome}
+• Prêmio: ${valor}
+• Tipo de chave: ${tipoChave}
+• Chave PIX: ${chavePix}
+• Código de validação: ${codigo}
+
+Solicito o pagamento do meu prêmio!
+
+Dados salvos no sistema com sucesso!`;
                 
-                return jsonify({'success': True, 'message': f'Bem-vindo, {admin["rb_nome"]}'})
-        except Exception as e:
-            print(f"❌ Erro ao verificar admin no banco: {str(e)}")
-    
-    return jsonify({'success': False, 'message': 'Senha incorreta'})
-
-
-@app.route('/admin/toggle_sistema', methods=['POST'])
-def toggle_sistema():
-    """Alterna status do sistema"""
-    if not session.get('admin_logado'):
-        return jsonify({'success': False, 'mensagem': 'Acesso negado'})
-    
-    try:
-        sistema_atual = obter_configuracao('sistema_ativo', 'true').lower() == 'true'
-        novo_status = 'false' if sistema_atual else 'true'
-        
-        if atualizar_configuracao('sistema_ativo', novo_status):
-            status_texto = 'ativado' if novo_status == 'true' else 'desativado'
-            return jsonify({'success': True, 'mensagem': f'Sistema {status_texto} com sucesso'})
-        else:
-            return jsonify({'success': False, 'mensagem': 'Erro ao atualizar sistema'})
-    except Exception as e:
-        print(f"❌ Erro ao alternar sistema: {str(e)}")
-        return jsonify({'success': False, 'mensagem': str(e)})
-
-
-@app.route('/validar_codigo', methods=['POST'])
-def validar_codigo():
-    """Valida código de ganhador"""
-    data = request.json
-    codigo = data.get('codigo', '').strip().upper()
-    
-    if not codigo:
-        return jsonify({'valido': False, 'mensagem': 'Código não fornecido'})
-    
-    if not supabase:
-        return jsonify({'valido': False, 'mensagem': 'Sistema de validação indisponível'})
-    
-    try:
-        # Verificar nas raspadinhas
-        response_raspa = supabase.table('rb_ganhadores').select('*').eq(
-            'rb_codigo', codigo
-        ).execute()
-        
-        if response_raspa.data:
-            ganhador = response_raspa.data[0]
-            return jsonify({
-                'valido': True,
-                'mensagem': f'✅ Código válido - RASPADINHA - {ganhador["rb_nome"]} - {ganhador["rb_valor"]} - Status: {ganhador.get("rb_status_pagamento", "pendente")}'
-            })
-        
-        # Verificar na Roda Brasil
-        response_roda = supabase.table('rb_ganhadores_roda').select('*').eq(
-            'rb_codigo', codigo
-        ).execute()
-        
-        if response_roda.data:
-            ganhador = response_roda.data[0]
-            return jsonify({
-                'valido': True,
-                'mensagem': f'✅ Código válido - RODA BRASIL - {ganhador["rb_nome"]} - {ganhador["rb_valor"]} - Status: {ganhador.get("rb_status_pagamento", "pendente")}'
-            })
-        
-        return jsonify({'valido': False, 'mensagem': '❌ Código não encontrado ou inválido'})
-            
-    except Exception as e:
-        print(f"❌ Erro ao validar código: {str(e)}")
-        return jsonify({'valido': False, 'mensagem': 'Erro ao validar código'})
-
-
-@app.route('/admin/premiados')
-def admin_premiados():
-    """Lista de premiados para admin"""
-    if not session.get('admin_logado'):
-        return jsonify({'error': 'Acesso negado'})
-    
-    if not supabase:
-        return jsonify({'premiados': []})
-    
-    try:
-        # Buscar ganhadores de raspadinhas
-        response_raspa = supabase.table('rb_ganhadores').select('*').order(
-            'rb_data_criacao', desc=True
-        ).limit(25).execute()
-        
-        # Buscar ganhadores da roda
-        response_roda = supabase.table('rb_ganhadores_roda').select('*').order(
-            'rb_data_criacao', desc=True
-        ).limit(25).execute()
-        
-        premiados = []
-        
-        # Adicionar ganhadores de raspadinhas
-        for ganhador in (response_raspa.data or []):
-            ganhador['rb_tipo'] = 'RASPADINHA'
-            premiados.append(ganhador)
-        
-        # Adicionar ganhadores da roda
-        for ganhador in (response_roda.data or []):
-            ganhador['rb_tipo'] = 'RODA BRASIL'
-            premiados.append(ganhador)
-        
-        # Ordenar por data de criação
-        premiados.sort(key=lambda x: x['rb_data_criacao'], reverse=True)
-        
-        return jsonify({'premiados': premiados[:50]})  # Limitar a 50 resultados
-        
-    except Exception as e:
-        print(f"❌ Erro ao listar premiados: {str(e)}")
-        return jsonify({'premiados': []})
-
-
-@app.route('/admin/afiliados')
-def admin_afiliados():
-    """Lista de afiliados para admin"""
-    if not session.get('admin_logado'):
-        return jsonify({'error': 'Acesso negado'})
-    
-    if not supabase:
-        return jsonify({'afiliados': []})
-    
-    try:
-        response = supabase.table('rb_afiliados').select('*').order(
-            'rb_data_criacao', desc=True
-        ).execute()
-        
-        afiliados = []
-        for afiliado in response.data or []:
-            afiliados.append({
-                'id': afiliado['rb_id'],
-                'codigo': afiliado['rb_codigo'],
-                'nome': afiliado['rb_nome'],
-                'email': afiliado['rb_email'],
-                'telefone': afiliado['rb_telefone'],
-                'total_clicks': afiliado['rb_total_clicks'] or 0,
-                'total_vendas': afiliado['rb_total_vendas'] or 0,
-                'total_comissao': float(afiliado['rb_total_comissao'] or 0),
-                'saldo_disponivel': float(afiliado['rb_saldo_disponivel'] or 0),
-                'status': afiliado['rb_status'],
-                'data_criacao': afiliado['rb_data_criacao']
-            })
-        
-        return jsonify({'afiliados': afiliados})
-    except Exception as e:
-        print(f"❌ Erro ao listar afiliados: {str(e)}")
-        return jsonify({'afiliados': []})
-
-
-@app.route('/admin/saques_ganhadores')
-def admin_saques_ganhadores():
-    """Lista de saques de ganhadores para admin"""
-    if not session.get('admin_logado'):
-        return jsonify({'error': 'Acesso negado'})
-    
-    if not supabase:
-        return jsonify({'saques': []})
-    
-    try:
-        # Buscar saques
-        saques_response = supabase.table('rb_saques_ganhadores').select('*').order(
-            'rb_data_solicitacao', desc=True
-        ).execute()
-        
-        saques = []
-        for saque in (saques_response.data or []):
-            # Buscar dados do ganhador de raspadinha
-            ganhador_raspa = None
-            try:
-                ganhador_response = supabase.table('rb_ganhadores').select('rb_nome, rb_codigo').eq(
-                    'rb_id', saque['rb_ganhador_id']
-                ).execute()
-                if ganhador_response.data:
-                    ganhador_raspa = ganhador_response.data[0]
-            except:
-                pass
-            
-            # Buscar dados do ganhador da roda
-            ganhador_roda = None
-            try:
-                ganhador_roda_response = supabase.table('rb_ganhadores_roda').select('rb_nome, rb_codigo').eq(
-                    'rb_id', saque['rb_ganhador_id']
-                ).execute()
-                if ganhador_roda_response.data:
-                    ganhador_roda = ganhador_roda_response.data[0]
-            except:
-                pass
-            
-            saque_completo = saque.copy()
-            if ganhador_raspa:
-                saque_completo['rb_ganhadores'] = ganhador_raspa
-                saque_completo['rb_tipo'] = 'RASPADINHA'
-            elif ganhador_roda:
-                saque_completo['rb_ganhadores'] = ganhador_roda
-                saque_completo['rb_tipo'] = 'RODA BRASIL'
-            else:
-                saque_completo['rb_ganhadores'] = {'rb_nome': 'Nome não encontrado', 'rb_codigo': 'N/A'}
-                saque_completo['rb_tipo'] = 'DESCONHECIDO'
-            
-            saques.append(saque_completo)
-        
-        return jsonify({'saques': saques})
-    except Exception as e:
-        print(f"❌ Erro ao listar saques de ganhadores: {str(e)}")
-        return jsonify({'saques': []})
-
-
-@app.route('/admin/saques_afiliados')
-def admin_saques_afiliados():
-    """Lista de saques de afiliados para admin"""
-    if not session.get('admin_logado'):
-        return jsonify({'error': 'Acesso negado'})
-    
-    if not supabase:
-        return jsonify({'saques': []})
-    
-    try:
-        # Buscar saques
-        saques_response = supabase.table('rb_saques_afiliados').select('*').order(
-            'rb_data_solicitacao', desc=True
-        ).execute()
-        
-        saques = []
-        for saque in (saques_response.data or []):
-            # Buscar dados do afiliado separadamente
-            afiliado_response = supabase.table('rb_afiliados').select('rb_nome, rb_codigo, rb_total_vendas').eq(
-                'rb_id', saque['rb_afiliado_id']
-            ).execute()
-            
-            saque_completo = saque.copy()
-            if afiliado_response.data:
-                saque_completo['rb_afiliados'] = afiliado_response.data[0]
-            else:
-                saque_completo['rb_afiliados'] = {'rb_nome': 'Nome não encontrado', 'rb_codigo': 'N/A', 'rb_total_vendas': 0}
-            
-            saques.append(saque_completo)
-        
-        return jsonify({'saques': saques})
-    except Exception as e:
-        print(f"❌ Erro ao listar saques de afiliados: {str(e)}")
-        return jsonify({'saques': []})
-
-
-@app.route('/admin/stats')
-def admin_stats():
-    """Estatísticas do sistema incluindo afiliados"""
-    try:
-        vendidas = obter_total_vendas()
-        ganhadores = obter_total_ganhadores()
-        afiliados = obter_total_afiliados()
-        
-        # Estatísticas do dia
-        vendas_hoje = 0
-        vendas_afiliados_hoje = 0
-        if supabase:
-            try:
-                hoje = date.today().isoformat()
-                vendas_response = supabase.table('rb_vendas').select('*').gte(
-                    'rb_data_criacao', hoje + ' 00:00:00'
-                ).eq('rb_status', 'completed').execute()
+                const whatsappUrl = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensagem)}`;
+                window.open(whatsappUrl, '_blank');
                 
-                vendas_hoje = len(vendas_response.data or [])
-                vendas_afiliados_hoje = len([v for v in (vendas_response.data or []) if v.get('rb_afiliado_id')])
+                mostrarModal(`
+                    <h3>Dados Enviados com Sucesso!</h3>
+                    <p>Seu WhatsApp foi aberto com a mensagem pronta.</p>
+                    <p><strong>Seu código de validação:</strong></p>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 1.2em; color: #00b341; font-weight: bold; margin: 10px 0;">${codigo}</div>
+                    <p><strong>IMPORTANTE:</strong> Guarde este código para validação!</p>
+                    <p>Prazo para pagamento: <strong>até 24 horas</strong></p>
+                `);
                 
-            except Exception as e:
-                print(f"❌ Erro ao obter vendas do dia: {str(e)}")
+            } catch (error) {
+                console.error('Erro ao salvar ganhador:', error);
+                mostrarModal(`<h3>Erro</h3><p>${error.message}</p>`);
+            }
+        }
 
-        # Calcular prêmios restantes (raspadinhas + roda)
-        premios_raspa = obter_premios_disponiveis()
-        premios_roda = obter_premios_roda_disponiveis()
-        total_premios_restantes = sum(premios_raspa.values()) + sum(premios_roda.values())
+        // Funções para gerenciar saques
+        async function pagarSaqueGanhador(saqueId) {
+            try {
+                const response = await fetch(`/admin/pagar_saque_ganhador/${saqueId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-        return jsonify({
-            'vendidas': vendidas,
-            'ganhadores': ganhadores,
-            'afiliados': afiliados,
-            'vendas_hoje': vendas_hoje,
-            'vendas_afiliados_hoje': vendas_afiliados_hoje,
-            'total_raspadinhas': TOTAL_RASPADINHAS,
-            'restantes': TOTAL_RASPADINHAS - vendidas,
-            'premios_restantes': total_premios_restantes,
-            'supabase_conectado': supabase is not None,
-            'mercadopago_conectado': sdk is not None,
-            'sistema_ativo': obter_configuracao(
-                'sistema_ativo', 'true'
-            ).lower() == 'true'
-        })
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Pago!</h3><p>O saque foi marcado como pago com sucesso.</p>');
+                    carregarSaquesGanhadores(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao pagar saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao processar pagamento do saque.</p>');
+            }
+        }
 
-    except Exception as e:
-        print(f"❌ Erro ao obter estatísticas: {str(e)}")
-        return jsonify({
-            'vendidas': 0,
-            'ganhadores': 0,
-            'afiliados': 0,
-            'vendas_hoje': 0,
-            'vendas_afiliados_hoje': 0,
-            'total_raspadinhas': TOTAL_RASPADINHAS,
-            'restantes': TOTAL_RASPADINHAS,
-            'premios_restantes': 0,
-            'supabase_conectado': False,
-            'mercadopago_conectado': False,
-            'sistema_ativo': True
-        })
+        async function excluirSaqueGanhador(saqueId) {
+            try {
+                const response = await fetch(`/admin/excluir_saque_ganhador/${saqueId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Excluído!</h3><p>O saque foi removido do sistema.</p>');
+                    carregarSaquesGanhadores(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao excluir saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao excluir saque.</p>');
+            }
+        }
 
-# ========== ROTAS DE SAQUE ==========
+        async function pagarSaqueAfiliado(saqueId) {
+            try {
+                const response = await fetch(`/admin/pagar_saque_afiliado/${saqueId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-@app.route('/admin/pagar_saque_ganhador/<int:saque_id>', methods=['POST'])
-def pagar_saque_ganhador(saque_id):
-    """Marca saque de ganhador como pago"""
-    if not session.get('admin_logado'):
-        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
-    
-    if not supabase:
-        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
-    
-    try:
-        response = supabase.table('rb_saques_ganhadores').update({
-            'rb_status': 'pago',
-            'rb_data_pagamento': datetime.now().isoformat()
-        }).eq('rb_id', saque_id).execute()
-        
-        if response.data:
-            return jsonify({"sucesso": True, "mensagem": "Saque marcado como pago"})
-        else:
-            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Pago!</h3><p>O saque foi marcado como pago com sucesso.</p>');
+                    carregarSaquesAfiliados(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao pagar saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao processar pagamento do saque.</p>');
+            }
+        }
+
+        async function excluirSaqueAfiliado(saqueId) {
+            try {
+                const response = await fetch(`/admin/excluir_saque_afiliado/${saqueId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>✅ Saque Excluído!</h3><p>O saque foi removido do sistema.</p>');
+                    carregarSaquesAfiliados(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao excluir saque:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao excluir saque.</p>');
+            }
+        }
+
+        // Função para carregar vendas do backend na inicialização
+        async function carregarVendasIniciais() {
+            try {
+                const response = await fetch('/stats');
+                const stats = await response.json();
+                vendidas = stats.total_vendas || 0;
+                console.log(`📊 Vendas carregadas do backend: ${vendidas}/${LIMITE_PREMIOS}`);
+                console.log(`🎁 Prêmios ${vendidas >= LIMITE_PREMIOS ? 'LIBERADOS' : 'BLOQUEADOS'}`);
+            } catch (error) {
+                console.error('Erro ao carregar vendas:', error);
+                vendidas = 0;
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarDisplay();
+            atualizarDisplayRoda();
+            initBannerSlider();
+            initWinnerAlerts();
             
-    except Exception as e:
-        print(f"❌ Erro ao pagar saque: {str(e)}")
-        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
-
-@app.route('/admin/excluir_saque_ganhador/<int:saque_id>', methods=['DELETE'])
-def excluir_saque_ganhador(saque_id):
-    """Exclui saque de ganhador (só se estiver pago)"""
-    if not session.get('admin_logado'):
-        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
-    
-    if not supabase:
-        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
-    
-    try:
-        # Verificar se está pago
-        check_response = supabase.table('rb_saques_ganhadores').select('rb_status').eq(
-            'rb_id', saque_id
-        ).execute()
-        
-        if not check_response.data:
-            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+            // Verificar se há código de afiliado na URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                localStorage.setItem('raspa_ref', refCode);
+                console.log('Código de afiliado detectado:', refCode);
+            }
             
-        if check_response.data[0]['rb_status'] != 'pago':
-            return jsonify({"sucesso": False, "erro": "Só é possível excluir saques pagos"}), 400
-        
-        # Excluir
-        response = supabase.table('rb_saques_ganhadores').delete().eq(
-            'rb_id', saque_id
-        ).execute()
-        
-        return jsonify({"sucesso": True, "mensagem": "Saque excluído com sucesso"})
-        
-    except Exception as e:
-        print(f"❌ Erro ao excluir saque: {str(e)}")
-        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
-
-@app.route('/admin/pagar_saque_afiliado/<int:saque_id>', methods=['POST'])
-def pagar_saque_afiliado(saque_id):
-    """Marca saque de afiliado como pago"""
-    if not session.get('admin_logado'):
-        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
-    
-    if not supabase:
-        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
-    
-    try:
-        response = supabase.table('rb_saques_afiliados').update({
-            'rb_status': 'pago',
-            'rb_data_pagamento': datetime.now().isoformat()
-        }).eq('rb_id', saque_id).execute()
-        
-        if response.data:
-            return jsonify({"sucesso": True, "mensagem": "Saque marcado como pago"})
-        else:
-            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+            // Verificar login automático do afiliado
+            const savedCpf = localStorage.getItem('affiliate_cpf');
+            if (savedCpf) {
+                // Auto-login do afiliado (implementar se necessário)
+            }
             
-    except Exception as e:
-        print(f"❌ Erro ao pagar saque: {str(e)}")
-        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
-
-@app.route('/admin/excluir_saque_afiliado/<int:saque_id>', methods=['DELETE'])
-def excluir_saque_afiliado(saque_id):
-    """Exclui saque de afiliado (só se estiver pago)"""
-    if not session.get('admin_logado'):
-        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
-    
-    if not supabase:
-        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
-    
-    try:
-        # Verificar se está pago
-        check_response = supabase.table('rb_saques_afiliados').select('rb_status').eq(
-            'rb_id', saque_id
-        ).execute()
-        
-        if not check_response.data:
-            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
+            // Carregar estatísticas iniciais e vendas
+            carregarEstatisticas();
+            carregarVendasIniciais(); // NOVA FUNÇÃO
             
-        if check_response.data[0]['rb_status'] != 'pago':
-            return jsonify({"sucesso": False, "erro": "Só é possível excluir saques pagos"}), 400
-        
-        # Excluir
-        response = supabase.table('rb_saques_afiliados').delete().eq(
-            'rb_id', saque_id
-        ).execute()
-        
-        return jsonify({"sucesso": True, "mensagem": "Saque excluído com sucesso"})
-        
-    except Exception as e:
-        print(f"❌ Erro ao excluir saque: {str(e)}")
-        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
+            // Carregar estatísticas periodicamente
+            setInterval(carregarEstatisticas, 30000);
+            setInterval(carregarVendasIniciais, 60000); // Atualizar vendas a cada minuto
+        });
+            
+            // Verificar se há código de afiliado na URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                localStorage.setItem('raspa_ref', refCode);
+                console.log('Código de afiliado detectado:', refCode);
+            }
+            
+            // Verificar login automático do afiliado
+            const savedCpf = localStorage.getItem('affiliate_cpf');
+            if (savedCpf) {
+                // Auto-login do afiliado (implementar se necessário)
+            }
+            
+            // Carregar estatísticas iniciais
+            carregarEstatisticas();
+            
+            // Carregar estatísticas periodicamente
+            setInterval(carregarEstatisticas, 30000);
+        });
 
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
-    debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
-
-    print("🚀 Iniciando Raspa Brasil + Roda Brasil...")
-    print(f"🌐 Porta: {port}")
-    print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
-    print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
-    print(f"👥 Sistema de Afiliados: ✅")
-    print(f"🎰 Roda Brasil: ✅")
-
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)
-
+        // Detectar modo escuro
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+</body>
+</html>
