@@ -307,7 +307,7 @@ def validar_pagamento_aprovado(payment_id):
 
 
 def verificar_raspadinhas_para_pagamento():
-    """Verifica se há raspadinhas disponíveis para este pagamento específico"""
+    """Verifica se há raspadinhas disponíveis para este pagamento específico - COM PROMOÇÃO 10+2"""
     try:
         payment_id = session.get('payment_id')
         if not payment_id:
@@ -322,7 +322,12 @@ def verificar_raspadinhas_para_pagamento():
         raspadas = session.get(raspadas_key, 0)
         quantidade_paga = session.get('quantidade', 0)
         
-        return raspadas < quantidade_paga
+        # PROMOÇÃO 10+2: Se comprou exatamente 10, pode raspar 12
+        quantidade_disponivel = quantidade_paga
+        if quantidade_paga == 10:
+            quantidade_disponivel = 12
+        
+        return raspadas < quantidade_disponivel
     except Exception as e:
         print(f"❌ Erro ao verificar raspadinhas: {str(e)}")
         return False
@@ -396,9 +401,10 @@ def health_check():
 
 @app.route('/create_payment', methods=['POST'])
 def create_payment():
-    """Cria pagamento PIX real via Mercado Pago"""
+    """Cria pagamento PIX real via Mercado Pago - COM SUPORTE À PROMOÇÃO 10+2"""
     data = request.json
     quantidade = data.get('quantidade', 1)
+    # IMPORTANTE: O valor sempre é baseado na quantidade original (10), não na promocional (12)
     total = quantidade * 1.00
     afiliado_codigo = data.get('ref_code') or session.get('ref_code')
 
@@ -422,9 +428,14 @@ def create_payment():
     if afiliado_codigo:
         afiliado = obter_afiliado_por_codigo(afiliado_codigo)
 
+    # Descrição especial para promoção 10+2
+    descricao = f"Raspa Brasil - {quantidade} raspadinha(s)"
+    if quantidade == 10:
+        descricao = "Raspa Brasil - 10 raspadinhas (+2 GRÁTIS!)"
+
     payment_data = {
         "transaction_amount": float(total),
-        "description": f"Raspa Brasil - {quantidade} raspadinha(s)",
+        "description": descricao,
         "payment_method_id": "pix",
         "payer": {
             "email": "cliente@raspabrasil.com",
@@ -440,14 +451,14 @@ def create_payment():
     }
 
     try:
-        print(f"💳 Criando pagamento: R$ {total:.2f}")
+        print(f"💳 Criando pagamento: R$ {total:.2f} ({descricao})")
         payment_response = sdk.payment().create(payment_data)
 
         if payment_response["status"] == 201:
             payment = payment_response["response"]
 
             session['payment_id'] = str(payment['id'])
-            session['quantidade'] = quantidade
+            session['quantidade'] = quantidade  # Salva a quantidade original (10)
             session['payment_created_at'] = datetime.now().isoformat()
             if afiliado:
                 session['afiliado_id'] = afiliado['br_id']
@@ -455,7 +466,7 @@ def create_payment():
             if supabase:
                 try:
                     venda_data = {
-                        'br_quantidade': quantidade,
+                        'br_quantidade': quantidade,  # Quantidade paga (10)
                         'br_valor_total': total,
                         'br_payment_id': str(payment['id']),
                         'br_status': 'pending',
@@ -611,7 +622,7 @@ def verificar_raspadinhas_disponiveis_route():
 
 @app.route('/raspar', methods=['POST'])
 def raspar():
-    """Processa raspagem - SISTEMA MANUAL COMPLETO"""
+    """Processa raspagem - SISTEMA MANUAL COMPLETO COM PROMOÇÃO 10+2"""
     try:
         # Verificar se há raspadinhas disponíveis
         if not verificar_raspadinhas_para_pagamento():
@@ -625,6 +636,11 @@ def raspar():
         quantidade_paga = session.get('quantidade', 0)
         raspadas_key = f'raspadas_{payment_id}'
         raspadas = session.get(raspadas_key, 0)
+
+        # PROMOÇÃO 10+2: Determinar quantidade máxima permitida
+        quantidade_maxima = quantidade_paga
+        if quantidade_paga == 10:
+            quantidade_maxima = 12
 
         # Incrementar contador de raspadas
         session[raspadas_key] = raspadas + 1
@@ -645,7 +661,8 @@ def raspar():
             codigo = gerar_codigo_unico()
             print(
                 f"🎁 PRÊMIO LIBERADO: {premio} - "
-                f"Código: {codigo} - Payment: {payment_id}"
+                f"Código: {codigo} - Payment: {payment_id} - "
+                f"Raspada: {raspadas + 1}/{quantidade_maxima}"
             )
             return jsonify({
                 'ganhou': True,
@@ -655,7 +672,8 @@ def raspar():
         else:
             print(
                 f"❌ Sem prêmio - Payment: {payment_id} - "
-                f"Raspada: {raspadas + 1}/{quantidade_paga}"
+                f"Raspada: {raspadas + 1}/{quantidade_maxima} - "
+                f"Promoção 10+2: {'SIM' if quantidade_paga == 10 else 'NÃO'}"
             )
             return jsonify({'ganhou': False})
 
@@ -1069,7 +1087,7 @@ def admin_verificar_status_premio():
 
 @app.route('/admin/pagamentos_orfaos')
 def admin_pagamentos_orfaos():
-    """Lista pagamentos aprovados sem raspadinhas usadas"""
+    """Lista pagamentos aprovados sem raspadinhas usadas - COM SUPORTE PROMOÇÃO 10+2"""
     if not session.get('admin_logado'):
         return jsonify({'error': 'Acesso negado'}), 403
     
@@ -1089,13 +1107,18 @@ def admin_pagamentos_orfaos():
             quantidade_paga = venda['br_quantidade']
             raspadinhas_usadas = venda.get('br_raspadinhas_usadas', 0)
             
+            # PROMOÇÃO 10+2: Ajustar quantidade esperada
+            quantidade_esperada = quantidade_paga
+            if quantidade_paga == 10:
+                quantidade_esperada = 12
+            
             # Se pagou mas não raspou todas (ou nenhuma)
-            if raspadinhas_usadas < quantidade_paga:
+            if raspadinhas_usadas < quantidade_esperada:
                 # Verificar se realmente está aprovado no Mercado Pago
                 if validar_pagamento_aprovado(payment_id):
                     pagamentos_orfaos.append(venda)
         
-        print(f"📊 Encontrados {len(pagamentos_orfaos)} pagamentos órfãos")
+        print(f"📊 Encontrados {len(pagamentos_orfaos)} pagamentos órfãos (considerando promoção 10+2)")
         return jsonify({'pagamentos': pagamentos_orfaos})
         
     except Exception as e:
@@ -1536,13 +1559,14 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando Raspa Brasil ATUALIZADO...")
+    print("🚀 Iniciando Raspa Brasil ATUALIZADO COM PROMOÇÃO 10+2...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
     print(f"👥 Sistema de Afiliados: ✅")
     print(f"🎯 Sistema de Prêmios: MANUAL COMPLETO")
     print(f"🔄 Sistema de Persistência: ✅")
+    print(f"🎁 Promoção 10+2: ✅ ATIVA")
     print(f"⚙️ Área Admin: LIBERADA PARA GESTÃO MANUAL")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
