@@ -329,7 +329,7 @@ def verificar_raspadinhas_para_pagamento():
 
 
 def sortear_premio_novo_sistema():
-    """SISTEMA BLOQUEADO - Só libera prêmio quando admin autorizar"""
+    """SISTEMA DE PRÊMIOS MANUAL - Só libera quando admin autorizar"""
     try:
         # Verificar se o sistema está ativo
         sistema_ativo = obter_configuracao(
@@ -338,20 +338,19 @@ def sortear_premio_novo_sistema():
         if not sistema_ativo:
             return None
 
-        # APENAS verificar prêmio manual liberado pelo admin
+        # Verificar prêmio manual liberado pelo admin
         premio_manual = obter_configuracao('premio_manual_liberado', '')
         if premio_manual:
-            # Limpar prêmio manual e retornar
+            # Limpar prêmio manual após uso e retornar
             atualizar_configuracao('premio_manual_liberado', '')
-            print(f"Prêmio manual liberado pelo admin: {premio_manual}")
+            print(f"✅ Prêmio manual liberado pelo admin: {premio_manual}")
             return premio_manual
 
         # SISTEMA BLOQUEADO - Não libera prêmios automáticos
-        # Apenas admin pode liberar prêmios via área administrativa
         return None
 
     except Exception as e:
-        print(f"Erro ao verificar prêmio liberado: {str(e)}")
+        print(f"❌ Erro ao verificar prêmio liberado: {str(e)}")
         return None
 
 
@@ -371,7 +370,7 @@ def index():
                     request.headers.get('User-Agent', ''),
                     request.headers.get('Referer', '')
                 )
-                print(f"Click registrado para afiliado: {ref_code}")
+                print(f"✅ Click registrado para afiliado: {ref_code}")
         
         with open('index.html', 'r', encoding='utf-8') as f:
             content = f.read()
@@ -441,7 +440,7 @@ def create_payment():
     }
 
     try:
-        print(f"Criando pagamento: R$ {total:.2f}")
+        print(f"💳 Criando pagamento: R$ {total:.2f}")
         payment_response = sdk.payment().create(payment_data)
 
         if payment_response["status"] == 201:
@@ -473,6 +472,7 @@ def create_payment():
                         venda_data['br_comissao_paga'] = 0  # Será atualizado quando aprovado
                     
                     supabase.table('br_vendas').insert(venda_data).execute()
+                    print(f"💾 Venda registrada: Payment {payment['id']}")
                     
                 except Exception as e:
                     print(f"❌ Erro ao salvar venda: {str(e)}")
@@ -512,7 +512,7 @@ def check_payment(payment_id):
         return jsonify({'error': 'Mercado Pago não configurado'}), 500
 
     try:
-        print(f"Verificando pagamento: {payment_id}")
+        print(f"🔍 Verificando pagamento: {payment_id}")
 
         payment_response = sdk.payment().get(payment_id)
 
@@ -520,7 +520,7 @@ def check_payment(payment_id):
             payment = payment_response["response"]
             status = payment['status']
 
-            print(f"Status do pagamento {payment_id}: {status}")
+            print(f"📊 Status do pagamento {payment_id}: {status}")
 
             # Se aprovado e ainda não processado, atualizar no Supabase
             payment_key = f'payment_processed_{payment_id}'
@@ -558,7 +558,7 @@ def check_payment(payment_id):
                                         'br_saldo_disponivel': novo_saldo
                                     }).eq('br_id', venda['br_afiliado_id']).execute()
                                     
-                                    print(f"Comissão de R$ {comissao:.2f} creditada ao afiliado {venda['br_afiliado_id']}")
+                                    print(f"💰 Comissão de R$ {comissao:.2f} creditada ao afiliado {venda['br_afiliado_id']}")
                             
                             # Atualizar status da venda
                             supabase.table('br_vendas').update(update_data).eq(
@@ -566,7 +566,7 @@ def check_payment(payment_id):
                             ).execute()
 
                             session[payment_key] = True
-                            print(f"Pagamento aprovado: {payment_id}")
+                            print(f"✅ Pagamento aprovado: {payment_id}")
 
                             # Log da mudança
                             log_payment_change(
@@ -611,7 +611,7 @@ def verificar_raspadinhas_disponiveis_route():
 
 @app.route('/raspar', methods=['POST'])
 def raspar():
-    """Processa raspagem - REQUER PAGAMENTO APROVADO - SISTEMA ATUALIZADO"""
+    """Processa raspagem - SISTEMA MANUAL COMPLETO"""
     try:
         # Verificar se há raspadinhas disponíveis
         if not verificar_raspadinhas_para_pagamento():
@@ -638,13 +638,13 @@ def raspar():
             except Exception as e:
                 print(f"❌ Erro ao atualizar contador: {str(e)}")
 
-        # Tentar sortear prêmio com novo sistema BLOQUEADO
+        # Tentar sortear prêmio com sistema manual
         premio = sortear_premio_novo_sistema()
 
         if premio:
             codigo = gerar_codigo_unico()
             print(
-                f"Prêmio sorteado: {premio} - "
+                f"🎁 PRÊMIO LIBERADO: {premio} - "
                 f"Código: {codigo} - Payment: {payment_id}"
             )
             return jsonify({
@@ -654,7 +654,7 @@ def raspar():
             })
         else:
             print(
-                f"Sem prêmio - Payment: {payment_id} - "
+                f"❌ Sem prêmio - Payment: {payment_id} - "
                 f"Raspada: {raspadas + 1}/{quantidade_paga}"
             )
             return jsonify({'ganhou': False})
@@ -709,7 +709,7 @@ def salvar_ganhador():
 
         if response.data:
             print(
-                f"Ganhador salvo: {data['nome']} - "
+                f"🏆 Ganhador salvo: {data['nome']} - "
                 f"{data['valor']} - {data['codigo']}"
             )
             return jsonify({'sucesso': True, 'id': response.data[0]['br_id']})
@@ -785,7 +785,7 @@ def cadastrar_afiliado():
 
         if response.data:
             afiliado = response.data[0]
-            print(f"Novo afiliado cadastrado: {data['nome']} - {codigo}")
+            print(f"👤 Novo afiliado cadastrado: {data['nome']} - {codigo}")
             
             return jsonify({
                 'sucesso': True,
@@ -861,45 +861,6 @@ def login_afiliado():
         return jsonify({'sucesso': False, 'erro': str(e)})
 
 
-@app.route('/afiliado/<codigo>')
-def dados_afiliado(codigo):
-    """Retorna dados do afiliado pelo código"""
-    if not supabase:
-        return jsonify({'erro': 'Sistema indisponível'}), 500
-
-    try:
-        response = supabase.table('br_afiliados').select('*').eq(
-            'br_codigo', codigo
-        ).eq('br_status', 'ativo').execute()
-
-        if response.data:
-            afiliado = response.data[0]
-            return jsonify({
-                'sucesso': True,
-                'afiliado': {
-                    'id': afiliado['br_id'],
-                    'codigo': afiliado['br_codigo'],
-                    'nome': afiliado['br_nome'],
-                    'email': afiliado['br_email'],
-                    'total_clicks': afiliado['br_total_clicks'],
-                    'total_vendas': afiliado['br_total_vendas'],
-                    'total_comissao': float(afiliado['br_total_comissao'] or 0),
-                    'saldo_disponivel': float(afiliado['br_saldo_disponivel'] or 0),
-                    'chave_pix': afiliado['br_chave_pix'],
-                    'tipo_chave_pix': afiliado['br_tipo_chave_pix']
-                }
-            })
-        else:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Afiliado não encontrado'
-            }), 404
-
-    except Exception as e:
-        print(f"❌ Erro ao buscar afiliado: {str(e)}")
-        return jsonify({'erro': str(e)}), 500
-
-
 @app.route('/atualizar_pix_afiliado', methods=['POST'])
 def atualizar_pix_afiliado():
     """Atualiza chave PIX do afiliado"""
@@ -938,7 +899,7 @@ def atualizar_pix_afiliado():
 
 @app.route('/solicitar_saque_afiliado', methods=['POST'])
 def solicitar_saque_afiliado():
-    """Processa solicitação de saque do afiliado - CORRIGIDO"""
+    """Processa solicitação de saque do afiliado"""
     if not supabase:
         return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
 
@@ -979,14 +940,14 @@ def solicitar_saque_afiliado():
                 'erro': 'Configure sua chave PIX primeiro'
             })
 
-        # Inserir solicitação de saque - CORRIGIDO
+        # Inserir solicitação de saque
         saque_response = supabase.table('br_saques_afiliados').insert({
             'br_afiliado_id': afiliado['br_id'],
             'br_valor': saldo,
             'br_chave_pix': afiliado['br_chave_pix'],
             'br_tipo_chave': afiliado['br_tipo_chave_pix'],
             'br_status': 'solicitado',
-            'br_data_solicitacao': datetime.now().isoformat()  # ADICIONADO
+            'br_data_solicitacao': datetime.now().isoformat()
         }).execute()
 
         if saque_response.data:
@@ -995,7 +956,7 @@ def solicitar_saque_afiliado():
                 'br_saldo_disponivel': 0
             }).eq('br_id', afiliado['br_id']).execute()
 
-            print(f"Saque solicitado: {afiliado['br_nome']} - R$ {saldo:.2f}")
+            print(f"💸 Saque solicitado: {afiliado['br_nome']} - R$ {saldo:.2f}")
 
             return jsonify({
                 'sucesso': True,
@@ -1024,7 +985,7 @@ def admin_login():
     if not senha:
         return jsonify({'success': False, 'message': 'Senha é obrigatória'})
     
-    # Por enquanto, usar senha simples até implementar tabela admin
+    # Senha padrão admin
     if senha == 'paulo10@admin':
         session['admin_logado'] = True
         return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
@@ -1065,15 +1026,45 @@ def admin_liberar_premio_manual():
         if not valor:
             return jsonify({'sucesso': False, 'erro': 'Valor é obrigatório'})
         
-        # Salvar prêmio manual
-        atualizar_configuracao('premio_manual_liberado', valor)
+        # Validar formato básico
+        valor = valor.strip()
+        if not valor.startswith('R$'):
+            return jsonify({'sucesso': False, 'erro': 'Formato inválido. Use: R$ 00,00'})
         
-        print(f"Prêmio manual liberado: {valor}")
-        return jsonify({'sucesso': True})
+        # Salvar prêmio manual
+        if atualizar_configuracao('premio_manual_liberado', valor):
+            print(f"🎯 Prêmio manual liberado pelo admin: {valor}")
+            return jsonify({'sucesso': True})
+        else:
+            return jsonify({'sucesso': False, 'erro': 'Erro ao salvar configuração'})
         
     except Exception as e:
         print(f"❌ Erro ao liberar prêmio: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
+
+
+@app.route('/admin/verificar_status_premio')
+def admin_verificar_status_premio():
+    """Verifica se há prêmio liberado aguardando"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        premio_liberado = obter_configuracao('premio_manual_liberado', '')
+        
+        if premio_liberado:
+            return jsonify({
+                'premio_liberado': True,
+                'valor': premio_liberado
+            })
+        else:
+            return jsonify({
+                'premio_liberado': False,
+                'valor': None
+            })
+    except Exception as e:
+        print(f"❌ Erro ao verificar status do prêmio: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/admin/pagamentos_orfaos')
@@ -1104,7 +1095,7 @@ def admin_pagamentos_orfaos():
                 if validar_pagamento_aprovado(payment_id):
                     pagamentos_orfaos.append(venda)
         
-        print(f"Encontrados {len(pagamentos_orfaos)} pagamentos órfãos")
+        print(f"📊 Encontrados {len(pagamentos_orfaos)} pagamentos órfãos")
         return jsonify({'pagamentos': pagamentos_orfaos})
         
     except Exception as e:
@@ -1165,9 +1156,9 @@ def admin_processar_devolucao():
                     'br_saldo_disponivel': novo_saldo
                 }).eq('br_id', venda['br_afiliado_id']).execute()
                 
-                print(f"Comissão de R$ {comissao_revertida:.2f} revertida do afiliado {venda['br_afiliado_id']}")
+                print(f"💰 Comissão de R$ {comissao_revertida:.2f} revertida do afiliado {venda['br_afiliado_id']}")
         
-        print(f"Devolução processada para payment {payment_id}")
+        print(f"💸 Devolução processada para payment {payment_id}")
         
         # Log da devolução
         log_payment_change(
@@ -1387,7 +1378,7 @@ def admin_stats():
             except Exception as e:
                 print(f"❌ Erro ao obter vendas do dia: {str(e)}")
 
-        # Calcular prêmios restantes (sempre 0 no sistema bloqueado)
+        # Prêmios restantes (sempre 0 no sistema manual)
         total_premios_restantes = 0
 
         return jsonify({
@@ -1545,12 +1536,13 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando Raspa Brasil CORRIGIDO...")
+    print("🚀 Iniciando Raspa Brasil ATUALIZADO...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
     print(f"👥 Sistema de Afiliados: ✅")
-    print(f"🎉 Sistema de Prêmios: 🔒 BLOQUEADO (Apenas Admin)")
+    print(f"🎯 Sistema de Prêmios: MANUAL COMPLETO")
     print(f"🔄 Sistema de Persistência: ✅")
+    print(f"⚙️ Área Admin: LIBERADA PARA GESTÃO MANUAL")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
