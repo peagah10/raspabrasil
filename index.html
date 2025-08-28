@@ -1814,14 +1814,14 @@
 
             <div style="text-align: center; margin-bottom: 50px;">
                 <h2 style="font-size: clamp(2em, 7vw, 3em); color: #00b341; font-weight: 800;">
-                    <i class="fas fa-hand-pointer"></i> Clique nas bandeiras para raspar!
+                    <i class=""></i> Deslize nas bandeiras para raspar!
                 </h2>
                 <p style="font-size: clamp(1.2em, 5vw, 1.5em); margin: 20px 0; font-weight: 600;">
                     Você tem <strong><span id="quantidade-raspadinhas">1</span></strong> raspadinha(s) para jogar
                 </p>
                 <div class="cta-message success" style="margin: 25px auto; max-width: 600px;">
                     <h3>Boa sorte!</h3>
-                    <p>Toque nas bandeiras do Brasil e descubra se você ganhou!</p>
+                    <p>Raspe as bandeiras do Brasil e descubra se você ganhou!</p>
                 </div>
             </div>
 
@@ -1931,37 +1931,58 @@
                 <!-- Configuração de Prêmios -->
                 <div id="admin-controle-premios" class="admin-tab-content">
                     <div class="premio-config">
-                        <h4><i class="fas fa-trophy"></i> SISTEMA DE PRÊMIOS DESATIVADO</h4>
-                        <p style="margin-bottom: 20px; color: #dc2626; font-weight: 700;">O sistema automatico de prêmios está desativado. Apenas o administrador pode liberar prêmios manualmente.</p>
+                        <h4><i class="fas fa-trophy"></i> CONTROLE MANUAL DE PRÊMIOS</h4>
+                        <p style="margin-bottom: 20px; color: #00b341; font-weight: 700;">Sistema configurado para liberação manual de prêmios. Apenas o administrador pode autorizar ganhadores.</p>
                     </div>
 
                     <!-- Liberar Prêmio Manual -->
                     <div class="premio-config">
                         <h4><i class="fas fa-gift"></i> Liberar Prêmio Manual</h4>
-                        <p style="margin-bottom: 20px; color: #666;">Force a liberação de um prêmio específico na próxima raspagem.</p>
+                        <p style="margin-bottom: 20px; color: #666;">Digite qualquer valor para liberar na próxima raspagem.</p>
                         
-                        <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
-                            <div style="flex: 1; min-width: 200px;">
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Valor do Prêmio:</label>
-                                <select id="premio-manual-valor" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
-                                    <option value="">Selecione o valor</option>
-                                    <option value="R$ 10,00">R$ 10,00</option>
-                                    <option value="R$ 20,00">R$ 20,00</option>
-                                    <option value="R$ 50,00">R$ 50,00</option>
-                                    <option value="R$ 100,00">R$ 100,00</option>
-                                    <option value="R$ 500,00">R$ 500,00</option>
-                                    <option value="R$ 1000,00">R$ 1000,00</option>
-                                </select>
-                            </div>
+                        <div style="display: grid; gap: 20px;">
+                            <!-- Valores Pré-definidos -->
                             <div>
-                                <button class="btn btn-primary" onclick="liberarPremioManual()">
-                                    <i class="fas fa-magic"></i>
-                                    Liberar Prêmio
-                                </button>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Valores Rápidos:</label>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 10,00')" style="font-size: 14px; padding: 8px 15px;">R$ 10</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 20,00')" style="font-size: 14px; padding: 8px 15px;">R$ 20</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 50,00')" style="font-size: 14px; padding: 8px 15px;">R$ 50</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 100,00')" style="font-size: 14px; padding: 8px 15px;">R$ 100</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 500,00')" style="font-size: 14px; padding: 8px 15px;">R$ 500</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 1000,00')" style="font-size: 14px; padding: 8px 15px;">R$ 1000</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Campo Personalizado -->
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Ou digite valor personalizado:</label>
+                                <div style="display: flex; gap: 15px; align-items: center;">
+                                    <input type="text" id="premio-manual-valor-custom" placeholder="Ex: R$ 250,00" style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                                    <button class="btn btn-primary" onclick="liberarPremioManualCustom()">
+                                        <i class="fas fa-magic"></i>
+                                        Liberar Prêmio
+                                    </button>
+                                </div>
+                                <small style="color: #666; font-style: italic;">Formato: R$ 00,00 (qualquer valor acima de R$ 1,00)</small>
                             </div>
                         </div>
                         
                         <div id="status-premio-manual" style="margin-top: 15px;"></div>
+                        
+                        <!-- Status Atual -->
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-top: 25px; border: 2px solid #e9ecef;">
+                            <h5 style="color: #495057; margin-bottom: 15px;">
+                                <i class="fas fa-info-circle"></i> Status Atual
+                            </h5>
+                            <div id="premio-status-atual">
+                                <p style="color: #6c757d; font-style: italic;">Carregando status...</p>
+                            </div>
+                            <button class="btn btn-secondary" onclick="verificarStatusPremio()" style="margin-top: 10px;">
+                                <i class="fas fa-refresh"></i>
+                                Atualizar Status
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2523,7 +2544,7 @@
                     carregarRelatorioVendas();
                     break;
                 case 'controle-premios':
-                    // Não precisa carregar nada, prêmios desativados
+                    verificarStatusPremio();
                     break;
                 case 'controle-pagamentos':
                     // Não carrega automaticamente, só quando clicar no botão
@@ -2556,6 +2577,7 @@
                     document.getElementById('admin-panel').style.display = 'block';
                     messageDiv.innerHTML = '<div class="resultado-validacao valido">Login realizado com sucesso!</div>';
                     await carregarEstatisticas();
+                    verificarStatusPremio();
                 } else {
                     messageDiv.innerHTML = '<div class="resultado-validacao invalido">Senha incorreta</div>';
                 }
@@ -2566,12 +2588,23 @@
             }
         }
 
-        async function liberarPremioManual() {
-            const valor = document.getElementById('premio-manual-valor').value;
+        // Funções de Prêmio Manual - CORRIGIDAS
+        function setPremioValue(valor) {
+            document.getElementById('premio-manual-valor-custom').value = valor;
+        }
+
+        async function liberarPremioManualCustom() {
+            const valor = document.getElementById('premio-manual-valor-custom').value.trim();
             const statusDiv = document.getElementById('status-premio-manual');
             
             if (!valor) {
-                statusDiv.innerHTML = '<div class="resultado-validacao invalido">Selecione um valor de prêmio</div>';
+                statusDiv.innerHTML = '<div class="resultado-validacao invalido">Digite um valor para o prêmio</div>';
+                return;
+            }
+            
+            // Validar formato básico
+            if (!valor.startsWith('R$') && !valor.includes(',')) {
+                statusDiv.innerHTML = '<div class="resultado-validacao invalido">Use o formato: R$ 00,00</div>';
                 return;
             }
             
@@ -2586,13 +2619,46 @@
                 
                 if (resultado.sucesso) {
                     statusDiv.innerHTML = '<div class="resultado-validacao valido">Prêmio liberado! O próximo a raspar ganhará este valor.</div>';
-                    document.getElementById('premio-manual-valor').value = '';
+                    document.getElementById('premio-manual-valor-custom').value = '';
+                    verificarStatusPremio(); // Atualizar status
                 } else {
                     statusDiv.innerHTML = `<div class="resultado-validacao invalido">${resultado.erro}</div>`;
                 }
             } catch (error) {
                 console.error('Erro ao liberar prêmio:', error);
                 statusDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao liberar prêmio</div>';
+            }
+        }
+
+        async function verificarStatusPremio() {
+            const statusDiv = document.getElementById('premio-status-atual');
+            
+            try {
+                const response = await fetch('/admin/verificar_status_premio');
+                const resultado = await response.json();
+                
+                if (resultado.premio_liberado) {
+                    statusDiv.innerHTML = `
+                        <div style="color: #28a745; font-weight: bold;">
+                            <i class="fas fa-gift"></i> PRÊMIO LIBERADO: ${resultado.valor}
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin-top: 5px;">O próximo jogador que raspar ganhará este valor!</p>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <div style="color: #6c757d;">
+                            <i class="fas fa-info-circle"></i> Nenhum prêmio liberado
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin-top: 5px;">Sistema em modo manual. Libere um prêmio acima.</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao verificar status:', error);
+                statusDiv.innerHTML = `
+                    <div style="color: #dc2626;">
+                        <i class="fas fa-exclamation-triangle"></i> Erro ao verificar status
+                    </div>
+                `;
             }
         }
 
@@ -3215,7 +3281,7 @@
                 raspadinhaContainer.className = 'raspadinha-container';
                 raspadinhaContainer.innerHTML = `
                     <div class="raspadinha-content">
-                        <h2 class="raspadinha-titulo">Raspadinha -- Raspe a bandeira do Brasil</h2>
+                        <h2 class="raspadinha-titulo">Raspe a bandeira do Brasil</h2>
                         <div class="raspadinha" id="raspadinha-${i}">
                             <div class="premio" id="premio-${i}"></div>
                             <canvas id="scratch-${i}" width="300" height="180"></canvas>
