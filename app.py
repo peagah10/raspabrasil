@@ -75,11 +75,11 @@ except Exception as e:
 def log_payment_change(payment_id, status_anterior, status_novo,
                        webhook_data=None):
     """Registra mudanças de status de pagamento"""
-    if not supabase:
+    if not supabase or not payment_id:
         return False
     try:
         supabase.table('br_logs_pagamento').insert({
-            'br_payment_id': payment_id,
+            'br_payment_id': str(payment_id),
             'br_status_anterior': status_anterior,
             'br_status_novo': status_novo,
             'br_webhook_data': webhook_data
@@ -107,7 +107,7 @@ def gerar_codigo_afiliado():
 
 def verificar_codigo_unico(codigo, tabela='br_ganhadores', campo='br_codigo'):
     """Verifica se o código é único no banco de dados"""
-    if not supabase:
+    if not supabase or not codigo:
         return True
     try:
         response = supabase.table(tabela).select(campo).eq(
@@ -140,7 +140,7 @@ def gerar_codigo_afiliado_unico():
 
 def obter_configuracao(chave, valor_padrao=None):
     """Obtém valor de configuração do Supabase"""
-    if not supabase:
+    if not supabase or not chave:
         return valor_padrao
     try:
         response = supabase.table('br_configuracoes').select('br_valor').eq(
@@ -156,7 +156,7 @@ def obter_configuracao(chave, valor_padrao=None):
 
 def atualizar_configuracao(chave, valor):
     """Atualiza valor de configuração no Supabase"""
-    if not supabase:
+    if not supabase or not chave:
         return False
     try:
         # Primeiro tentar update
@@ -225,7 +225,7 @@ def obter_total_afiliados():
 
 def obter_afiliado_por_codigo(codigo):
     """Busca afiliado pelo código"""
-    if not supabase:
+    if not supabase or not codigo:
         return None
     try:
         response = supabase.table('br_afiliados').select('*').eq(
@@ -241,7 +241,7 @@ def obter_afiliado_por_codigo(codigo):
 
 def obter_afiliado_por_cpf(cpf):
     """Busca afiliado pelo CPF"""
-    if not supabase:
+    if not supabase or not cpf:
         return None
     try:
         response = supabase.table('br_afiliados').select('*').eq(
@@ -257,14 +257,14 @@ def obter_afiliado_por_cpf(cpf):
 
 def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
     """Registra click no link do afiliado"""
-    if not supabase:
+    if not supabase or not afiliado_id:
         return False
     try:
         supabase.table('br_afiliado_clicks').insert({
             'br_afiliado_id': afiliado_id,
-            'br_ip_visitor': ip_cliente,
-            'br_user_agent': user_agent[:500],
-            'br_referrer': referrer[:500]
+            'br_ip_visitor': ip_cliente or 'unknown',
+            'br_user_agent': (user_agent or '')[:500],
+            'br_referrer': (referrer or '')[:500]
         }).execute()
         
         # Atualizar contador de clicks
@@ -286,21 +286,32 @@ def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
 
 def calcular_comissao_afiliado(valor_venda):
     """Calcula comissão do afiliado"""
+    if not valor_venda or valor_venda <= 0:
+        return 0
     percentual = float(obter_configuracao('percentual_comissao_afiliado', '50'))
     return (valor_venda * percentual / 100)
 
 
 def validar_pagamento_aprovado(payment_id):
-    """Valida se o pagamento foi realmente aprovado"""
+    """Valida se o pagamento foi realmente aprovado - COM VALIDAÇÕES ROBUSTAS"""
     if not sdk or not payment_id:
+        return False
+    
+    # Validar se payment_id não é None, undefined ou string vazia
+    if payment_id in [None, 'undefined', 'null', '']:
+        print(f"❌ Payment ID inválido: {payment_id}")
         return False
 
     try:
-        payment_response = sdk.payment().get(payment_id)
+        payment_response = sdk.payment().get(str(payment_id))
         if payment_response["status"] == 200:
             payment = payment_response["response"]
-            return payment['status'] == 'approved'
-        return False
+            status = payment.get('status', '')
+            print(f"🔍 Validação payment {payment_id}: status = {status}")
+            return status == 'approved'
+        else:
+            print(f"❌ Erro na resposta MP para {payment_id}: {payment_response}")
+            return False
     except Exception as e:
         print(f"❌ Erro ao validar pagamento {payment_id}: {str(e)}")
         return False
@@ -310,11 +321,13 @@ def verificar_raspadinhas_para_pagamento():
     """Verifica se há raspadinhas disponíveis para este pagamento específico - COM PROMOÇÃO 10+2"""
     try:
         payment_id = session.get('payment_id')
-        if not payment_id:
+        if not payment_id or payment_id in ['undefined', 'null', '']:
+            print("❌ Payment ID não encontrado na sessão")
             return False
             
         # Verificar se o pagamento foi aprovado
         if not validar_pagamento_aprovado(payment_id):
+            print(f"❌ Pagamento {payment_id} não está aprovado")
             return False
             
         # Verificar quantas raspadinhas já foram usadas
@@ -327,7 +340,10 @@ def verificar_raspadinhas_para_pagamento():
         if quantidade_paga == 10:
             quantidade_disponivel = 12
         
-        return raspadas < quantidade_disponivel
+        disponivel = raspadas < quantidade_disponivel
+        print(f"🎮 Verificação raspadinhas - Payment: {payment_id}, Raspadas: {raspadas}/{quantidade_disponivel}, Disponível: {disponivel}")
+        
+        return disponivel
     except Exception as e:
         print(f"❌ Erro ao verificar raspadinhas: {str(e)}")
         return False
@@ -341,6 +357,7 @@ def sortear_premio_novo_sistema():
             'sistema_ativo', 'true'
         ).lower() == 'true'
         if not sistema_ativo:
+            print("⚠️ Sistema desativado pelo admin")
             return None
 
         # Verificar prêmio manual liberado pelo admin
@@ -352,6 +369,7 @@ def sortear_premio_novo_sistema():
             return premio_manual
 
         # SISTEMA BLOQUEADO - Não libera prêmios automáticos
+        print("🎯 Sistema manual: Nenhum prêmio liberado pelo admin")
         return None
 
     except Exception as e:
@@ -470,7 +488,7 @@ def create_payment():
                         'br_valor_total': total,
                         'br_payment_id': str(payment['id']),
                         'br_status': 'pending',
-                        'br_ip_cliente': request.remote_addr,
+                        'br_ip_cliente': request.remote_addr or 'unknown',
                         'br_user_agent': request.headers.get(
                             'User-Agent', ''
                         )[:500],
@@ -518,14 +536,18 @@ def create_payment():
 
 @app.route('/check_payment/<payment_id>')
 def check_payment(payment_id):
-    """Verifica status do pagamento no Mercado Pago"""
+    """Verifica status do pagamento no Mercado Pago - COM VALIDAÇÕES ROBUSTAS"""
     if not sdk:
         return jsonify({'error': 'Mercado Pago não configurado'}), 500
+    
+    # Validações robustas do payment_id
+    if not payment_id or payment_id in ['undefined', 'null', '']:
+        return jsonify({'error': 'Payment ID inválido'}), 400
 
     try:
         print(f"🔍 Verificando pagamento: {payment_id}")
 
-        payment_response = sdk.payment().get(payment_id)
+        payment_response = sdk.payment().get(str(payment_id))
 
         if payment_response["status"] == 200:
             payment = payment_response["response"]
@@ -540,7 +562,7 @@ def check_payment(payment_id):
                     try:
                         # Buscar venda para calcular comissão
                         venda_response = supabase.table('br_vendas').select('*').eq(
-                            'br_payment_id', payment_id
+                            'br_payment_id', str(payment_id)
                         ).execute()
                         
                         if venda_response.data:
@@ -573,7 +595,7 @@ def check_payment(payment_id):
                             
                             # Atualizar status da venda
                             supabase.table('br_vendas').update(update_data).eq(
-                                'br_payment_id', payment_id
+                                'br_payment_id', str(payment_id)
                             ).execute()
 
                             session[payment_key] = True
@@ -646,11 +668,11 @@ def raspar():
         session[raspadas_key] = raspadas + 1
 
         # Atualizar contador no banco
-        if supabase:
+        if supabase and payment_id:
             try:
                 supabase.table('br_vendas').update({
                     'br_raspadinhas_usadas': raspadas + 1
-                }).eq('br_payment_id', payment_id).execute()
+                }).eq('br_payment_id', str(payment_id)).execute()
             except Exception as e:
                 print(f"❌ Erro ao atualizar contador: {str(e)}")
 
@@ -1087,7 +1109,7 @@ def admin_verificar_status_premio():
 
 @app.route('/admin/pagamentos_orfaos')
 def admin_pagamentos_orfaos():
-    """Lista pagamentos aprovados sem raspadinhas usadas - COM SUPORTE PROMOÇÃO 10+2"""
+    """Lista pagamentos aprovados sem raspadinhas usadas - COM SUPORTE PROMOÇÃO 10+2 E VALIDAÇÕES ROBUSTAS"""
     if not session.get('admin_logado'):
         return jsonify({'error': 'Acesso negado'}), 403
     
@@ -1103,8 +1125,12 @@ def admin_pagamentos_orfaos():
         pagamentos_orfaos = []
         
         for venda in (response.data or []):
-            payment_id = venda['br_payment_id']
-            quantidade_paga = venda['br_quantidade']
+            # Validações robustas
+            payment_id = venda.get('br_payment_id')
+            if not payment_id or payment_id in ['undefined', 'null', '']:
+                continue
+                
+            quantidade_paga = venda.get('br_quantidade', 0)
             raspadinhas_usadas = venda.get('br_raspadinhas_usadas', 0)
             
             # PROMOÇÃO 10+2: Ajustar quantidade esperada
@@ -1116,19 +1142,29 @@ def admin_pagamentos_orfaos():
             if raspadinhas_usadas < quantidade_esperada:
                 # Verificar se realmente está aprovado no Mercado Pago
                 if validar_pagamento_aprovado(payment_id):
-                    pagamentos_orfaos.append(venda)
+                    # Garantir que todos os campos necessários existem
+                    venda_segura = {
+                        'rb_payment_id': payment_id,
+                        'rb_valor_total': venda.get('br_valor_total', 0),
+                        'rb_quantidade': quantidade_paga,
+                        'rb_raspadinhas_usadas': raspadinhas_usadas,
+                        'rb_data_criacao': venda.get('br_data_criacao', ''),
+                        'rb_ip_cliente': venda.get('br_ip_cliente', 'N/A'),
+                        'rb_afiliado_id': venda.get('br_afiliado_id')
+                    }
+                    pagamentos_orfaos.append(venda_segura)
         
         print(f"📊 Encontrados {len(pagamentos_orfaos)} pagamentos órfãos (considerando promoção 10+2)")
         return jsonify({'pagamentos': pagamentos_orfaos})
         
     except Exception as e:
         print(f"❌ Erro ao buscar pagamentos órfãos: {str(e)}")
-        return jsonify({'pagamentos': []})
+        return jsonify({'pagamentos': [], 'erro': str(e)})
 
 
 @app.route('/admin/processar_devolucao', methods=['POST'])
 def admin_processar_devolucao():
-    """Processa devolução de pagamento órfão"""
+    """Processa devolução de pagamento órfão - COM VALIDAÇÕES ROBUSTAS"""
     if not session.get('admin_logado'):
         return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
     
@@ -1139,24 +1175,29 @@ def admin_processar_devolucao():
         data = request.json
         payment_id = data.get('payment_id')
         
-        if not payment_id:
-            return jsonify({'sucesso': False, 'erro': 'Payment ID é obrigatório'})
+        # Validações robustas
+        if not payment_id or payment_id in ['undefined', 'null', '']:
+            return jsonify({'sucesso': False, 'erro': 'Payment ID inválido ou não fornecido'})
         
         # Buscar venda
         venda_response = supabase.table('br_vendas').select('*').eq(
-            'br_payment_id', payment_id
+            'br_payment_id', str(payment_id)
         ).execute()
         
         if not venda_response.data:
-            return jsonify({'sucesso': False, 'erro': 'Venda não encontrada'})
+            return jsonify({'sucesso': False, 'erro': 'Venda não encontrada no banco de dados'})
         
         venda = venda_response.data[0]
+        
+        # Verificar se já não foi devolvida
+        if venda.get('br_status') == 'refunded':
+            return jsonify({'sucesso': False, 'erro': 'Este pagamento já foi devolvido'})
         
         # Marcar como devolvida
         supabase.table('br_vendas').update({
             'br_status': 'refunded',
             'br_data_devolucao': datetime.now().isoformat()
-        }).eq('br_payment_id', payment_id).execute()
+        }).eq('br_payment_id', str(payment_id)).execute()
         
         # Se havia afiliado, reverter comissão
         if venda.get('br_afiliado_id') and venda.get('br_comissao_paga', 0) > 0:
@@ -1166,9 +1207,9 @@ def admin_processar_devolucao():
             
             if afiliado_response.data:
                 afiliado = afiliado_response.data[0]
-                comissao_revertida = venda['br_comissao_paga']
+                comissao_revertida = float(venda.get('br_comissao_paga', 0))
                 
-                # Atualizar totais do afiliado
+                # Atualizar totais do afiliado (evitar valores negativos)
                 novo_total_vendas = max(0, (afiliado['br_total_vendas'] or 0) - venda['br_quantidade'])
                 nova_total_comissao = max(0, (afiliado['br_total_comissao'] or 0) - comissao_revertida)
                 novo_saldo = max(0, (afiliado['br_saldo_disponivel'] or 0) - comissao_revertida)
@@ -1187,16 +1228,16 @@ def admin_processar_devolucao():
         log_payment_change(
             payment_id, 'completed', 'refunded', {
                 'source': 'admin_devolucao',
-                'amount': venda['br_valor_total'],
+                'amount': venda.get('br_valor_total', 0),
                 'admin_user': session.get('admin_usuario', 'admin')
             }
         )
         
-        return jsonify({'sucesso': True})
+        return jsonify({'sucesso': True, 'mensagem': 'Devolução processada com sucesso'})
         
     except Exception as e:
         print(f"❌ Erro ao processar devolução: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': str(e)})
+        return jsonify({'sucesso': False, 'erro': f'Erro interno: {str(e)}'})
 
 
 @app.route('/admin/toggle_sistema', methods=['POST'])
@@ -1568,5 +1609,6 @@ if __name__ == '__main__':
     print(f"🔄 Sistema de Persistência: ✅")
     print(f"🎁 Promoção 10+2: ✅ ATIVA")
     print(f"⚙️ Área Admin: LIBERADA PARA GESTÃO MANUAL")
+    print(f"🛡️ Validações Robustas: ✅ IMPLEMENTADAS")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
