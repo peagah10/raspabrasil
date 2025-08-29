@@ -67,11 +67,20 @@
             50% { transform: translateY(-15px) rotate(2deg); }
         }
 
-        /* Vibração intensa para alerta de ganhador */
-        @keyframes shakeIntense {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-15px) rotate(-2deg); }
-            20%, 40%, 60%, 80% { transform: translateX(15px) rotate(2deg); }
+        /* ANIMAÇÃO SUAVE PARA ALERTA DE GANHADOR */
+        @keyframes winnerPulse {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
+            }
+            50% { 
+                transform: scale(1.02);
+                box-shadow: 0 0 40px rgba(40, 167, 69, 1), 0 0 80px rgba(40, 167, 69, 0.6);
+            }
+            100% { 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
+            }
         }
 
         @keyframes pulseGlow {
@@ -89,8 +98,8 @@
             }
         }
 
-        .shake-intense {
-            animation: shakeIntense 0.6s ease-in-out;
+        .winner-animation {
+            animation: winnerPulse 1.5s ease-in-out;
         }
 
         .container {
@@ -810,7 +819,7 @@
             overflow-y: auto;
         }
 
-        /* Raspadinha Page com NOVO MODELO */
+        /* Raspadinha Page com NOVO MODELO - MOBILE CENTRALIZADA */
         .raspadinha-container {
             display: flex;
             justify-content: center;
@@ -819,13 +828,18 @@
             background: #0d1b0d;
             color: white;
             border-radius: var(--border-radius);
-            margin: 40px 0;
-            padding: 40px;
+            margin: 20px auto;
+            padding: 20px;
+            max-width: 95%;
         }
 
         .raspadinha-content {
             text-align: center;
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .raspadinha-titulo {
@@ -836,13 +850,12 @@
 
         .raspadinha {
             position: relative;
-            width: 300px;
-            height: 180px;
+            width: min(300px, 85vw);
+            height: min(180px, 51vw);
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             margin: 0 auto;
-            max-width: 90vw;
         }
 
         .premio {
@@ -866,16 +879,18 @@
             cursor: pointer;
         }
 
-        /* Grid de Raspadinhas */
+        /* Grid de Raspadinhas - MOBILE CENTRALIZADA */
         .raspadinha-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(300px, 80vw), 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(320px, 90vw), 1fr));
             gap: clamp(20px, 5vw, 40px);
-            margin: 50px 0;
+            margin: 50px auto;
             padding: clamp(20px, 5vw, 30px);
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(248, 249, 250, 0.6));
             border-radius: var(--border-radius);
             backdrop-filter: blur(15px);
+            max-width: 95%;
+            justify-items: center;
         }
 
         /* Form Styles */
@@ -931,7 +946,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Winner Alert Modal - COR VERDE */
+        /* Winner Alert Modal - COR VERDE - ANIMAÇÃO SUAVE */
         .winner-alert {
             position: fixed;
             top: 0;
@@ -957,7 +972,7 @@
             max-width: 90%;
             position: relative;
             overflow: hidden;
-            animation: pulseGlow 1s ease-in-out infinite;
+            animation: winnerPulse 1.5s ease-in-out;
         }
 
         .winner-alert-content::before {
@@ -1084,10 +1099,10 @@
             box-shadow: var(--shadow-light);
         }
 
-        /* Configuração de Prêmios */
+        /* Configuração de Prêmios - MOBILE OTIMIZADA */
         .premio-config {
             background: #f8f9fa;
-            padding: 25px;
+            padding: clamp(20px, 5vw, 25px);
             border-radius: 15px;
             margin-bottom: 25px;
             border: 2px solid #dee2e6;
@@ -1096,19 +1111,19 @@
         .premio-config h4 {
             color: var(--primary-green);
             margin-bottom: 20px;
-            font-size: 1.3em;
+            font-size: clamp(1.1em, 4vw, 1.3em);
         }
 
         .premio-form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr;
             gap: 15px;
             margin-bottom: 20px;
         }
 
         .premio-form-item {
             background: white;
-            padding: 20px;
+            padding: clamp(15px, 4vw, 20px);
             border-radius: 10px;
             border: 2px solid #e9ecef;
         }
@@ -1118,15 +1133,30 @@
             font-weight: 600;
             margin-bottom: 8px;
             color: #333;
+            font-size: clamp(14px, 3.5vw, 16px);
         }
 
         .premio-form-item input,
         .premio-form-item select {
             width: 100%;
-            padding: 12px;
+            padding: clamp(12px, 3vw, 15px);
             border: 1px solid #ddd;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: clamp(14px, 3.5vw, 16px);
+        }
+
+        /* Botões de valor rápido - MOBILE RESPONSIVO */
+        .valores-rapidos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .valores-rapidos .btn {
+            font-size: clamp(12px, 3vw, 14px);
+            padding: clamp(8px, 2vw, 12px) clamp(10px, 3vw, 15px);
+            white-space: nowrap;
         }
 
         /* WhatsApp Button */
@@ -1265,6 +1295,15 @@
                 padding: 16px 20px;
                 font-size: 14px;
             }
+
+            .premio-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .valores-rapidos {
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+                gap: 8px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1301,6 +1340,11 @@
             .total-display {
                 font-size: clamp(1.5em, 6vw, 2.2em);
                 padding: 15px;
+            }
+
+            .valores-rapidos {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
             }
         }
 
@@ -1939,38 +1983,38 @@
                     </div>
                 </div>
 
-                <!-- Configuração de Prêmios -->
+                <!-- Configuração de Prêmios - MOBILE OTIMIZADA -->
                 <div id="admin-controle-premios" class="admin-tab-content">
                     <div class="premio-config">
                         <h4>CONTROLE MANUAL DE PRÊMIOS</h4>
                         <p style="margin-bottom: 20px; color: #00b341; font-weight: 700;">Sistema configurado para liberação manual de prêmios. Apenas o administrador pode autorizar ganhadores.</p>
                     </div>
 
-                    <!-- Liberar Prêmio Manual -->
+                    <!-- Liberar Prêmio Manual - MOBILE OTIMIZADA -->
                     <div class="premio-config">
                         <h4>Liberar Prêmio Manual</h4>
                         <p style="margin-bottom: 20px; color: #666;">Digite qualquer valor para liberar na próxima raspagem.</p>
                         
                         <div style="display: grid; gap: 20px;">
-                            <!-- Valores Pré-definidos -->
+                            <!-- Valores Pré-definidos - MOBILE RESPONSIVO -->
                             <div>
                                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Valores Rápidos:</label>
-                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 10,00')" style="font-size: 14px; padding: 8px 15px;">R$ 10</button>
-                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 20,00')" style="font-size: 14px; padding: 8px 15px;">R$ 20</button>
-                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 50,00')" style="font-size: 14px; padding: 8px 15px;">R$ 50</button>
-                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 100,00')" style="font-size: 14px; padding: 8px 15px;">R$ 100</button>
-                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 500,00')" style="font-size: 14px; padding: 8px 15px;">R$ 500</button>
-                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 1000,00')" style="font-size: 14px; padding: 8px 15px;">R$ 1000</button>
+                                <div class="valores-rapidos">
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 10,00')">R$ 10</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 20,00')">R$ 20</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 50,00')">R$ 50</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 100,00')">R$ 100</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 500,00')">R$ 500</button>
+                                    <button class="btn btn-secondary" onclick="setPremioValue('R$ 1000,00')">R$ 1000</button>
                                 </div>
                             </div>
                             
                             <!-- Campo Personalizado -->
                             <div>
                                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Ou digite valor personalizado:</label>
-                                <div style="display: flex; gap: 15px; align-items: center;">
-                                    <input type="text" id="premio-manual-valor-custom" placeholder="Ex: R$ 250,00" style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; font-weight: 600;">
-                                    <button class="btn btn-primary" onclick="liberarPremioManualCustom()">
+                                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                                    <input type="text" id="premio-manual-valor-custom" placeholder="Ex: R$ 250,00" style="flex: 1; min-width: 200px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                                    <button class="btn btn-primary" onclick="liberarPremioManualCustom()" style="white-space: nowrap;">
                                         Liberar Prêmio
                                     </button>
                                 </div>
@@ -2049,7 +2093,7 @@
                     <div id="vendas-detalhes" style="margin-top: 25px;"></div>
                 </div>
 
-                <!-- Pagamentos Órfãos -->
+                <!-- Pagamentos Órfãos - CORRIGIDO -->
                 <div id="admin-controle-pagamentos" class="admin-tab-content">
                     <h4>Pagamentos Órfãos</h4>
                     <p style="margin-bottom: 20px; color: #666;">
@@ -2077,7 +2121,7 @@
         </div>
     </div>
 
-    <!-- Winner Alert Modal - COR VERDE -->
+    <!-- Winner Alert Modal - COR VERDE - ANIMAÇÃO SUAVE -->
     <div id="winner-alert" class="winner-alert">
         <div class="winner-alert-content">
             <h2>ALGUÉM ACABOU DE GANHAR!</h2>
@@ -2160,7 +2204,7 @@
             container.innerHTML = originalHTML + originalHTML;
         }
 
-        // Função para mostrar alerta de ganhador SUPER CHAMATIVO
+        // Função para mostrar alerta de ganhador COM ANIMAÇÃO SUAVE
         function showWinnerAlert() {
             // Só mostrar na página inicial
             if (!document.getElementById('home-page').classList.contains('active')) {
@@ -2173,16 +2217,16 @@
                 `acabou de ganhar <strong style="font-size: 1.5em;">R$ ${ganhador.valor},00!</strong>`;
             
             document.getElementById('winner-alert').style.display = 'flex';
-            document.body.classList.add('shake-intense');
+            document.body.classList.add('winner-animation');
             
             // Vibração no celular se disponível
             if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200, 100, 200]);
+                navigator.vibrate([200, 100, 200]);
             }
             
             setTimeout(() => {
-                document.body.classList.remove('shake-intense');
-            }, 600);
+                document.body.classList.remove('winner-animation');
+            }, 1500);
         }
 
         function closeWinnerAlert() {
@@ -2681,32 +2725,45 @@
             }
         }
 
+        // FUNÇÃO CORRIGIDA PARA PAGAMENTOS ÓRFÃOS
         async function carregarPagamentosOrfaos() {
             const container = document.getElementById('lista-pagamentos-orfaos');
             container.innerHTML = '<p>Carregando...</p>';
             
             try {
                 const response = await fetch('/admin/pagamentos_orfaos');
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
                 const resultado = await response.json();
                 
                 if (resultado.pagamentos && resultado.pagamentos.length > 0) {
                     let html = '<h5>Pagamentos Órfãos Encontrados:</h5>';
                     
                     resultado.pagamentos.forEach(pagamento => {
+                        // Validar se pagamento tem os campos necessários
+                        const paymentId = pagamento.rb_payment_id || 'N/A';
+                        const valor = pagamento.rb_valor_total || 0;
+                        const quantidade = pagamento.rb_quantidade || 0;
+                        const data = pagamento.rb_data_criacao ? new Date(pagamento.rb_data_criacao).toLocaleString('pt-BR') : 'N/A';
+                        const ip = pagamento.rb_ip_cliente || 'N/A';
+                        const afiliadoId = pagamento.rb_afiliado_id || null;
+                        
                         html += `
                             <div style="background: #ffe6e6; border: 2px solid #dc2626; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
-                                <p><strong>Payment ID:</strong> ${pagamento.rb_payment_id}</p>
-                                <p><strong>Valor:</strong> R$ ${parseFloat(pagamento.rb_valor_total).toFixed(2)}</p>
-                                <p><strong>Quantidade:</strong> ${pagamento.rb_quantidade} raspadinha(s)</p>
-                                <p><strong>Data:</strong> ${new Date(pagamento.rb_data_criacao).toLocaleString('pt-BR')}</p>
-                                <p><strong>IP Cliente:</strong> ${pagamento.rb_ip_cliente}</p>
-                                ${pagamento.rb_afiliado_id ? `<p><strong>Afiliado ID:</strong> ${pagamento.rb_afiliado_id}</p>` : ''}
+                                <p><strong>Payment ID:</strong> ${paymentId}</p>
+                                <p><strong>Valor:</strong> R$ ${parseFloat(valor).toFixed(2)}</p>
+                                <p><strong>Quantidade:</strong> ${quantidade} raspadinha(s)</p>
+                                <p><strong>Data:</strong> ${data}</p>
+                                <p><strong>IP Cliente:</strong> ${ip}</p>
+                                ${afiliadoId ? `<p><strong>Afiliado ID:</strong> ${afiliadoId}</p>` : ''}
                                 
                                 <div style="margin-top: 15px;">
-                                    <button class="btn btn-primary" onclick="processarDevolucao('${pagamento.rb_payment_id}')" style="background: linear-gradient(135deg, #dc3545, #c82333); margin-right: 10px;">
+                                    <button class="btn btn-primary" onclick="processarDevolucao('${paymentId}')" style="background: linear-gradient(135deg, #dc3545, #c82333); margin-right: 10px;">
                                         Devolver Dinheiro
                                     </button>
-                                    <button class="btn btn-secondary" onclick="verificarPagamento('${pagamento.rb_payment_id}')">
+                                    <button class="btn btn-secondary" onclick="verificarPagamento('${paymentId}')">
                                         Verificar Status
                                     </button>
                                 </div>
@@ -2721,11 +2778,17 @@
                 
             } catch (error) {
                 console.error('Erro ao carregar pagamentos órfãos:', error);
-                container.innerHTML = '<div class="resultado-validacao invalido">Erro ao carregar pagamentos órfãos</div>';
+                container.innerHTML = `<div class="resultado-validacao invalido">Erro ao carregar pagamentos órfãos: ${error.message}</div>`;
             }
         }
 
         async function processarDevolucao(paymentId) {
+            // Validar se paymentId não é undefined ou null
+            if (!paymentId || paymentId === 'undefined' || paymentId === 'null') {
+                mostrarModal('<h3>Erro</h3><p>Payment ID inválido ou não encontrado</p>');
+                return;
+            }
+            
             // Criar modal de confirmação personalizado
             const confirmarDevolucao = () => {
                 return new Promise((resolve) => {
@@ -2770,6 +2833,10 @@
                     body: JSON.stringify({ payment_id: paymentId })
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
                 const resultado = await response.json();
                 
                 if (resultado.sucesso) {
@@ -2780,13 +2847,23 @@
                 }
             } catch (error) {
                 console.error('Erro ao processar devolução:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao processar devolução</p>');
+                mostrarModal(`<h3>Erro</h3><p>Erro ao processar devolução: ${error.message}</p>`);
             }
         }
 
         async function verificarPagamento(paymentId) {
+            // Validar se paymentId não é undefined ou null
+            if (!paymentId || paymentId === 'undefined' || paymentId === 'null') {
+                mostrarModal('<h3>Erro</h3><p>Payment ID inválido ou não encontrado</p>');
+                return;
+            }
+            
             try {
                 const response = await fetch(`/check_payment/${paymentId}`);
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
                 const resultado = await response.json();
                 
                 mostrarModal(`
@@ -2798,7 +2875,7 @@
                 `);
             } catch (error) {
                 console.error('Erro ao verificar pagamento:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao verificar pagamento</p>');
+                mostrarModal(`<h3>Erro</h3><p>Erro ao verificar pagamento: ${error.message}</p>`);
             }
         }
 
