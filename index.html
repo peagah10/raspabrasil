@@ -67,7 +67,7 @@
             50% { transform: translateY(-15px) rotate(2deg); }
         }
 
-        /* ANIMAÇÃO SUAVE PARA ALERTA DE GANHADOR */
+        /* ANIMAÇÃO OTIMIZADA PARA ALERTA DE GANHADOR */
         @keyframes winnerPulse {
             0% { 
                 transform: scale(1);
@@ -75,7 +75,7 @@
             }
             50% { 
                 transform: scale(1.02);
-                box-shadow: 0 0 40px rgba(40, 167, 69, 1), 0 0 80px rgba(40, 167, 69, 0.6);
+                box-shadow: 0 0 30px rgba(40, 167, 69, 0.9);
             }
             100% { 
                 transform: scale(1);
@@ -89,8 +89,8 @@
                 transform: scale(1);
             }
             50% { 
-                box-shadow: 0 0 40px rgba(40, 167, 69, 1), 0 0 80px rgba(40, 167, 69, 0.6);
-                transform: scale(1.05);
+                box-shadow: 0 0 30px rgba(40, 167, 69, 0.9);
+                transform: scale(1.03);
             }
             100% { 
                 box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
@@ -99,7 +99,7 @@
         }
 
         .winner-animation {
-            animation: winnerPulse 1.5s ease-in-out;
+            animation: winnerPulse 1s ease-in-out;
         }
 
         .container {
@@ -819,7 +819,7 @@
             overflow-y: auto;
         }
 
-        /* Raspadinha Page com NOVO MODELO - MOBILE CENTRALIZADA */
+        /* Raspadinha Page CORRIGIDA - MOBILE CENTRALIZADA */
         .raspadinha-container {
             display: flex;
             justify-content: center;
@@ -830,7 +830,8 @@
             border-radius: var(--border-radius);
             margin: 20px auto;
             padding: 20px;
-            max-width: 95%;
+            width: 100%;
+            max-width: min(400px, 95vw);
         }
 
         .raspadinha-content {
@@ -879,17 +880,18 @@
             cursor: pointer;
         }
 
-        /* Grid de Raspadinhas - MOBILE CENTRALIZADA */
+        /* Grid de Raspadinhas CORRIGIDA - MOBILE CENTRALIZADA */
         .raspadinha-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(320px, 90vw), 1fr));
+            grid-template-columns: 1fr;
             gap: clamp(20px, 5vw, 40px);
             margin: 50px auto;
             padding: clamp(20px, 5vw, 30px);
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(248, 249, 250, 0.6));
             border-radius: var(--border-radius);
             backdrop-filter: blur(15px);
-            max-width: 95%;
+            width: 100%;
+            max-width: 95vw;
             justify-items: center;
         }
 
@@ -946,7 +948,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Winner Alert Modal - COR VERDE - ANIMAÇÃO SUAVE */
+        /* Winner Alert Modal OTIMIZADO - COR VERDE - ANIMAÇÃO SUAVE */
         .winner-alert {
             position: fixed;
             top: 0;
@@ -958,7 +960,7 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(5px);
         }
 
         .winner-alert-content {
@@ -972,7 +974,7 @@
             max-width: 90%;
             position: relative;
             overflow: hidden;
-            animation: winnerPulse 1.5s ease-in-out;
+            animation: winnerPulse 1s ease-in-out;
         }
 
         .winner-alert-content::before {
@@ -2121,7 +2123,7 @@
         </div>
     </div>
 
-    <!-- Winner Alert Modal - COR VERDE - ANIMAÇÃO SUAVE -->
+    <!-- Winner Alert Modal OTIMIZADO - COR VERDE - ANIMAÇÃO SUAVE -->
     <div id="winner-alert" class="winner-alert">
         <div class="winner-alert-content">
             <h2>ALGUÉM ACABOU DE GANHAR!</h2>
@@ -2204,12 +2206,19 @@
             container.innerHTML = originalHTML + originalHTML;
         }
 
-        // Função para mostrar alerta de ganhador COM ANIMAÇÃO SUAVE
+        // Função OTIMIZADA para mostrar alerta de ganhador
         function showWinnerAlert() {
-            // Só mostrar na página inicial
+            // Só mostrar na página inicial e com throttle para evitar spam
             if (!document.getElementById('home-page').classList.contains('active')) {
                 return;
             }
+
+            // Throttle - evitar múltiplos alertas simultâneos
+            if (window.alertInProgress) {
+                return;
+            }
+
+            window.alertInProgress = true;
 
             const ganhador = gerarGanhadorAleatorio();
             document.getElementById('winner-name-alert').textContent = ganhador.nome;
@@ -2217,37 +2226,38 @@
                 `acabou de ganhar <strong style="font-size: 1.5em;">R$ ${ganhador.valor},00!</strong>`;
             
             document.getElementById('winner-alert').style.display = 'flex';
-            document.body.classList.add('winner-animation');
             
-            // Vibração no celular se disponível
+            // Vibração otimizada (menos agressiva)
             if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200]);
+                navigator.vibrate([100, 50, 100]);
             }
             
+            // Auto-close após 5 segundos para não atrapalhar navegação
             setTimeout(() => {
-                document.body.classList.remove('winner-animation');
-            }, 1500);
+                closeWinnerAlert();
+            }, 5000);
         }
 
         function closeWinnerAlert() {
             document.getElementById('winner-alert').style.display = 'none';
+            window.alertInProgress = false;
         }
 
-        // Mostrar alerta para novos usuários (só na página inicial)
+        // OTIMIZADO - Mostrar alertas menos frequentes para evitar travamentos
         function initWinnerAlerts() {
-            // Mostrar primeiro alerta após 8 segundos
+            // Mostrar primeiro alerta após 10 segundos
             setTimeout(() => {
                 if (document.getElementById('home-page').classList.contains('active')) {
                     showWinnerAlert();
                 }
-            }, 8000);
+            }, 10000);
             
-            // Mostrar alertas a cada 45-90 segundos
+            // Mostrar alertas a cada 60-120 segundos (menos frequente)
             setInterval(() => {
-                if (Math.random() < 0.25 && document.getElementById('home-page').classList.contains('active')) {
+                if (Math.random() < 0.15 && document.getElementById('home-page').classList.contains('active') && !window.alertInProgress) {
                     showWinnerAlert();
                 }
-            }, 60000);
+            }, 90000); // 90 segundos
         }
 
         // Função para formatar valores monetários com vírgula
@@ -3755,4 +3765,3 @@ Dados salvos no sistema com sucesso!`;
     </script>
 </body>
 </html>
-
