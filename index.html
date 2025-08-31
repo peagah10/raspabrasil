@@ -15,6 +15,8 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --primary-green: #00b341;
@@ -866,9 +868,10 @@
             margin: 20px auto;
             padding: 20px;
             width: 100%;
-            max-width: min(400px, 95vw);
+            max-width: min(380px, 95vw);
             box-shadow: var(--shadow-heavy);
             border: 3px solid #ffd700;
+            position: relative;
         }
 
         .raspadinha-content {
@@ -878,6 +881,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         .raspadinha-titulo {
@@ -889,8 +893,8 @@
 
         .raspadinha {
             position: relative;
-            width: min(320px, 90vw);
-            height: min(192px, 54vw);
+            width: min(300px, 85vw);
+            height: min(180px, 51vw);
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 8px 25px rgba(0,0,0,0.6);
@@ -1273,6 +1277,173 @@
             }
         }
 
+        /* Relatório de Ganhadores */
+        .relatorio-ganhadores {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .relatorio-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://pfst.cf2.poecdn.net/base/image/66347888a1cb3c178bdd0d04fc4372faf63f233ce43f8d3deb1675d0c79a3da7?w=1200&h=630');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.1;
+            z-index: 0;
+        }
+
+        .relatorio-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .relatorio-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--primary-green);
+        }
+
+        .relatorio-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            background-image: url('https://pfst.cf2.poecdn.net/base/image/6334603f4a3905c7fd614b3b09aa286277d7dbe6636795bc8742d06a7e88e5b8?w=980&h=980');
+            background-size: cover;
+            background-position: center;
+            border-radius: 50%;
+            border: 3px solid var(--primary-green);
+        }
+
+        .relatorio-titulo {
+            font-size: 2.5em;
+            font-weight: 800;
+            color: var(--primary-green);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .relatorio-subtitulo {
+            font-size: 1.3em;
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .relatorio-data {
+            font-size: 1.1em;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .relatorio-filtros {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .relatorio-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        .relatorio-table th {
+            background: var(--primary-green);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .relatorio-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+        }
+
+        .relatorio-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .relatorio-table tr:hover {
+            background-color: #e8f5e8;
+        }
+
+        .relatorio-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 3px solid var(--primary-green);
+        }
+
+        .relatorio-footer-text {
+            font-size: 1.3em;
+            color: var(--primary-green);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .relatorio-footer-sistema {
+            font-size: 1.1em;
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        /* Botões de ação dos ganhadores */
+        .ganhadores-acoes {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .ganhadores-acoes .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        /* Modal de ganhador */
+        .ganhador-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .ganhador-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
         /* RESPONSIVE MELHORADO PARA MOBILE */
         @media (max-width: 768px) {
             .container {
@@ -1328,8 +1499,8 @@
             }
 
             .raspadinha {
-                width: min(300px, 92vw);
-                height: min(180px, 55vw);
+                width: min(280px, 90vw);
+                height: min(168px, 54vw);
             }
 
             .affiliate-buttons-container {
@@ -1348,6 +1519,24 @@
             .valores-rapidos {
                 grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
                 gap: 8px;
+            }
+
+            .relatorio-titulo {
+                font-size: 2em;
+            }
+
+            .relatorio-subtitulo {
+                font-size: 1.1em;
+            }
+
+            .relatorio-table th,
+            .relatorio-table td {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+
+            .ganhadores-acoes {
+                flex-direction: column;
             }
         }
 
@@ -1373,8 +1562,8 @@
             }
 
             .raspadinha {
-                width: min(280px, 95vw);
-                height: min(168px, 57vw);
+                width: min(260px, 92vw);
+                height: min(156px, 55vw);
             }
 
             .quantidade-selector {
@@ -1390,6 +1579,14 @@
             .valores-rapidos {
                 grid-template-columns: repeat(2, 1fr);
                 gap: 8px;
+            }
+
+            .relatorio-titulo {
+                font-size: 1.8em;
+            }
+
+            .relatorio-subtitulo {
+                font-size: 1em;
             }
         }
 
@@ -2111,12 +2308,79 @@
                     </div>
                 </div>
 
-                <!-- Ganhadores -->
+                <!-- Ganhadores ATUALIZADA COM RELATÓRIO -->
                 <div id="admin-controle-ganhadores" class="admin-tab-content">
-                    <h4>Lista de Ganhadores</h4>
-                    <button class="btn btn-primary" onclick="listarPremiados()">
-                        Carregar Ganhadores
-                    </button>
+                    <h4>Gerenciar Ganhadores</h4>
+                    
+                    <!-- Botões de Ação -->
+                    <div class="ganhadores-acoes">
+                        <button class="btn btn-primary" onclick="adicionarGanhador()">
+                            <i class="fas fa-plus"></i> Adicionar Ganhador
+                        </button>
+                        <button class="btn btn-secondary" onclick="listarPremiados()">
+                            <i class="fas fa-refresh"></i> Atualizar Lista
+                        </button>
+                        <button class="btn btn-affiliate" onclick="gerarRelatorio()">
+                            <i class="fas fa-chart-bar"></i> Gerar Relatório
+                        </button>
+                        <button class="btn btn-success" onclick="exportarPDF()" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                            <i class="fas fa-file-pdf"></i> Exportar PDF
+                        </button>
+                    </div>
+
+                    <!-- Relatório de Ganhadores -->
+                    <div id="relatorio-ganhadores" class="relatorio-ganhadores" style="display: none;">
+                        <div class="relatorio-background"></div>
+                        <div class="relatorio-content">
+                            <!-- Cabeçalho -->
+                            <div class="relatorio-header">
+                                <div class="relatorio-logo"></div>
+                                <h1 class="relatorio-titulo">RASPA BRASIL</h1>
+                                <p class="relatorio-subtitulo">Raspou, Achou, Ganhou!</p>
+                                <p class="relatorio-data" id="relatorio-data-atual">
+                                    Relatório do dia: <span id="data-relatorio-span"></span>
+                                </p>
+                            </div>
+
+                            <!-- Filtros -->
+                            <div class="relatorio-filtros">
+                                <h4 style="margin-bottom: 15px; color: var(--primary-green);">Filtrar por Data:</h4>
+                                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                                    <input type="date" id="filtro-data" style="padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+                                    <button class="btn btn-primary" onclick="filtrarPorData()">
+                                        <i class="fas fa-filter"></i> Filtrar
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="limparFiltro()">
+                                        <i class="fas fa-times"></i> Limpar
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tabela -->
+                            <table class="relatorio-table" id="tabela-ganhadores">
+                                <thead>
+                                    <tr>
+                                        <th>Nº</th>
+                                        <th>Nome Completo</th>
+                                        <th>Valor Ganho</th>
+                                        <th>Data do Prêmio</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-ganhadores-body">
+                                    <!-- Dados serão inseridos aqui -->
+                                </tbody>
+                            </table>
+
+                            <!-- Rodapé -->
+                            <div class="relatorio-footer">
+                                <p class="relatorio-footer-text">O próximo ganhador pode ser você!</p>
+                                <p class="relatorio-footer-sistema">Raspa Brasil</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Ganhadores (modo simples) -->
                     <div id="lista-premiados"></div>
                 </div>
 
@@ -2163,6 +2427,62 @@
         </div>
     </div>
 
+    <!-- Modal para Adicionar/Editar Ganhador -->
+    <div id="ganhador-modal" class="ganhador-modal">
+        <div class="ganhador-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 id="modal-ganhador-titulo">Adicionar Ganhador</h3>
+                <button onclick="fecharModalGanhador()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+            </div>
+
+            <form id="form-ganhador">
+                <div class="form-group">
+                    <label>Nome Completo:</label>
+                    <input type="text" id="modal-nome" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Valor do Prêmio:</label>
+                    <input type="text" id="modal-valor" placeholder="Ex: R$ 100,00" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Chave PIX:</label>
+                    <input type="text" id="modal-chave-pix" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Chave:</label>
+                    <select id="modal-tipo-chave">
+                        <option value="cpf">CPF</option>
+                        <option value="email">E-mail</option>
+                        <option value="telefone">Telefone</option>
+                        <option value="aleatoria">Chave Aleatória</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Status do Pagamento:</label>
+                    <select id="modal-status">
+                        <option value="pendente">Pendente</option>
+                        <option value="pago">Pago</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalGanhador()" style="flex: 1;">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        <span id="btn-salvar-texto">Salvar</span>
+                    </button>
+                </div>
+            </form>
+
+            <div id="modal-ganhador-message" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
     <!-- Modal personalizado -->
     <div id="custom-modal" class="modal">
         <div class="modal-content">
@@ -2194,6 +2514,8 @@
         let currentSlide = 0;
         let currentAffiliate = null;
         let currentAdminTab = 'dashboard';
+        let ganhadoresData = [];
+        let ganhadorEditando = null;
         const WHATSAPP_NUMERO = "5582996092684";
 
         // Função para obter data/hora em horário de Brasília (UTC-3)
@@ -2218,6 +2540,24 @@
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit'
+                });
+            } catch (error) {
+                console.error('Erro ao formatar data:', error);
+                return 'Data inválida';
+            }
+        }
+
+        function formatarDataSimples(data) {
+            try {
+                if (!data) return 'Data inválida';
+                const dataObj = typeof data === 'string' ? new Date(data) : data;
+                if (isNaN(dataObj.getTime())) return 'Data inválida';
+                
+                return dataObj.toLocaleDateString('pt-BR', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
                 });
             } catch (error) {
                 console.error('Erro ao formatar data:', error);
@@ -3171,6 +3511,8 @@
             }
         }
 
+        // FUNÇÕES DE GERENCIAMENTO DE GANHADORES
+
         async function listarPremiados() {
             const listDiv = document.getElementById('lista-premiados');
             
@@ -3178,9 +3520,11 @@
                 const response = await fetch('/admin/premiados');
                 const resultado = await response.json();
                 
-                if (resultado.premiados && resultado.premiados.length > 0) {
+                ganhadoresData = resultado.premiados || [];
+                
+                if (ganhadoresData.length > 0) {
                     let html = '<h4>Lista de Ganhadores:</h4><div class="premiados-table">';
-                    resultado.premiados.forEach(premiado => {
+                    ganhadoresData.forEach(premiado => {
                         // Garantir que os dados existam com fallbacks seguros
                         const codigo = premiado.br_codigo || 'N/A';
                         const nome = premiado.br_nome || 'N/A';
@@ -3197,6 +3541,14 @@
                                 <strong>PIX:</strong> ${chavePix}<br>
                                 <strong>Status:</strong> ${status}<br>
                                 <strong>Data:</strong> ${data}<br>
+                                <div style="margin-top: 10px;">
+                                    <button class="btn btn-secondary" onclick="editarGanhador(${premiado.br_id})" style="margin-right: 10px; font-size: 12px; padding: 8px 15px;">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                    <button class="btn btn-primary" onclick="removerGanhador(${premiado.br_id})" style="background: linear-gradient(135deg, #dc3545, #c82333); font-size: 12px; padding: 8px 15px;">
+                                        <i class="fas fa-trash"></i> Remover
+                                    </button>
+                                </div>
                             </div>
                         `;
                     });
@@ -3209,6 +3561,299 @@
             } catch (error) {
                 console.error('Erro ao listar premiados:', error);
                 listDiv.innerHTML = '<p>Erro ao carregar ganhadores.</p>';
+            }
+        }
+
+        function adicionarGanhador() {
+            ganhadorEditando = null;
+            document.getElementById('modal-ganhador-titulo').textContent = 'Adicionar Ganhador';
+            document.getElementById('btn-salvar-texto').textContent = 'Adicionar';
+            
+            // Limpar campos
+            document.getElementById('modal-nome').value = '';
+            document.getElementById('modal-valor').value = '';
+            document.getElementById('modal-chave-pix').value = '';
+            document.getElementById('modal-tipo-chave').value = 'cpf';
+            document.getElementById('modal-status').value = 'pendente';
+            document.getElementById('modal-ganhador-message').innerHTML = '';
+            
+            document.getElementById('ganhador-modal').style.display = 'flex';
+        }
+
+        async function editarGanhador(id) {
+            // Buscar dados do ganhador
+            const ganhador = ganhadoresData.find(g => g.br_id === id);
+            if (!ganhador) {
+                mostrarModal('<h3>Erro</h3><p>Ganhador não encontrado</p>');
+                return;
+            }
+            
+            ganhadorEditando = id;
+            document.getElementById('modal-ganhador-titulo').textContent = 'Editar Ganhador';
+            document.getElementById('btn-salvar-texto').textContent = 'Salvar Alterações';
+            
+            // Preencher campos
+            document.getElementById('modal-nome').value = ganhador.br_nome || '';
+            document.getElementById('modal-valor').value = ganhador.br_valor || '';
+            document.getElementById('modal-chave-pix').value = ganhador.br_chave_pix || '';
+            document.getElementById('modal-tipo-chave').value = ganhador.br_tipo_chave || 'cpf';
+            document.getElementById('modal-status').value = ganhador.br_status_pagamento || 'pendente';
+            document.getElementById('modal-ganhador-message').innerHTML = '';
+            
+            document.getElementById('ganhador-modal').style.display = 'flex';
+        }
+
+        async function removerGanhador(id) {
+            // Criar modal de confirmação
+            const confirmarRemocao = () => {
+                return new Promise((resolve) => {
+                    const modal = document.createElement('div');
+                    modal.style.cssText = `
+                        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                        background: rgba(0,0,0,0.8); display: flex; align-items: center;
+                        justify-content: center; z-index: 10001;
+                    `;
+                    modal.innerHTML = `
+                        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; text-align: center;">
+                            <h3 style="color: #dc2626; margin-bottom: 20px;">Confirmar Remoção</h3>
+                            <p style="margin-bottom: 25px;">Tem certeza que deseja remover este ganhador?</p>
+                            <div style="display: flex; gap: 15px; justify-content: center;">
+                                <button id="cancelar-rem" style="padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                                <button id="confirmar-rem" style="padding: 12px 24px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer;">Remover</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(modal);
+                    
+                    modal.querySelector('#cancelar-rem').onclick = () => {
+                        document.body.removeChild(modal);
+                        resolve(false);
+                    };
+                    
+                    modal.querySelector('#confirmar-rem').onclick = () => {
+                        document.body.removeChild(modal);
+                        resolve(true);
+                    };
+                });
+            };
+            
+            const confirmado = await confirmarRemocao();
+            if (!confirmado) return;
+            
+            try {
+                const response = await fetch(`/admin/remover_ganhador/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>Ganhador Removido!</h3><p>O ganhador foi removido do sistema.</p>');
+                    listarPremiados(); // Recarregar lista
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao remover ganhador:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao remover ganhador</p>');
+            }
+        }
+
+        function fecharModalGanhador() {
+            document.getElementById('ganhador-modal').style.display = 'none';
+        }
+
+        // Manipular formulário de ganhador
+        document.addEventListener('DOMContentLoaded', function() {
+            const formGanhador = document.getElementById('form-ganhador');
+            if (formGanhador) {
+                formGanhador.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const nome = document.getElementById('modal-nome').value.trim();
+                    const valor = document.getElementById('modal-valor').value.trim();
+                    const chavePix = document.getElementById('modal-chave-pix').value.trim();
+                    const tipoChave = document.getElementById('modal-tipo-chave').value;
+                    const status = document.getElementById('modal-status').value;
+                    const messageDiv = document.getElementById('modal-ganhador-message');
+                    
+                    if (!nome || !valor || !chavePix) {
+                        messageDiv.innerHTML = '<div class="resultado-validacao invalido">Preencha todos os campos obrigatórios</div>';
+                        return;
+                    }
+                    
+                    try {
+                        const url = ganhadorEditando ? 
+                            `/admin/editar_ganhador/${ganhadorEditando}` : 
+                            '/admin/adicionar_ganhador';
+                        
+                        const method = ganhadorEditando ? 'PUT' : 'POST';
+                        
+                        const response = await fetch(url, {
+                            method: method,
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nome,
+                                valor,
+                                chave_pix: chavePix,
+                                tipo_chave: tipoChave,
+                                status_pagamento: status
+                            })
+                        });
+                        
+                        const resultado = await response.json();
+                        
+                        if (resultado.sucesso) {
+                            messageDiv.innerHTML = `<div class="resultado-validacao valido">${ganhadorEditando ? 'Ganhador atualizado!' : 'Ganhador adicionado!'}</div>`;
+                            setTimeout(() => {
+                                fecharModalGanhador();
+                                listarPremiados(); // Recarregar lista
+                            }, 1500);
+                        } else {
+                            messageDiv.innerHTML = `<div class="resultado-validacao invalido">${resultado.erro}</div>`;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao salvar ganhador:', error);
+                        messageDiv.innerHTML = '<div class="resultado-validacao invalido">Erro ao salvar ganhador</div>';
+                    }
+                });
+            }
+        });
+
+        // FUNÇÕES DO RELATÓRIO
+
+        function gerarRelatorio() {
+            const relatorioDiv = document.getElementById('relatorio-ganhadores');
+            const listaDiv = document.getElementById('lista-premiados');
+            
+            // Esconder lista simples e mostrar relatório
+            listaDiv.style.display = 'none';
+            relatorioDiv.style.display = 'block';
+            
+            // Definir data atual
+            const hoje = new Date();
+            document.getElementById('data-relatorio-span').textContent = formatarDataSimples(hoje);
+            
+            // Preencher tabela com todos os ganhadores
+            preencherTabelaRelatorio(ganhadoresData);
+        }
+
+        function filtrarPorData() {
+            const dataFiltro = document.getElementById('filtro-data').value;
+            if (!dataFiltro) {
+                mostrarModal('<h3>Atenção</h3><p>Selecione uma data para filtrar</p>');
+                return;
+            }
+            
+            // Filtrar ganhadores pela data
+            const ganhadoresFiltrados = ganhadoresData.filter(ganhador => {
+                if (!ganhador.br_data_criacao) return false;
+                const dataGanhador = formatarDataSimples(new Date(ganhador.br_data_criacao));
+                const dataFiltroFormatada = formatarDataSimples(new Date(dataFiltro));
+                return dataGanhador === dataFiltroFormatada;
+            });
+            
+            // Atualizar data do relatório
+            document.getElementById('data-relatorio-span').textContent = formatarDataSimples(new Date(dataFiltro));
+            
+            // Preencher tabela com dados filtrados
+            preencherTabelaRelatorio(ganhadoresFiltrados);
+        }
+
+        function limparFiltro() {
+            document.getElementById('filtro-data').value = '';
+            const hoje = new Date();
+            document.getElementById('data-relatorio-span').textContent = formatarDataSimples(hoje);
+            preencherTabelaRelatorio(ganhadoresData);
+        }
+
+        function preencherTabelaRelatorio(ganhadores) {
+            const tbody = document.getElementById('tabela-ganhadores-body');
+            tbody.innerHTML = '';
+            
+            if (ganhadores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666; font-style: italic;">Nenhum ganhador encontrado para esta data</td></tr>';
+                return;
+            }
+            
+            ganhadores.forEach((ganhador, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${ganhador.br_nome || 'N/A'}</td>
+                    <td>${ganhador.br_valor || 'N/A'}</td>
+                    <td>${formatarDataSimples(new Date(ganhador.br_data_criacao))}</td>
+                    <td>
+                        <button class="btn btn-secondary" onclick="editarGanhador(${ganhador.br_id})" style="font-size: 10px; padding: 5px 10px; margin-right: 5px;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="removerGanhador(${ganhador.br_id})" style="background: linear-gradient(135deg, #dc3545, #c82333); font-size: 10px; padding: 5px 10px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function exportarPDF() {
+            try {
+                // Verificar se jsPDF está disponível
+                if (typeof window.jsPDF === 'undefined') {
+                    mostrarModal('<h3>Erro</h3><p>Biblioteca PDF não carregada. Recarregue a página e tente novamente.</p>');
+                    return;
+                }
+
+                const relatorioDiv = document.getElementById('relatorio-ganhadores');
+                if (relatorioDiv.style.display === 'none') {
+                    mostrarModal('<h3>Atenção</h3><p>Gere o relatório primeiro clicando em "Gerar Relatório"</p>');
+                    return;
+                }
+
+                // Usar html2canvas para capturar o relatório
+                const canvas = await html2canvas(relatorioDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new window.jsPDF('p', 'mm', 'a4');
+                
+                const imgWidth = 210; // largura A4 em mm
+                const pageHeight = 295; // altura A4 em mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                let position = 0;
+                
+                // Adicionar imagem ao PDF
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                
+                // Se a imagem for maior que uma página, adicionar páginas extras
+                if (imgHeight > pageHeight) {
+                    let heightLeft = imgHeight - pageHeight;
+                    while (heightLeft > 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                }
+                
+                // Gerar nome do arquivo com data
+                const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+                const nomeArquivo = `Relatorio_Ganhadores_${dataAtual}.pdf`;
+                
+                // Baixar PDF
+                pdf.save(nomeArquivo);
+                
+                mostrarModal('<h3>PDF Gerado!</h3><p>O relatório foi exportado com sucesso!</p>');
+                
+            } catch (error) {
+                console.error('Erro ao exportar PDF:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF. Tente novamente.</p>');
             }
         }
 
