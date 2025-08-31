@@ -804,63 +804,6 @@ def salvar_ganhador():
         return jsonify({'sucesso': False, 'erro': str(e)})
 
 
-@app.route('/criar_saque_ganhador', methods=['POST'])
-def criar_saque_ganhador():
-    """Cria automaticamente uma solicitação de saque para o ganhador"""
-    try:
-        data = request.json
-        
-        # Validar dados obrigatórios
-        campos_obrigatorios = ['ganhador_id', 'nome', 'valor', 'chave_pix', 'codigo']
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                print(f"❌ Campo obrigatório ausente: {campo}")
-                return jsonify({'sucesso': False, 'erro': f'Campo {campo} é obrigatório'})
-        
-        if not supabase:
-            print("❌ Supabase não conectado")
-            return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
-        
-        # Extrair valor numérico do prêmio
-        valor_texto = data['valor']
-        try:
-            # Remover R$, espaços e converter vírgula para ponto
-            valor_limpo = valor_texto.replace('R$', '').replace(' ', '').replace(',', '.')
-            valor_numerico = float(valor_limpo)
-        except (ValueError, AttributeError):
-            print(f"❌ Erro ao converter valor: {valor_texto}")
-            return jsonify({'sucesso': False, 'erro': 'Valor inválido'})
-        
-        # Criar solicitação de saque
-        saque_data = {
-            'br_ganhador_id': data['ganhador_id'],
-            'br_valor': valor_numerico,
-            'br_chave_pix': data['chave_pix'],
-            'br_tipo_chave': data.get('tipo_chave', 'cpf'),
-            'br_status': 'solicitado',
-            'br_data_solicitacao': datetime.now().isoformat()
-        }
-        
-        response = supabase.table('br_saques_ganhadores').insert(saque_data).execute()
-        
-        if response.data:
-            print(f"💸 Saque criado automaticamente: {data['nome']} - {valor_texto} - Código: {data['codigo']}")
-            return jsonify({
-                'sucesso': True, 
-                'saque_id': response.data[0]['br_id'],
-                'valor': valor_numerico
-            })
-        else:
-            print(f"❌ Erro ao inserir saque no banco")
-            return jsonify({'sucesso': False, 'erro': 'Erro ao criar saque'})
-            
-    except Exception as e:
-        print(f"❌ Erro ao criar saque de ganhador: {str(e)}")
-        return jsonify({'sucesso': False, 'erro': f'Erro interno: {str(e)}'})
-        
-    return jsonify({'sucesso': False, 'erro': 'Erro desconhecido'})
-
-
 # ========== ROTAS DE AFILIADOS ==========
 
 @app.route('/cadastrar_afiliado', methods=['POST'])
@@ -1443,42 +1386,6 @@ def admin_afiliados():
         return jsonify({'afiliados': []})
 
 
-@app.route('/admin/saques_ganhadores')
-def admin_saques_ganhadores():
-    """Lista de saques de ganhadores para admin"""
-    if not session.get('admin_logado'):
-        return jsonify({'error': 'Acesso negado'})
-    
-    if not supabase:
-        return jsonify({'saques': []})
-    
-    try:
-        # Buscar saques
-        saques_response = supabase.table('br_saques_ganhadores').select('*').order(
-            'br_data_solicitacao', desc=True
-        ).execute()
-        
-        saques = []
-        for saque in (saques_response.data or []):
-            # Buscar dados do ganhador separadamente
-            ganhador_response = supabase.table('br_ganhadores').select('br_nome, br_codigo').eq(
-                'br_id', saque['br_ganhador_id']
-            ).execute()
-            
-            saque_completo = saque.copy()
-            if ganhador_response.data:
-                saque_completo['br_ganhadores'] = ganhador_response.data[0]
-            else:
-                saque_completo['br_ganhadores'] = {'br_nome': 'Nome não encontrado', 'br_codigo': 'N/A'}
-            
-            saques.append(saque_completo)
-        
-        return jsonify({'saques': saques})
-    except Exception as e:
-        print(f"❌ Erro ao listar saques de ganhadores: {str(e)}")
-        return jsonify({'saques': []})
-
-
 @app.route('/admin/saques_afiliados')
 def admin_saques_afiliados():
     """Lista de saques de afiliados para admin"""
@@ -1580,65 +1487,7 @@ def admin_stats():
         })
 
 
-# ========== ROTAS DE SAQUE ==========
-
-@app.route('/admin/pagar_saque_ganhador/<int:saque_id>', methods=['POST'])
-def pagar_saque_ganhador(saque_id):
-    """Marca saque de ganhador como pago"""
-    if not session.get('admin_logado'):
-        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
-    
-    if not supabase:
-        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
-    
-    try:
-        response = supabase.table('br_saques_ganhadores').update({
-            'br_status': 'pago',
-            'br_data_pagamento': datetime.now().isoformat()
-        }).eq('br_id', saque_id).execute()
-        
-        if response.data:
-            return jsonify({"sucesso": True, "mensagem": "Saque marcado como pago"})
-        else:
-            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
-            
-    except Exception as e:
-        print(f"❌ Erro ao pagar saque: {str(e)}")
-        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
-
-@app.route('/admin/excluir_saque_ganhador/<int:saque_id>', methods=['DELETE'])
-def excluir_saque_ganhador(saque_id):
-    """Exclui saque de ganhador (só se estiver pago)"""
-    if not session.get('admin_logado'):
-        return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
-    
-    if not supabase:
-        return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
-    
-    try:
-        # Verificar se está pago
-        check_response = supabase.table('br_saques_ganhadores').select('br_status').eq(
-            'br_id', saque_id
-        ).execute()
-        
-        if not check_response.data:
-            return jsonify({"sucesso": False, "erro": "Saque não encontrado"}), 404
-            
-        if check_response.data[0]['br_status'] != 'pago':
-            return jsonify({"sucesso": False, "erro": "Só é possível excluir saques pagos"}), 400
-        
-        # Excluir
-        response = supabase.table('br_saques_ganhadores').delete().eq(
-            'br_id', saque_id
-        ).execute()
-        
-        return jsonify({"sucesso": True, "mensagem": "Saque excluído com sucesso"})
-        
-    except Exception as e:
-        print(f"❌ Erro ao excluir saque: {str(e)}")
-        return jsonify({"sucesso": False, "erro": "Erro interno do servidor"}), 500
-
+# ========== ROTAS DE SAQUE CORRIGIDAS ==========
 
 @app.route('/admin/pagar_saque_afiliado/<int:saque_id>', methods=['POST'])
 def pagar_saque_afiliado(saque_id):
@@ -1702,7 +1551,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando Raspa Brasil ATUALIZADO COM PROMOÇÃO 10+2...")
+    print("🚀 Iniciando Raspa Brasil CORRIGIDO...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
@@ -1710,8 +1559,10 @@ if __name__ == '__main__':
     print(f"🎯 Sistema de Prêmios: MANUAL COMPLETO")
     print(f"🔄 Sistema de Persistência: ✅")
     print(f"🎁 Promoção 10+2: ✅ ATIVA")
-    print(f"⚙️ Área Admin: LIBERADA PARA GESTÃO MANUAL")
+    print(f"⚙️ Área Admin: SAQUES APENAS AFILIADOS")
     print(f"🛡️ Validações Robustas: ✅ IMPLEMENTADAS")
     print(f"📬 Webhook Mercado Pago: ✅ IMPLEMENTADO")
+    print(f"🎮 Bandeira Brasil: ✅ CENTRALIZADA")
+    print(f"🎲 Ganhadores: ✅ SALVOS AUTOMATICAMENTE")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
