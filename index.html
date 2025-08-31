@@ -2518,22 +2518,34 @@
         let ganhadorEditando = null;
         const WHATSAPP_NUMERO = "5582996092684";
 
-        // Função para obter data/hora em horário de Brasília (UTC-3)
+        // Função para obter data/hora em horário de Brasília (UTC-3) - CORRIGIDA
         function obterDataBrasilia() {
             const agora = new Date();
-            const utc = agora.getTime() + (agora.getTimezoneOffset() * 60000);
-            const brasilia = new Date(utc + (-3 * 3600000)); // UTC-3
+            // Criar data em UTC-3 (horário de Brasília)
+            const brasilia = new Date(agora.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
             return brasilia;
         }
 
         function formatarDataBrasilia(data) {
             try {
                 if (!data) return 'Data inválida';
-                const dataObj = typeof data === 'string' ? new Date(data) : data;
+                
+                // Se for string, converter para Date mantendo timezone local
+                let dataObj;
+                if (typeof data === 'string') {
+                    // Se a string contém apenas data (YYYY-MM-DD), adicionar horário para evitar problemas de timezone
+                    if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        dataObj = new Date(data + 'T12:00:00');
+                    } else {
+                        dataObj = new Date(data);
+                    }
+                } else {
+                    dataObj = data;
+                }
+                
                 if (isNaN(dataObj.getTime())) return 'Data inválida';
                 
                 return dataObj.toLocaleString('pt-BR', {
-                    timeZone: 'America/Sao_Paulo',
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',
@@ -2550,11 +2562,23 @@
         function formatarDataSimples(data) {
             try {
                 if (!data) return 'Data inválida';
-                const dataObj = typeof data === 'string' ? new Date(data) : data;
+                
+                // Se for string, converter para Date mantendo timezone local
+                let dataObj;
+                if (typeof data === 'string') {
+                    // Se a string contém apenas data (YYYY-MM-DD), adicionar horário para evitar problemas de timezone
+                    if (data.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        dataObj = new Date(data + 'T12:00:00');
+                    } else {
+                        dataObj = new Date(data);
+                    }
+                } else {
+                    dataObj = data;
+                }
+                
                 if (isNaN(dataObj.getTime())) return 'Data inválida';
                 
                 return dataObj.toLocaleDateString('pt-BR', {
-                    timeZone: 'America/Sao_Paulo',
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit'
@@ -3732,8 +3756,8 @@
             listaDiv.style.display = 'none';
             relatorioDiv.style.display = 'block';
             
-            // Definir data atual
-            const hoje = new Date();
+            // Definir data atual - CORRIGIDA PARA EVITAR PROBLEMA DE TIMEZONE
+            const hoje = obterDataBrasilia();
             document.getElementById('data-relatorio-span').textContent = formatarDataSimples(hoje);
             
             // Preencher tabela com todos os ganhadores
@@ -3747,16 +3771,20 @@
                 return;
             }
             
-            // Filtrar ganhadores pela data
+            // Filtrar ganhadores pela data - CORRIGIDO PARA EVITAR PROBLEMA DE TIMEZONE
             const ganhadoresFiltrados = ganhadoresData.filter(ganhador => {
                 if (!ganhador.br_data_criacao) return false;
-                const dataGanhador = formatarDataSimples(new Date(ganhador.br_data_criacao));
-                const dataFiltroFormatada = formatarDataSimples(new Date(dataFiltro));
-                return dataGanhador === dataFiltroFormatada;
+                
+                // Criar data sem problemas de timezone
+                const dataGanhador = new Date(ganhador.br_data_criacao + 'T12:00:00');
+                const dataFiltroObj = new Date(dataFiltro + 'T12:00:00');
+                
+                return formatarDataSimples(dataGanhador) === formatarDataSimples(dataFiltroObj);
             });
             
             // Atualizar data do relatório
-            document.getElementById('data-relatorio-span').textContent = formatarDataSimples(new Date(dataFiltro));
+            const dataFiltroObj = new Date(dataFiltro + 'T12:00:00');
+            document.getElementById('data-relatorio-span').textContent = formatarDataSimples(dataFiltroObj);
             
             // Preencher tabela com dados filtrados
             preencherTabelaRelatorio(ganhadoresFiltrados);
@@ -3764,7 +3792,7 @@
 
         function limparFiltro() {
             document.getElementById('filtro-data').value = '';
-            const hoje = new Date();
+            const hoje = obterDataBrasilia();
             document.getElementById('data-relatorio-span').textContent = formatarDataSimples(hoje);
             preencherTabelaRelatorio(ganhadoresData);
         }
@@ -3784,7 +3812,7 @@
                     <td>${index + 1}</td>
                     <td>${ganhador.br_nome || 'N/A'}</td>
                     <td>${ganhador.br_valor || 'N/A'}</td>
-                    <td>${formatarDataSimples(new Date(ganhador.br_data_criacao))}</td>
+                    <td>${formatarDataSimples(new Date(ganhador.br_data_criacao + 'T12:00:00'))}</td>
                     <td>
                         <button class="btn btn-secondary" onclick="editarGanhador(${ganhador.br_id})" style="font-size: 10px; padding: 5px 10px; margin-right: 5px;">
                             <i class="fas fa-edit"></i>
@@ -3798,10 +3826,11 @@
             });
         }
 
+        // FUNÇÃO CORRIGIDA PARA EXPORTAR PDF
         async function exportarPDF() {
             try {
-                // Verificar se jsPDF está disponível
-                if (typeof window.jsPDF === 'undefined') {
+                // Verificar se jsPDF está disponível - CORRIGIDO PARA VERSÃO UMD
+                if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
                     mostrarModal('<h3>Erro</h3><p>Biblioteca PDF não carregada. Recarregue a página e tente novamente.</p>');
                     return;
                 }
@@ -3820,7 +3849,7 @@
                 });
 
                 const imgData = canvas.toDataURL('image/png');
-                const pdf = new window.jsPDF('p', 'mm', 'a4');
+                const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4'); // CORRIGIDO PARA VERSÃO UMD
                 
                 const imgWidth = 210; // largura A4 em mm
                 const pageHeight = 295; // altura A4 em mm
@@ -3843,7 +3872,7 @@
                 }
                 
                 // Gerar nome do arquivo com data
-                const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+                const dataAtual = formatarDataSimples(obterDataBrasilia()).replace(/\//g, '-');
                 const nomeArquivo = `Relatorio_Ganhadores_${dataAtual}.pdf`;
                 
                 // Baixar PDF
