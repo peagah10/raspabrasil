@@ -854,19 +854,21 @@
             overflow-y: auto;
         }
 
-        /* Raspadinha Page CORRIGIDA - MOBILE CENTRALIZADA */
+        /* Raspadinha Page CORRIGIDA - MOBILE CENTRALIZADA PERFEITAMENTE */
         .raspadinha-container {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 400px;
-            background: #0d1b0d;
+            background: linear-gradient(135deg, #0d1b0d, #1a2e1a);
             color: white;
             border-radius: var(--border-radius);
             margin: 20px auto;
             padding: 20px;
             width: 100%;
             max-width: min(400px, 95vw);
+            box-shadow: var(--shadow-heavy);
+            border: 3px solid #ffd700;
         }
 
         .raspadinha-content {
@@ -882,36 +884,42 @@
             margin-bottom: 30px;
             font-size: clamp(1.2em, 4vw, 1.8em);
             font-weight: 700;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
         }
 
         .raspadinha {
             position: relative;
-            width: min(300px, 85vw);
-            height: min(180px, 51vw);
+            width: min(320px, 90vw);
+            height: min(192px, 54vw);
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
             margin: 0 auto;
+            border: 2px solid #ffd700;
         }
 
         .premio {
             position: absolute;
             inset: 0;
-            background: #004aad;
+            background: linear-gradient(135deg, #28a745, #20c997);
             color: #fff;
-            font-size: 26px;
+            font-size: clamp(20px, 6vw, 26px);
             font-weight: bold;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
             flex-direction: column;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
         }
 
         .raspadinha canvas {
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
             cursor: pointer;
         }
 
@@ -1320,8 +1328,8 @@
             }
 
             .raspadinha {
-                width: min(280px, 90vw);
-                height: min(168px, 54vw);
+                width: min(300px, 92vw);
+                height: min(180px, 55vw);
             }
 
             .affiliate-buttons-container {
@@ -1365,8 +1373,8 @@
             }
 
             .raspadinha {
-                width: min(260px, 90vw);
-                height: min(156px, 54vw);
+                width: min(280px, 95vw);
+                height: min(168px, 57vw);
             }
 
             .quantidade-selector {
@@ -2089,14 +2097,14 @@
                     </div>
                 </div>
 
-                <!-- Saques CORRIGIDO - APENAS AFILIADOS -->
+                <!-- Saques - APENAS AFILIADOS -->
                 <div id="admin-controle-saques" class="admin-tab-content">
                     <h4>Solicitações de Saque - Afiliados</h4>
                     <p style="margin-bottom: 20px; color: #666;">
                         Gerenciar saques dos afiliados. Os ganhadores enviam dados pelo WhatsApp.
                     </p>
                     <button class="btn btn-affiliate" onclick="carregarSaquesAfiliados()" style="margin-bottom: 20px;">
-                        Carregar Saques de Afiliados
+                        Atualizar Saques de Afiliados
                     </button>
                     <div id="lista-saques">
                         <p>Clique no botão acima para carregar as solicitações.</p>
@@ -2197,15 +2205,24 @@
         }
 
         function formatarDataBrasilia(data) {
-            return data.toLocaleString('pt-BR', {
-                timeZone: 'America/Sao_Paulo',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            try {
+                if (!data) return 'Data inválida';
+                const dataObj = typeof data === 'string' ? new Date(data) : data;
+                if (isNaN(dataObj.getTime())) return 'Data inválida';
+                
+                return dataObj.toLocaleString('pt-BR', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            } catch (error) {
+                console.error('Erro ao formatar data:', error);
+                return 'Data inválida';
+            }
         }
 
         // Sistema de nomes aleatórios para alertas de ganhadores
@@ -2681,6 +2698,12 @@
                 case 'controle-premios':
                     verificarStatusPremio();
                     break;
+                case 'controle-ganhadores':
+                    listarPremiados();
+                    break;
+                case 'controle-saques':
+                    carregarSaquesAfiliados();
+                    break;
                 case 'controle-pagamentos':
                     // Não carrega automaticamente, só quando clicar no botão
                     break;
@@ -2991,13 +3014,13 @@
                     resultado.afiliados.forEach(afiliado => {
                         html += `
                             <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
-                                <h5>${afiliado.nome} (${afiliado.codigo})</h5>
-                                <p><strong>E-mail:</strong> ${afiliado.email}</p>
-                                <p><strong>Telefone:</strong> ${afiliado.telefone}</p>
-                                <p><strong>Clicks:</strong> ${afiliado.total_clicks} | <strong>Vendas:</strong> ${afiliado.total_vendas}</p>
-                                <p><strong>Comissão Total:</strong> R$ ${afiliado.total_comissao.toFixed(2)} | <strong>Saldo:</strong> R$ ${afiliado.saldo_disponivel.toFixed(2)}</p>
-                                <p><strong>Status:</strong> ${afiliado.status}</p>
-                                <p><strong>Cadastrado em:</strong> ${formatarDataBrasilia(new Date(afiliado.data_criacao))}</p>
+                                <h5>${afiliado.nome || 'Nome não encontrado'} (${afiliado.codigo || 'N/A'})</h5>
+                                <p><strong>E-mail:</strong> ${afiliado.email || 'N/A'}</p>
+                                <p><strong>Telefone:</strong> ${afiliado.telefone || 'N/A'}</p>
+                                <p><strong>Clicks:</strong> ${afiliado.total_clicks || 0} | <strong>Vendas:</strong> ${afiliado.total_vendas || 0}</p>
+                                <p><strong>Comissão Total:</strong> R$ ${(afiliado.total_comissao || 0).toFixed(2)} | <strong>Saldo:</strong> R$ ${(afiliado.saldo_disponivel || 0).toFixed(2)}</p>
+                                <p><strong>Status:</strong> ${afiliado.status || 'N/A'}</p>
+                                <p><strong>Cadastrado em:</strong> ${afiliado.data_criacao ? formatarDataBrasilia(new Date(afiliado.data_criacao)) : 'N/A'}</p>
                             </div>
                         `;
                     });
@@ -3020,16 +3043,24 @@
                 
                 if (resultado.saques && resultado.saques.length > 0) {
                     resultado.saques.forEach(saque => {
-                        const statusClass = saque.rb_status === 'pago' ? 'success' : 'warning';
-                        const statusText = saque.rb_status === 'pago' ? 'Pago' : 'Pendente';
+                        const statusClass = (saque.rb_status === 'pago') ? 'success' : 'warning';
+                        const statusText = (saque.rb_status === 'pago') ? 'Pago' : 'Pendente';
+                        
+                        // Garantir que os dados existam com fallbacks seguros
+                        const nomeAfiliado = saque.br_afiliados?.rb_nome || 'Nome não encontrado (N/A)';
+                        const codigoAfiliado = saque.br_afiliados?.rb_codigo || 'N/A';
+                        const totalVendas = saque.br_afiliados?.rb_total_vendas || 0;
+                        const valor = parseFloat(saque.rb_valor || 0);
+                        const chavePix = saque.rb_chave_pix || 'undefined';
+                        const dataSolicitacao = saque.rb_data_solicitacao ? formatarDataBrasilia(new Date(saque.rb_data_solicitacao)) : 'Invalid Date';
                         
                         html += `
                             <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
-                                <p><strong>${saque.rb_afiliados?.rb_nome || 'Nome não encontrado'} (${saque.rb_afiliados?.rb_codigo || 'N/A'})</strong> - R$ ${parseFloat(saque.rb_valor).toFixed(2)}</p>
-                                <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
-                                <p><strong>Comissão de:</strong> ${saque.rb_afiliados?.rb_total_vendas || 0} vendas</p>
+                                <p><strong>${nomeAfiliado} (${codigoAfiliado})</strong> - R$ ${valor.toFixed(2)}</p>
+                                <p><strong>PIX:</strong> ${chavePix}</p>
+                                <p><strong>Comissão de:</strong> ${totalVendas} vendas</p>
                                 <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
-                                <p><strong>Data:</strong> ${formatarDataBrasilia(new Date(saque.rb_data_solicitacao))}</p>
+                                <p><strong>Data:</strong> ${dataSolicitacao}</p>
                                 <div style="margin-top: 15px;">
                                     ${saque.rb_status === 'pago' ? 
                                         `<button class="btn btn-affiliate" onclick="excluirSaqueAfiliado(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
@@ -3150,14 +3181,22 @@
                 if (resultado.premiados && resultado.premiados.length > 0) {
                     let html = '<h4>Lista de Ganhadores:</h4><div class="premiados-table">';
                     resultado.premiados.forEach(premiado => {
+                        // Garantir que os dados existam com fallbacks seguros
+                        const codigo = premiado.rb_codigo || 'undefined';
+                        const nome = premiado.rb_nome || 'undefined';
+                        const valor = premiado.rb_valor || 'undefined';
+                        const chavePix = premiado.rb_chave_pix || 'undefined';
+                        const status = premiado.rb_status_pagamento || 'pendente';
+                        const data = premiado.rb_data_criacao ? formatarDataBrasilia(new Date(premiado.rb_data_criacao)) : 'Invalid Date';
+                        
                         html += `
                             <div class="premiado-item">
-                                <strong>Código:</strong> ${premiado.rb_codigo}<br>
-                                <strong>Nome:</strong> ${premiado.rb_nome}<br>
-                                <strong>Valor:</strong> ${premiado.rb_valor}<br>
-                                <strong>PIX:</strong> ${premiado.rb_chave_pix}<br>
-                                <strong>Status:</strong> ${premiado.rb_status_pagamento || 'pendente'}<br>
-                                <strong>Data:</strong> ${formatarDataBrasilia(new Date(premiado.rb_data_criacao))}<br>
+                                <strong>Código:</strong> ${codigo}<br>
+                                <strong>Nome:</strong> ${nome}<br>
+                                <strong>Valor:</strong> ${valor}<br>
+                                <strong>PIX:</strong> ${chavePix}<br>
+                                <strong>Status:</strong> ${status}<br>
+                                <strong>Data:</strong> ${data}<br>
                             </div>
                         `;
                     });
@@ -3426,7 +3465,7 @@
                         <h2 class="raspadinha-titulo">Raspe a bandeira do Brasil</h2>
                         <div class="raspadinha" id="raspadinha-${i}">
                             <div class="premio" id="premio-${i}"></div>
-                            <canvas id="scratch-${i}" width="300" height="180"></canvas>
+                            <canvas id="scratch-${i}"></canvas>
                         </div>
                     </div>
                 `;
@@ -3438,11 +3477,16 @@
             }
         }
 
-        // Função para inicializar cada raspadinha individual - BANDEIRA CENTRALIZADA
+        // Função para inicializar cada raspadinha individual - BANDEIRA CENTRALIZADA PERFEITAMENTE
         function inicializarRaspadinha(index) {
             const canvas = document.getElementById(`scratch-${index}`);
             const ctx = canvas.getContext("2d");
             const premioDiv = document.getElementById(`premio-${index}`);
+
+            // Definir tamanho do canvas
+            const container = canvas.parentElement;
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
 
             let raspando = false;
             let premioDefinido = false;
@@ -3451,42 +3495,35 @@
                 const bandeira = new Image();
                 bandeira.crossOrigin = "anonymous";
                 bandeira.src = "https://pfst.cf2.poecdn.net/base/image/47394d310726277070a2b09d1da897b2a89268953e13587f3fcb468d55ca442b?w=299&h=185";
+                
                 bandeira.onload = () => {
-                    // BANDEIRA PERFEITAMENTE CENTRALIZADA
-                    // Preencher todo o canvas com a bandeira, cortando proporcionalmente
-                    const canvasRatio = canvas.width / canvas.height;
-                    const imageRatio = bandeira.width / bandeira.height;
-                    
-                    let drawWidth, drawHeight, drawX, drawY;
-                    
-                    // Usar "object-fit: cover" equivalente - preencher todo o canvas
-                    if (imageRatio > canvasRatio) {
-                        // Imagem mais larga: ajustar pela altura e centralizar horizontalmente
-                        drawHeight = canvas.height;
-                        drawWidth = drawHeight * imageRatio;
-                        drawX = (canvas.width - drawWidth) / 2;
-                        drawY = 0;
-                    } else {
-                        // Imagem mais alta: ajustar pela largura e centralizar verticalmente
-                        drawWidth = canvas.width;
-                        drawHeight = drawWidth / imageRatio;
-                        drawX = 0;
-                        drawY = (canvas.height - drawHeight) / 2;
-                    }
-                    
-                    // Limpar canvas e desenhar bandeira centralizada
+                    // BANDEIRA PERFEITAMENTE CENTRALIZADA E RESPONSIVA
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(bandeira, drawX, drawY, drawWidth, drawHeight);
+                    
+                    // Calcular escala para preencher todo o canvas mantendo proporção
+                    const scaleX = canvas.width / bandeira.width;
+                    const scaleY = canvas.height / bandeira.height;
+                    const scale = Math.max(scaleX, scaleY); // Usar o maior para garantir cobertura total
+                    
+                    const scaledWidth = bandeira.width * scale;
+                    const scaledHeight = bandeira.height * scale;
+                    
+                    // Centralizar a imagem
+                    const x = (canvas.width - scaledWidth) / 2;
+                    const y = (canvas.height - scaledHeight) / 2;
+                    
+                    ctx.drawImage(bandeira, x, y, scaledWidth, scaledHeight);
                 };
+                
                 bandeira.onerror = () => {
-                    // Fallback com bandeira CSS estilizada e centralizada
+                    // Fallback com bandeira CSS otimizada para responsividade
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
                     // Fundo verde
                     ctx.fillStyle = "#00b341";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     
-                    // Losango amarelo centralizado
+                    // Losango amarelo centralizado (responsivo)
                     ctx.fillStyle = "#ffd700";
                     ctx.beginPath();
                     const centerX = canvas.width / 2;
@@ -3505,9 +3542,9 @@
                     ctx.arc(centerX, centerY, size/4, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // Texto "BRASIL" centralizado
+                    // Texto "BRASIL" centralizado e responsivo
                     ctx.fillStyle = "#ffffff";
-                    ctx.font = "bold 16px Arial";
+                    ctx.font = `bold ${Math.max(12, size/8)}px Arial`;
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
                     ctx.fillText("BRASIL", centerX, centerY);
@@ -3527,9 +3564,13 @@
                 const x = (e.clientX || e.touches[0].clientX) - rect.left;
                 const y = (e.clientY || e.touches[0].clientY) - rect.top;
                 
+                // Ajustar coordenadas para o tamanho real do canvas
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.beginPath();
-                ctx.arc(x, y, 20, 0, Math.PI * 2);
+                ctx.arc(x * scaleX, y * scaleY, 20, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -3549,7 +3590,7 @@
                     
                     if (resultado.ganhou) {
                         premioDiv.innerHTML = `GANHOU<br>${resultado.valor}`;
-                        premioDiv.style.background = "#4CAF50";
+                        premioDiv.style.background = "linear-gradient(135deg, #4CAF50, #28a745)";
                         
                         // Mostrar formulário de prêmio
                         setTimeout(() => {
@@ -3557,12 +3598,12 @@
                         }, 2000);
                     } else {
                         premioDiv.innerHTML = "Tente<br>NOVAMENTE";
-                        premioDiv.style.background = "#f44336";
+                        premioDiv.style.background = "linear-gradient(135deg, #f44336, #d32f2f)";
                     }
                 } catch (error) {
                     console.error('Erro ao processar prêmio:', error);
                     premioDiv.innerHTML = "Erro<br>" + error.message;
-                    premioDiv.style.background = "#f44336";
+                    premioDiv.style.background = "linear-gradient(135deg, #f44336, #d32f2f)";
                 }
             }
 
@@ -3587,6 +3628,14 @@
 
             // Inicializar
             desenharCapa();
+            
+            // Redimensionar quando necessário
+            const resizeObserver = new ResizeObserver(() => {
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
+                desenharCapa();
+            });
+            resizeObserver.observe(container);
         }
 
         // Função para mostrar formulário de prêmio
