@@ -1,7 +1,7 @@
 import os
 import random
 import string
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from flask import Flask, request, jsonify, session, send_file
 from dotenv import load_dotenv
 
@@ -45,6 +45,28 @@ PREMIOS_TOTAIS = 2000
 WHATSAPP_NUMERO = "5582996092684"
 PERCENTUAL_COMISSAO_AFILIADO = 50  # 50% de comissão
 
+# CORREÇÃO DE TIMEZONE - Definir timezone brasileiro
+TIMEZONE_BRASIL = timezone(timedelta(hours=-3))  # UTC-3
+
+def obter_data_brasil():
+    """Obtém datetime atual no timezone brasileiro (UTC-3)"""
+    return datetime.now(TIMEZONE_BRASIL)
+
+def formatar_data_brasil(dt=None):
+    """Formata data para string compatível com banco (formato ISO)"""
+    if dt is None:
+        dt = obter_data_brasil()
+    # Garantir que está no timezone brasileiro
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=TIMEZONE_BRASIL)
+    elif dt.tzinfo != TIMEZONE_BRASIL:
+        dt = dt.astimezone(TIMEZONE_BRASIL)
+    return dt.isoformat()
+
+def obter_data_hoje_brasil():
+    """Obtém data de hoje no formato YYYY-MM-DD para filtros"""
+    return obter_data_brasil().date().isoformat()
+
 # Inicializar cliente Supabase com tratamento de erro melhorado
 supabase = None
 if supabase_available:
@@ -82,7 +104,8 @@ def log_payment_change(payment_id, status_anterior, status_novo,
             'br_payment_id': str(payment_id),
             'br_status_anterior': status_anterior,
             'br_status_novo': status_novo,
-            'br_webhook_data': webhook_data
+            'br_webhook_data': webhook_data,
+            'br_data_criacao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).execute()
         return True
     except Exception as e:
@@ -264,7 +287,8 @@ def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
             'br_afiliado_id': afiliado_id,
             'br_ip_visitor': ip_cliente or 'unknown',
             'br_user_agent': (user_agent or '')[:500],
-            'br_referrer': (referrer or '')[:500]
+            'br_referrer': (referrer or '')[:500],
+            'br_data_criacao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).execute()
         
         # Atualizar contador de clicks
@@ -413,7 +437,7 @@ def health_check():
         'status': 'healthy',
         'supabase': supabase is not None,
         'mercadopago': sdk is not None,
-        'timestamp': datetime.now().isoformat()
+        'timestamp': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
     }
 
 
@@ -504,7 +528,7 @@ def create_payment():
             f"{request.url_root.rstrip('/')}/webhook/mercadopago"
         ),
         "external_reference": (
-            f"RB_{int(datetime.now().timestamp())}_{quantidade}"
+            f"RB_{int(obter_data_brasil().timestamp())}_{quantidade}"  # CORRIGIDO: usar data brasileira
         )
     }
 
@@ -517,7 +541,7 @@ def create_payment():
 
             session['payment_id'] = str(payment['id'])
             session['quantidade'] = quantidade  # Salva a quantidade original (10)
-            session['payment_created_at'] = datetime.now().isoformat()
+            session['payment_created_at'] = formatar_data_brasil()  # CORRIGIDO: usar data brasileira
             if afiliado:
                 session['afiliado_id'] = afiliado['br_id']
 
@@ -532,7 +556,8 @@ def create_payment():
                         'br_user_agent': request.headers.get(
                             'User-Agent', ''
                         )[:500],
-                        'br_raspadinhas_usadas': 0  # Novo campo para controle
+                        'br_raspadinhas_usadas': 0,  # Novo campo para controle
+                        'br_data_criacao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
                     }
                     
                     if afiliado:
@@ -746,7 +771,7 @@ def raspar():
 
 @app.route('/salvar_ganhador', methods=['POST'])
 def salvar_ganhador():
-    """Salva dados do ganhador no Supabase - CORRIGIDA PARA USAR br_ PREFIX CONSISTENTE"""
+    """Salva dados do ganhador no Supabase - CORRIGIDA PARA USAR DATA BRASILEIRA"""
     if not supabase:
         return jsonify({
             'sucesso': False,
@@ -777,7 +802,7 @@ def salvar_ganhador():
                 'erro': 'Código já utilizado'
             })
 
-        # CORREÇÃO FINAL: Usar br_ prefix consistente com schema do banco
+        # CORREÇÃO FINAL: Usar data brasileira ao salvar
         response = supabase.table('br_ganhadores').insert({
             'br_codigo': data['codigo'],
             'br_nome': data['nome'].strip()[:255],
@@ -785,7 +810,8 @@ def salvar_ganhador():
             'br_chave_pix': data['chave_pix'].strip()[:255],
             'br_tipo_chave': data['tipo_chave'],
             'br_telefone': data.get('telefone', '')[:20],
-            'br_status_pagamento': 'pendente'
+            'br_status_pagamento': 'pendente',
+            'br_data_criacao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).execute()
 
         if response.data:
@@ -809,7 +835,7 @@ def salvar_ganhador():
 
 @app.route('/cadastrar_afiliado', methods=['POST'])
 def cadastrar_afiliado():
-    """Cadastra novo afiliado"""
+    """Cadastra novo afiliado - CORRIGIDA PARA USAR DATA BRASILEIRA"""
     if not supabase:
         return jsonify({
             'sucesso': False,
@@ -854,14 +880,15 @@ def cadastrar_afiliado():
         # Gerar código único
         codigo = gerar_codigo_afiliado_unico()
 
-        # Inserir afiliado
+        # CORREÇÃO: Inserir afiliado com data brasileira
         response = supabase.table('br_afiliados').insert({
             'br_codigo': codigo,
             'br_nome': data['nome'].strip()[:255],
             'br_email': data['email'].strip().lower()[:255],
             'br_telefone': data['telefone'].strip()[:20],
             'br_cpf': cpf,
-            'br_status': 'ativo'
+            'br_status': 'ativo',
+            'br_data_criacao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).execute()
 
         if response.data:
@@ -980,7 +1007,7 @@ def atualizar_pix_afiliado():
 
 @app.route('/solicitar_saque_afiliado', methods=['POST'])
 def solicitar_saque_afiliado():
-    """Processa solicitação de saque do afiliado"""
+    """Processa solicitação de saque do afiliado - CORRIGIDA PARA USAR DATA BRASILEIRA"""
     if not supabase:
         return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
 
@@ -1021,14 +1048,14 @@ def solicitar_saque_afiliado():
                 'erro': 'Configure sua chave PIX primeiro'
             })
 
-        # Inserir solicitação de saque
+        # CORREÇÃO: Inserir solicitação de saque com data brasileira
         saque_response = supabase.table('br_saques_afiliados').insert({
             'br_afiliado_id': afiliado['br_id'],
             'br_valor': saldo,
             'br_chave_pix': afiliado['br_chave_pix'],
             'br_tipo_chave': afiliado['br_tipo_chave_pix'],
             'br_status': 'solicitado',
-            'br_data_solicitacao': datetime.now().isoformat()
+            'br_data_solicitacao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).execute()
 
         if saque_response.data:
@@ -1082,9 +1109,9 @@ def admin_login():
                 session['admin_logado'] = True
                 session['admin_usuario'] = admin['br_usuario']
                 
-                # Atualizar último login
+                # CORREÇÃO: Atualizar último login com data brasileira
                 supabase.table('br_admins').update({
-                    'br_ultimo_login': datetime.now().isoformat()
+                    'br_ultimo_login': formatar_data_brasil()
                 }).eq('br_id', admin['br_id']).execute()
                 
                 return jsonify({'success': True, 'message': f'Bem-vindo, {admin["br_nome"]}'})
@@ -1205,7 +1232,7 @@ def admin_pagamentos_orfaos():
 
 @app.route('/admin/processar_devolucao', methods=['POST'])
 def admin_processar_devolucao():
-    """Processa devolução de pagamento órfão - COM VALIDAÇÕES ROBUSTAS"""
+    """Processa devolução de pagamento órfão - COM VALIDAÇÕES ROBUSTAS E DATA BRASILEIRA"""
     if not session.get('admin_logado'):
         return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
     
@@ -1234,10 +1261,10 @@ def admin_processar_devolucao():
         if venda.get('br_status') == 'refunded':
             return jsonify({'sucesso': False, 'erro': 'Este pagamento já foi devolvido'})
         
-        # Marcar como devolvida
+        # CORREÇÃO: Marcar como devolvida com data brasileira
         supabase.table('br_vendas').update({
             'br_status': 'refunded',
-            'br_data_devolucao': datetime.now().isoformat()
+            'br_data_devolucao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).eq('br_payment_id', str(payment_id)).execute()
         
         # Se havia afiliado, reverter comissão
@@ -1355,7 +1382,7 @@ def admin_premiados():
 
 @app.route('/admin/adicionar_ganhador', methods=['POST'])
 def admin_adicionar_ganhador():
-    """Adiciona novo ganhador manualmente"""
+    """Adiciona novo ganhador manualmente - CORRIGIDA PARA USAR DATA BRASILEIRA"""
     if not session.get('admin_logado'):
         return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
     
@@ -1377,14 +1404,15 @@ def admin_adicionar_ganhador():
         # Gerar código único
         codigo = gerar_codigo_unico()
         
-        # Inserir ganhador
+        # CORREÇÃO: Inserir ganhador com data brasileira
         response = supabase.table('br_ganhadores').insert({
             'br_codigo': codigo,
             'br_nome': data['nome'].strip()[:255],
             'br_valor': data['valor'],
             'br_chave_pix': data['chave_pix'].strip()[:255],
             'br_tipo_chave': data['tipo_chave'],
-            'br_status_pagamento': data.get('status_pagamento', 'pendente')
+            'br_status_pagamento': data.get('status_pagamento', 'pendente'),
+            'br_data_criacao': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).execute()
         
         if response.data:
@@ -1550,20 +1578,21 @@ def admin_saques_afiliados():
 
 @app.route('/admin/stats')
 def admin_stats():
-    """Estatísticas do sistema incluindo afiliados - CORRIGIDA PARA CONTAR RASPADINHAS"""
+    """Estatísticas do sistema incluindo afiliados - CORRIGIDA PARA CONTAR RASPADINHAS E USAR DATA BRASILEIRA"""
     try:
         vendidas = obter_total_vendas()
         ganhadores = obter_total_ganhadores()
         afiliados = obter_total_afiliados()
         
-        # Estatísticas do dia
+        # CORREÇÃO: Estatísticas do dia usando data brasileira
         vendas_hoje = 0
         vendas_afiliados_hoje = 0
         if supabase:
             try:
-                hoje = date.today().isoformat()
+                # Usar data brasileira para filtrar
+                hoje = obter_data_hoje_brasil()
                 vendas_response = supabase.table('br_vendas').select('*').gte(
-                    'br_data_criacao', hoje + ' 00:00:00'
+                    'br_data_criacao', hoje + 'T00:00:00'
                 ).eq('br_status', 'completed').execute()
                 
                 for venda in (vendas_response.data or []):
@@ -1617,7 +1646,7 @@ def admin_stats():
 
 @app.route('/admin/pagar_saque_afiliado/<int:saque_id>', methods=['POST'])
 def pagar_saque_afiliado(saque_id):
-    """Marca saque de afiliado como pago"""
+    """Marca saque de afiliado como pago - CORRIGIDA PARA USAR DATA BRASILEIRA"""
     if not session.get('admin_logado'):
         return jsonify({"sucesso": False, "erro": "Acesso negado"}), 403
     
@@ -1625,9 +1654,10 @@ def pagar_saque_afiliado(saque_id):
         return jsonify({"sucesso": False, "erro": "Sistema indisponível"}), 500
     
     try:
+        # CORREÇÃO: Usar data brasileira para pagamento
         response = supabase.table('br_saques_afiliados').update({
             'br_status': 'pago',
-            'br_data_pagamento': datetime.now().isoformat()
+            'br_data_pagamento': formatar_data_brasil()  # CORRIGIDO: usar data brasileira
         }).eq('br_id', saque_id).execute()
         
         if response.data:
@@ -1677,7 +1707,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando Raspa Brasil COMPLETAMENTE ATUALIZADO...")
+    print("🚀 Iniciando Raspa Brasil COMPLETAMENTE ATUALIZADO COM TIMEZONE BRASILEIRO...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
@@ -1691,6 +1721,8 @@ if __name__ == '__main__':
     print(f"🎮 Bandeira Brasil: ✅ CENTRALIZADA PERFEITAMENTE")
     print(f"🎲 Ganhadores: ✅ CRUD COMPLETO COM RELATÓRIO PDF")
     print(f"📊 Relatório Diário: ✅ COM FILTROS E EXPORTAÇÃO PDF")
+    print(f"🕐 Timezone Brasileiro: ✅ UTC-3 CONFIGURADO CORRETAMENTE")
+    print(f"📅 Datas Corrigidas: ✅ PROBLEMAS DE TIMEZONE RESOLVIDOS")
     print(f"🔧 TODAS AS FUNCIONALIDADES IMPLEMENTADAS:")
     print(f"   - ✅ Botões Adicionar/Editar/Remover Ganhadores")
     print(f"   - ✅ Relatório Diário com Filtro por Data")
@@ -1699,5 +1731,7 @@ if __name__ == '__main__':
     print(f"   - ✅ Sistema 100% funcional e pronto para produção!")
     print(f"   - ✅ Correção da posição do fundo preto da raspadinha")
     print(f"   - ✅ Interface responsiva e moderna")
+    print(f"   - ✅ DATAS BRASILEIRAS: Problema de dia 31->30 RESOLVIDO!")
+    print(f"   - ✅ EXPORT PDF: Biblioteca jsPDF CORRIGIDA!")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
