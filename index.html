@@ -3043,16 +3043,16 @@
                 
                 if (resultado.saques && resultado.saques.length > 0) {
                     resultado.saques.forEach(saque => {
-                        const statusClass = (saque.rb_status === 'pago') ? 'success' : 'warning';
-                        const statusText = (saque.rb_status === 'pago') ? 'Pago' : 'Pendente';
+                        const statusClass = (saque.br_status === 'pago') ? 'success' : 'warning';
+                        const statusText = (saque.br_status === 'pago') ? 'Pago' : 'Pendente';
                         
                         // Garantir que os dados existam com fallbacks seguros
-                        const nomeAfiliado = saque.br_afiliados?.rb_nome || 'Nome não encontrado (N/A)';
-                        const codigoAfiliado = saque.br_afiliados?.rb_codigo || 'N/A';
-                        const totalVendas = saque.br_afiliados?.rb_total_vendas || 0;
-                        const valor = parseFloat(saque.rb_valor || 0);
-                        const chavePix = saque.rb_chave_pix || 'undefined';
-                        const dataSolicitacao = saque.rb_data_solicitacao ? formatarDataBrasilia(new Date(saque.rb_data_solicitacao)) : 'Invalid Date';
+                        const nomeAfiliado = saque.nome_afiliado || 'Nome não encontrado';
+                        const codigoAfiliado = saque.codigo_afiliado || 'N/A';
+                        const totalVendas = saque.total_vendas || 0;
+                        const valor = parseFloat(saque.br_valor || 0);
+                        const chavePix = saque.br_chave_pix || 'N/A';
+                        const dataSolicitacao = saque.br_data_solicitacao ? formatarDataBrasilia(new Date(saque.br_data_solicitacao)) : 'N/A';
                         
                         html += `
                             <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
@@ -3062,11 +3062,11 @@
                                 <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
                                 <p><strong>Data:</strong> ${dataSolicitacao}</p>
                                 <div style="margin-top: 15px;">
-                                    ${saque.rb_status === 'pago' ? 
-                                        `<button class="btn btn-affiliate" onclick="excluirSaqueAfiliado(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+                                    ${saque.br_status === 'pago' ? 
+                                        `<button class="btn btn-affiliate" onclick="excluirSaqueAfiliado(${saque.br_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
                                             Excluir
                                         </button>` :
-                                        `<button class="btn btn-affiliate" onclick="pagarSaqueAfiliado(${saque.rb_id})">
+                                        `<button class="btn btn-affiliate" onclick="pagarSaqueAfiliado(${saque.br_id})">
                                             Pagar
                                         </button>`
                                     }
@@ -3182,12 +3182,12 @@
                     let html = '<h4>Lista de Ganhadores:</h4><div class="premiados-table">';
                     resultado.premiados.forEach(premiado => {
                         // Garantir que os dados existam com fallbacks seguros
-                        const codigo = premiado.rb_codigo || 'undefined';
-                        const nome = premiado.rb_nome || 'undefined';
-                        const valor = premiado.rb_valor || 'undefined';
-                        const chavePix = premiado.rb_chave_pix || 'undefined';
-                        const status = premiado.rb_status_pagamento || 'pendente';
-                        const data = premiado.rb_data_criacao ? formatarDataBrasilia(new Date(premiado.rb_data_criacao)) : 'Invalid Date';
+                        const codigo = premiado.br_codigo || 'N/A';
+                        const nome = premiado.br_nome || 'N/A';
+                        const valor = premiado.br_valor || 'N/A';
+                        const chavePix = premiado.br_chave_pix || 'N/A';
+                        const status = premiado.br_status_pagamento || 'pendente';
+                        const data = premiado.br_data_criacao ? formatarDataBrasilia(new Date(premiado.br_data_criacao)) : 'N/A';
                         
                         html += `
                             <div class="premiado-item">
@@ -3732,9 +3732,6 @@
                 if (!resultado.sucesso) {
                     throw new Error(resultado.erro || 'Erro ao salvar dados');
                 }
-                
-                // CRIAR SAQUE AUTOMÁTICO PARA O GANHADOR (removido pois não precisamos mais)
-                // Os dados agora aparecem automaticamente na seção Ganhadores do admin
                 
                 const mensagem = `GANHEI NA RASPA BRASIL!
 
