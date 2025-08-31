@@ -804,6 +804,63 @@ def salvar_ganhador():
         return jsonify({'sucesso': False, 'erro': str(e)})
 
 
+@app.route('/criar_saque_ganhador', methods=['POST'])
+def criar_saque_ganhador():
+    """Cria automaticamente uma solicitação de saque para o ganhador"""
+    try:
+        data = request.json
+        
+        # Validar dados obrigatórios
+        campos_obrigatorios = ['ganhador_id', 'nome', 'valor', 'chave_pix', 'codigo']
+        for campo in campos_obrigatorios:
+            if not data.get(campo):
+                print(f"❌ Campo obrigatório ausente: {campo}")
+                return jsonify({'sucesso': False, 'erro': f'Campo {campo} é obrigatório'})
+        
+        if not supabase:
+            print("❌ Supabase não conectado")
+            return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        
+        # Extrair valor numérico do prêmio
+        valor_texto = data['valor']
+        try:
+            # Remover R$, espaços e converter vírgula para ponto
+            valor_limpo = valor_texto.replace('R$', '').replace(' ', '').replace(',', '.')
+            valor_numerico = float(valor_limpo)
+        except (ValueError, AttributeError):
+            print(f"❌ Erro ao converter valor: {valor_texto}")
+            return jsonify({'sucesso': False, 'erro': 'Valor inválido'})
+        
+        # Criar solicitação de saque
+        saque_data = {
+            'br_ganhador_id': data['ganhador_id'],
+            'br_valor': valor_numerico,
+            'br_chave_pix': data['chave_pix'],
+            'br_tipo_chave': data.get('tipo_chave', 'cpf'),
+            'br_status': 'solicitado',
+            'br_data_solicitacao': datetime.now().isoformat()
+        }
+        
+        response = supabase.table('br_saques_ganhadores').insert(saque_data).execute()
+        
+        if response.data:
+            print(f"💸 Saque criado automaticamente: {data['nome']} - {valor_texto} - Código: {data['codigo']}")
+            return jsonify({
+                'sucesso': True, 
+                'saque_id': response.data[0]['br_id'],
+                'valor': valor_numerico
+            })
+        else:
+            print(f"❌ Erro ao inserir saque no banco")
+            return jsonify({'sucesso': False, 'erro': 'Erro ao criar saque'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao criar saque de ganhador: {str(e)}")
+        return jsonify({'sucesso': False, 'erro': f'Erro interno: {str(e)}'})
+        
+    return jsonify({'sucesso': False, 'erro': 'Erro desconhecido'})
+
+
 # ========== ROTAS DE AFILIADOS ==========
 
 @app.route('/cadastrar_afiliado', methods=['POST'])
