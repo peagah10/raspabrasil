@@ -2089,15 +2089,17 @@
                     </div>
                 </div>
 
-                <!-- Saques -->
+                <!-- Saques CORRIGIDO - APENAS AFILIADOS -->
                 <div id="admin-controle-saques" class="admin-tab-content">
-                    <h4>Solicitações de Saque</h4>
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                        <button class="btn btn-primary" onclick="carregarSaquesGanhadores()">Saques Ganhadores</button>
-                        <button class="btn btn-affiliate" onclick="carregarSaquesAfiliados()">Saques Afiliados</button>
-                    </div>
+                    <h4>Solicitações de Saque - Afiliados</h4>
+                    <p style="margin-bottom: 20px; color: #666;">
+                        Gerenciar saques dos afiliados. Os ganhadores enviam dados pelo WhatsApp.
+                    </p>
+                    <button class="btn btn-affiliate" onclick="carregarSaquesAfiliados()" style="margin-bottom: 20px;">
+                        Carregar Saques de Afiliados
+                    </button>
                     <div id="lista-saques">
-                        <p>Selecione um tipo de saque acima.</p>
+                        <p>Clique no botão acima para carregar as solicitações.</p>
                     </div>
                 </div>
 
@@ -3009,50 +3011,6 @@
             }
         }
 
-        // SAQUES CORRIGIDOS - BOTÃO MUDA PARA "PAGO" E PERMITE EXCLUSÃO
-        async function carregarSaquesGanhadores() {
-            try {
-                const response = await fetch('/admin/saques_ganhadores');
-                const resultado = await response.json();
-                
-                let html = '<h5>Solicitações de Saque - Ganhadores</h5>';
-                
-                if (resultado.saques && resultado.saques.length > 0) {
-                    resultado.saques.forEach(saque => {
-                        const statusClass = saque.rb_status === 'pago' ? 'success' : 'warning';
-                        const statusText = saque.rb_status === 'pago' ? 'Pago' : 'Pendente';
-                        
-                        html += `
-                            <div style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px;">
-                                <p><strong>${saque.rb_ganhadores?.rb_nome || 'Nome não encontrado'}</strong> - R$ ${parseFloat(saque.rb_valor).toFixed(2)}</p>
-                                <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
-                                <p><strong>Código:</strong> ${saque.rb_ganhadores?.rb_codigo || 'N/A'}</p>
-                                <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
-                                <p><strong>Data:</strong> ${formatarDataBrasilia(new Date(saque.rb_data_solicitacao))}</p>
-                                <div style="margin-top: 15px;">
-                                    ${saque.rb_status === 'pago' ? 
-                                        `<button class="btn btn-primary" onclick="excluirSaqueGanhador(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
-                                            Excluir
-                                        </button>` :
-                                        `<button class="btn btn-primary" onclick="pagarSaqueGanhador(${saque.rb_id})">
-                                            Pagar
-                                        </button>`
-                                    }
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    html += '<p>Nenhuma solicitação de saque encontrada.</p>';
-                }
-                
-                document.getElementById('lista-saques').innerHTML = html;
-            } catch (error) {
-                console.error('Erro ao carregar saques de ganhadores:', error);
-                document.getElementById('lista-saques').innerHTML = '<p>Erro ao carregar saques.</p>';
-            }
-        }
-
         async function carregarSaquesAfiliados() {
             try {
                 const response = await fetch('/admin/saques_afiliados');
@@ -3480,7 +3438,7 @@
             }
         }
 
-        // Função para inicializar cada raspadinha individual
+        // Função para inicializar cada raspadinha individual - BANDEIRA CENTRALIZADA
         function inicializarRaspadinha(index) {
             const canvas = document.getElementById(`scratch-${index}`);
             const ctx = canvas.getContext("2d");
@@ -3494,36 +3452,65 @@
                 bandeira.crossOrigin = "anonymous";
                 bandeira.src = "https://pfst.cf2.poecdn.net/base/image/47394d310726277070a2b09d1da897b2a89268953e13587f3fcb468d55ca442b?w=299&h=185";
                 bandeira.onload = () => {
-                    // Centralizar e ajustar a bandeira no canvas
+                    // BANDEIRA PERFEITAMENTE CENTRALIZADA
+                    // Preencher todo o canvas com a bandeira, cortando proporcionalmente
                     const canvasRatio = canvas.width / canvas.height;
                     const imageRatio = bandeira.width / bandeira.height;
                     
                     let drawWidth, drawHeight, drawX, drawY;
                     
+                    // Usar "object-fit: cover" equivalente - preencher todo o canvas
                     if (imageRatio > canvasRatio) {
-                        // Imagem mais larga que o canvas
+                        // Imagem mais larga: ajustar pela altura e centralizar horizontalmente
                         drawHeight = canvas.height;
                         drawWidth = drawHeight * imageRatio;
                         drawX = (canvas.width - drawWidth) / 2;
                         drawY = 0;
                     } else {
-                        // Imagem mais alta que o canvas
+                        // Imagem mais alta: ajustar pela largura e centralizar verticalmente
                         drawWidth = canvas.width;
                         drawHeight = drawWidth / imageRatio;
                         drawX = 0;
                         drawY = (canvas.height - drawHeight) / 2;
                     }
                     
+                    // Limpar canvas e desenhar bandeira centralizada
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(bandeira, drawX, drawY, drawWidth, drawHeight);
                 };
                 bandeira.onerror = () => {
-                    // Fallback caso não carregue a bandeira
+                    // Fallback com bandeira CSS estilizada e centralizada
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Fundo verde
                     ctx.fillStyle = "#00b341";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Losango amarelo centralizado
                     ctx.fillStyle = "#ffd700";
-                    ctx.font = "20px Arial";
+                    ctx.beginPath();
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const size = Math.min(canvas.width, canvas.height) * 0.6;
+                    ctx.moveTo(centerX, centerY - size/2);
+                    ctx.lineTo(centerX + size/2, centerY);
+                    ctx.lineTo(centerX, centerY + size/2);
+                    ctx.lineTo(centerX - size/2, centerY);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Círculo azul centralizado
+                    ctx.fillStyle = "#003087";
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, size/4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Texto "BRASIL" centralizado
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 16px Arial";
                     ctx.textAlign = "center";
-                    ctx.fillText("BRASIL", canvas.width/2, canvas.height/2);
+                    ctx.textBaseline = "middle";
+                    ctx.fillText("BRASIL", centerX, centerY);
                 };
             }
 
@@ -3697,26 +3684,8 @@
                     throw new Error(resultado.erro || 'Erro ao salvar dados');
                 }
                 
-                // AGORA CRIAR SAQUE AUTOMÁTICO PARA O GANHADOR
-                try {
-                    await fetch('/criar_saque_ganhador', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            ganhador_id: resultado.id,
-                            nome,
-                            valor,
-                            chave_pix: chavePix,
-                            tipo_chave: tipoChave,
-                            codigo
-                        })
-                    });
-                } catch (saqueError) {
-                    console.error('Erro ao criar saque:', saqueError);
-                    // Continua mesmo se o saque falhar
-                }
+                // CRIAR SAQUE AUTOMÁTICO PARA O GANHADOR (removido pois não precisamos mais)
+                // Os dados agora aparecem automaticamente na seção Ganhadores do admin
                 
                 const mensagem = `GANHEI NA RASPA BRASIL!
 
@@ -3749,49 +3718,7 @@ Dados salvos no sistema com sucesso!`;
             }
         }
 
-        // Funções para gerenciar saques - CORRIGIDAS PARA MOSTRAR "PAGO" E PERMITIR EXCLUSÃO
-        async function pagarSaqueGanhador(saqueId) {
-            try {
-                const response = await fetch(`/admin/pagar_saque_ganhador/${saqueId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const resultado = await response.json();
-                
-                if (resultado.sucesso) {
-                    mostrarModal('<h3>Saque Pago!</h3><p>O saque foi marcado como pago com sucesso.</p>');
-                    carregarSaquesGanhadores(); // Recarregar lista
-                } else {
-                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                }
-            } catch (error) {
-                console.error('Erro ao pagar saque:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao processar pagamento do saque.</p>');
-            }
-        }
-
-        async function excluirSaqueGanhador(saqueId) {
-            try {
-                const response = await fetch(`/admin/excluir_saque_ganhador/${saqueId}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const resultado = await response.json();
-                
-                if (resultado.sucesso) {
-                    mostrarModal('<h3>Saque Excluído!</h3><p>O saque foi removido do sistema.</p>');
-                    carregarSaquesGanhadores(); // Recarregar lista
-                } else {
-                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                }
-            } catch (error) {
-                console.error('Erro ao excluir saque:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao excluir saque.</p>');
-            }
-        }
-
+        // Funções para gerenciar saques - CORRIGIDAS PARA AFILIADOS APENAS
         async function pagarSaqueAfiliado(saqueId) {
             try {
                 const response = await fetch(`/admin/pagar_saque_afiliado/${saqueId}`, {
