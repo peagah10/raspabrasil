@@ -2,7 +2,7 @@ import os
 import random
 import string
 from datetime import datetime, date
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_file
 from dotenv import load_dotenv
 
 # Inicializar Supabase com configuração compatível
@@ -415,6 +415,46 @@ def health_check():
         'mercadopago': sdk is not None,
         'timestamp': datetime.now().isoformat()
     }
+
+
+@app.route('/webhook/mercadopago', methods=['POST'])
+def webhook_mercadopago():
+    """Webhook do Mercado Pago para notificações de pagamento"""
+    try:
+        data = request.json
+        print(f"📬 Webhook recebido: {data}")
+        
+        # Verificar se é uma notificação de pagamento
+        if data.get('type') == 'payment':
+            payment_id = data.get('data', {}).get('id')
+            if payment_id:
+                print(f"🔔 Notificação de pagamento: {payment_id}")
+                
+                # Processar o pagamento automaticamente
+                if supabase and sdk:
+                    try:
+                        # Buscar detalhes do pagamento
+                        payment_response = sdk.payment().get(payment_id)
+                        if payment_response["status"] == 200:
+                            payment = payment_response["response"]
+                            status = payment['status']
+                            
+                            # Atualizar status no banco
+                            supabase.table('br_vendas').update({
+                                'br_status': 'completed' if status == 'approved' else status
+                            }).eq('br_payment_id', str(payment_id)).execute()
+                            
+                            print(f"📊 Status atualizado via webhook: {payment_id} -> {status}")
+                            
+                            # Log da mudança
+                            log_payment_change(payment_id, 'pending', status, data)
+                    except Exception as e:
+                        print(f"❌ Erro ao processar webhook: {str(e)}")
+        
+        return jsonify({'status': 'ok'}), 200
+    except Exception as e:
+        print(f"❌ Erro no webhook: {str(e)}")
+        return jsonify({'error': 'webhook_error'}), 500
 
 
 @app.route('/create_payment', methods=['POST'])
@@ -838,7 +878,7 @@ def cadastrar_afiliado():
                     'total_vendas': 0,
                     'total_comissao': 0,
                     'saldo_disponivel': 0,
-                    'link': f"https://raspabrasil.com/?ref={codigo}"
+                    'link': f"{request.url_root}?ref={codigo}"
                 }
             })
         else:
@@ -1420,7 +1460,7 @@ def admin_saques_afiliados():
 
 @app.route('/admin/stats')
 def admin_stats():
-    """Estatísticas do sistema incluindo afiliados"""
+    """Estatísticas do sistema incluindo afiliados - CORRIGIDA PARA CONTAR RASPADINHAS"""
     try:
         vendidas = obter_total_vendas()
         ganhadores = obter_total_ganhadores()
@@ -1436,8 +1476,13 @@ def admin_stats():
                     'br_data_criacao', hoje + ' 00:00:00'
                 ).eq('br_status', 'completed').execute()
                 
-                vendas_hoje = len(vendas_response.data or [])
-                vendas_afiliados_hoje = len([v for v in (vendas_response.data or []) if v.get('br_afiliado_id')])
+                for venda in (vendas_response.data or []):
+                    # Contar raspadinhas vendidas (não vendas)
+                    quantidade = venda.get('br_quantidade', 0)
+                    vendas_hoje += quantidade
+                    
+                    if venda.get('br_afiliado_id'):
+                        vendas_afiliados_hoje += quantidade
                 
             except Exception as e:
                 print(f"❌ Erro ao obter vendas do dia: {str(e)}")
@@ -1610,5 +1655,6 @@ if __name__ == '__main__':
     print(f"🎁 Promoção 10+2: ✅ ATIVA")
     print(f"⚙️ Área Admin: LIBERADA PARA GESTÃO MANUAL")
     print(f"🛡️ Validações Robustas: ✅ IMPLEMENTADAS")
+    print(f"📬 Webhook Mercado Pago: ✅ IMPLEMENTADO")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
