@@ -191,6 +191,7 @@
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
         }
 
+
         @keyframes pulse {
             0%, 100% { transform: scale(1) rotate(0deg); }
             50% { transform: scale(1.08) rotate(5deg); }
@@ -3008,6 +3009,7 @@
             }
         }
 
+        // SAQUES CORRIGIDOS - BOTÃO MUDA PARA "PAGO" E PERMITE EXCLUSÃO
         async function carregarSaquesGanhadores() {
             try {
                 const response = await fetch('/admin/saques_ganhadores');
@@ -3215,8 +3217,8 @@
 
         // Navegação
         function irParaPagamento() {
-            // Verificar se há código de afiliado armazenado
-            const refCode = localStorage.getItem('raspa_ref');
+            // CORRIGIR: Verificar se há código de afiliado de forma mais robusta
+            const refCode = localStorage.getItem('raspa_ref') || sessionStorage.getItem('raspa_ref') || null;
             
             // Aplicar promoção 10+2 no pagamento
             let quantidadeReal = quantidade;
@@ -3269,7 +3271,7 @@
             }
         }
 
-        // Função para criar pagamento real no Mercado Pago
+        // CORRIGIR FUNÇÃO DE PAGAMENTO - NÃO ASSOCIAR AFILIADO SE VENDA É DIRETA
         async function criarPagamentoReal(refCode) {
             const btn = document.getElementById('btn-real-payment');
             if (btn) {
@@ -3286,8 +3288,13 @@
 
             try {
                 const paymentData = { quantidade: quantidade };
-                if (refCode) {
-                    paymentData.ref_code = refCode;
+                
+                // CORREÇÃO: Só associar afiliado se realmente veio de um link de afiliado válido
+                if (refCode && refCode.trim() !== '' && refCode !== 'null' && refCode !== 'undefined') {
+                    paymentData.ref_code = refCode.trim();
+                    console.log('🔗 Associando ao afiliado:', refCode.trim());
+                } else {
+                    console.log('💰 Venda direta (sem afiliado)');
                 }
 
                 const response = await fetch('/create_payment', {
@@ -3647,7 +3654,7 @@
             container.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // Função para enviar via WhatsApp (conectada ao backend)
+        // FUNÇÃO CORRIGIDA - Enviar via WhatsApp E criar saque para ganhador
         async function enviarWhatsApp(valor, codigo) {
             const nome = document.getElementById('nome-ganhador').value.trim();
             const tipoChave = document.getElementById('tipo-chave').value;
@@ -3669,7 +3676,7 @@
             }
             
             try {
-                // Salvar no backend
+                // Salvar ganhador no backend
                 const response = await fetch('/salvar_ganhador', {
                     method: 'POST',
                     headers: {
@@ -3688,6 +3695,27 @@
                 
                 if (!resultado.sucesso) {
                     throw new Error(resultado.erro || 'Erro ao salvar dados');
+                }
+                
+                // AGORA CRIAR SAQUE AUTOMÁTICO PARA O GANHADOR
+                try {
+                    await fetch('/criar_saque_ganhador', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            ganhador_id: resultado.id,
+                            nome,
+                            valor,
+                            chave_pix: chavePix,
+                            tipo_chave: tipoChave,
+                            codigo
+                        })
+                    });
+                } catch (saqueError) {
+                    console.error('Erro ao criar saque:', saqueError);
+                    // Continua mesmo se o saque falhar
                 }
                 
                 const mensagem = `GANHEI NA RASPA BRASIL!
@@ -3813,12 +3841,17 @@ Dados salvos no sistema com sucesso!`;
             initWinnerAlerts();
             gerarGanhadoresSlider();
             
-            // Verificar se há código de afiliado na URL
+            // CORRIGIR: Verificar se há código de afiliado na URL com validação
             const urlParams = new URLSearchParams(window.location.search);
             const refCode = urlParams.get('ref');
-            if (refCode) {
-                localStorage.setItem('raspa_ref', refCode);
-                console.log('Código de afiliado detectado:', refCode);
+            if (refCode && refCode.trim() !== '' && refCode.length > 2) {
+                localStorage.setItem('raspa_ref', refCode.trim());
+                sessionStorage.setItem('raspa_ref', refCode.trim());
+                console.log('🔗 Código de afiliado detectado e salvo:', refCode.trim());
+            } else {
+                // Limpar códigos inválidos
+                localStorage.removeItem('raspa_ref');
+                sessionStorage.removeItem('raspa_ref');
             }
             
             // Verificar login automático do afiliado
