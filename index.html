@@ -371,6 +371,40 @@
             box-shadow: 0 0 60px rgba(40, 167, 69, 1);
         }
 
+        /* Botão WhatsApp Flutuante */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+            z-index: 9998;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            animation: pulseWhatsApp 2s infinite;
+        }
+
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(37, 211, 102, 0.6);
+            color: white;
+        }
+
+        @keyframes pulseWhatsApp {
+            0% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
+            50% { box-shadow: 0 6px 30px rgba(37, 211, 102, 0.6); }
+            100% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
+        }
+
         /* Seção Principal Melhorada - RESPONSIVIDADE MOBILE CORRIGIDA */
         .main-section {
             text-align: center;
@@ -1438,6 +1472,11 @@
     </style>
 </head>
 <body>
+    <!-- Botão WhatsApp Flutuante -->
+    <a href="https://wa.me/5582996092684?text=Olá!%20Preciso%20de%20suporte%20no%20Raspa%20Brasil." target="_blank" class="whatsapp-float" title="Suporte WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
     <!-- Botão Indique e Ganhe simples no topo -->
     <div style="text-align: center; margin-bottom: 20px; padding: 10px;">
     <button onclick="abrirAfiliados()" 
@@ -2146,6 +2185,26 @@
         let currentAdminTab = 'dashboard';
         const WHATSAPP_NUMERO = "5582996092684";
 
+        // Função para obter data/hora em horário de Brasília (UTC-3)
+        function obterDataBrasilia() {
+            const agora = new Date();
+            const utc = agora.getTime() + (agora.getTimezoneOffset() * 60000);
+            const brasilia = new Date(utc + (-3 * 3600000)); // UTC-3
+            return brasilia;
+        }
+
+        function formatarDataBrasilia(data) {
+            return data.toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
         // Sistema de nomes aleatórios para alertas de ganhadores
         const nomesAleatorios = [
             "Ana Beatriz Silva", "Carlos Eduardo Santos", "Maria Fernanda Costa", 
@@ -2756,7 +2815,7 @@
                         const paymentId = pagamento.rb_payment_id || 'N/A';
                         const valor = pagamento.rb_valor_total || 0;
                         const quantidade = pagamento.rb_quantidade || 0;
-                        const data = pagamento.rb_data_criacao ? new Date(pagamento.rb_data_criacao).toLocaleString('pt-BR') : 'N/A';
+                        const data = pagamento.rb_data_criacao ? formatarDataBrasilia(new Date(pagamento.rb_data_criacao)) : 'N/A';
                         const ip = pagamento.rb_ip_cliente || 'N/A';
                         const afiliadoId = pagamento.rb_afiliado_id || null;
                         
@@ -2935,7 +2994,7 @@
                                 <p><strong>Clicks:</strong> ${afiliado.total_clicks} | <strong>Vendas:</strong> ${afiliado.total_vendas}</p>
                                 <p><strong>Comissão Total:</strong> R$ ${afiliado.total_comissao.toFixed(2)} | <strong>Saldo:</strong> R$ ${afiliado.saldo_disponivel.toFixed(2)}</p>
                                 <p><strong>Status:</strong> ${afiliado.status}</p>
-                                <p><strong>Cadastrado em:</strong> ${new Date(afiliado.data_criacao).toLocaleString('pt-BR')}</p>
+                                <p><strong>Cadastrado em:</strong> ${formatarDataBrasilia(new Date(afiliado.data_criacao))}</p>
                             </div>
                         `;
                     });
@@ -2967,7 +3026,7 @@
                                 <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
                                 <p><strong>Código:</strong> ${saque.rb_ganhadores?.rb_codigo || 'N/A'}</p>
                                 <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
-                                <p><strong>Data:</strong> ${new Date(saque.rb_data_solicitacao).toLocaleString('pt-BR')}</p>
+                                <p><strong>Data:</strong> ${formatarDataBrasilia(new Date(saque.rb_data_solicitacao))}</p>
                                 <div style="margin-top: 15px;">
                                     ${saque.rb_status === 'pago' ? 
                                         `<button class="btn btn-primary" onclick="excluirSaqueGanhador(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
@@ -3010,7 +3069,7 @@
                                 <p><strong>PIX:</strong> ${saque.rb_chave_pix}</p>
                                 <p><strong>Comissão de:</strong> ${saque.rb_afiliados?.rb_total_vendas || 0} vendas</p>
                                 <p><strong>Status:</strong> <span class="cta-message ${statusClass}" style="padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin: 0;">${statusText}</span></p>
-                                <p><strong>Data:</strong> ${new Date(saque.rb_data_solicitacao).toLocaleString('pt-BR')}</p>
+                                <p><strong>Data:</strong> ${formatarDataBrasilia(new Date(saque.rb_data_solicitacao))}</p>
                                 <div style="margin-top: 15px;">
                                     ${saque.rb_status === 'pago' ? 
                                         `<button class="btn btn-affiliate" onclick="excluirSaqueAfiliado(${saque.rb_id})" style="background: linear-gradient(135deg, #dc3545, #c82333);">
@@ -3046,7 +3105,7 @@
                 
                 const vendasDiretas = (stats.vendas_hoje || 0) - (stats.vendas_afiliados_hoje || 0);
                 const totalArrecadado = stats.vendas_hoje || 0;
-                const comissoesPagas = (stats.vendas_afiliados_hoje || 0) * 0.5;
+                const comissoesPagas = (stats.vendas_afiliados_hoje || 0) * 0.5; // 50% de comissão corrigido
                 const lucroLiquido = totalArrecadado - comissoesPagas;
                 
                 document.getElementById('vendas-detalhes').innerHTML = `
@@ -3055,7 +3114,7 @@
                         <p><strong>Vendas Diretas:</strong> ${vendasDiretas} raspadinhas (R$ ${vendasDiretas.toFixed(2)})</p>
                         <p><strong>Vendas via Afiliados:</strong> ${stats.vendas_afiliados_hoje || 0} raspadinhas (R$ ${(stats.vendas_afiliados_hoje || 0).toFixed(2)})</p>
                         <p><strong>Total Arrecadado:</strong> R$ ${totalArrecadado.toFixed(2)}</p>
-                        <p><strong>Comissões Pagas:</strong> R$ ${comissoesPagas.toFixed(2)}</p>
+                        <p><strong>Comissões Pagas (50%):</strong> R$ ${comissoesPagas.toFixed(2)}</p>
                         <p><strong>Lucro Líquido:</strong> R$ ${lucroLiquido.toFixed(2)}</p>
                     </div>
                 `;
@@ -3138,7 +3197,7 @@
                                 <strong>Valor:</strong> ${premiado.rb_valor}<br>
                                 <strong>PIX:</strong> ${premiado.rb_chave_pix}<br>
                                 <strong>Status:</strong> ${premiado.rb_status_pagamento || 'pendente'}<br>
-                                <strong>Data:</strong> ${new Date(premiado.rb_data_criacao).toLocaleString('pt-BR')}<br>
+                                <strong>Data:</strong> ${formatarDataBrasilia(new Date(premiado.rb_data_criacao))}<br>
                             </div>
                         `;
                     });
@@ -3425,9 +3484,30 @@
 
             function desenharCapa() {
                 const bandeira = new Image();
-                bandeira.src = "https://upload.wikimedia.org/wikipedia/commons/0/05/Flag_of_Brazil.svg";
+                bandeira.crossOrigin = "anonymous";
+                bandeira.src = "https://pfst.cf2.poecdn.net/base/image/47394d310726277070a2b09d1da897b2a89268953e13587f3fcb468d55ca442b?w=299&h=185";
                 bandeira.onload = () => {
-                    ctx.drawImage(bandeira, 0, 0, canvas.width, canvas.height);
+                    // Centralizar e ajustar a bandeira no canvas
+                    const canvasRatio = canvas.width / canvas.height;
+                    const imageRatio = bandeira.width / bandeira.height;
+                    
+                    let drawWidth, drawHeight, drawX, drawY;
+                    
+                    if (imageRatio > canvasRatio) {
+                        // Imagem mais larga que o canvas
+                        drawHeight = canvas.height;
+                        drawWidth = drawHeight * imageRatio;
+                        drawX = (canvas.width - drawWidth) / 2;
+                        drawY = 0;
+                    } else {
+                        // Imagem mais alta que o canvas
+                        drawWidth = canvas.width;
+                        drawHeight = drawWidth / imageRatio;
+                        drawX = 0;
+                        drawY = (canvas.height - drawHeight) / 2;
+                    }
+                    
+                    ctx.drawImage(bandeira, drawX, drawY, drawWidth, drawHeight);
                 };
                 bandeira.onerror = () => {
                     // Fallback caso não carregue a bandeira
@@ -3557,7 +3637,7 @@
                     <div style="background: linear-gradient(135deg, #e8f4f8, #d1ecf1); padding: 20px; border-radius: 12px; margin-top: 25px; font-size: clamp(0.85em, 3vw, 1em); text-align: center; border: 2px solid #17a2b8;">
                         <p><strong>Seus dados estão seguros!</strong></p>
                         <p>Use o código de validação <strong>${codigo}</strong> para comprovar seu prêmio a qualquer momento.</p>
-                        <p><strong>WhatsApp:</strong> ${WHATSAPP_NUMERO.replace('55', '+55 ')}</p>
+                        <p><strong>WhatsApp:</strong> +55 82 99609-2684</p>
                     </div>
                 </div>
             `;
@@ -3641,7 +3721,7 @@ Dados salvos no sistema com sucesso!`;
             }
         }
 
-        // Funções para gerenciar saques
+        // Funções para gerenciar saques - CORRIGIDAS PARA MOSTRAR "PAGO" E PERMITIR EXCLUSÃO
         async function pagarSaqueGanhador(saqueId) {
             try {
                 const response = await fetch(`/admin/pagar_saque_ganhador/${saqueId}`, {
