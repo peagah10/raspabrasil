@@ -1007,7 +1007,7 @@
                 </div>
 
                 <!-- Ganhadores -->
-                <div id="admin-ganhadores" class="admin-tab-content">
+                <div id="admin-ganhadores-tab" class="admin-tab-content">
                     <h4>Histórico de Ganhadores</h4>
                     <button class="btn btn-secondary" onclick="carregarGanhadores()" style="margin-bottom: 20px;">
                         Atualizar Lista
@@ -1481,7 +1481,8 @@
             document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.remove('active'));
             
             event.target.classList.add('active');
-            document.getElementById(`admin-${aba}`).classList.add('active');
+            const targetId = aba === 'ganhadores' ? 'admin-ganhadores-tab' : `admin-${aba}`;
+            document.getElementById(targetId).classList.add('active');
             
             currentAdminTab = aba;
             
@@ -1615,13 +1616,17 @@
                     let html = '<div style="display: grid; gap: 15px;">';
                     
                     resultado.bilhetes.forEach(bilhete => {
+                        // Verificar se ml_bilhetes existe e é um array
+                        const bilhetesArray = bilhete.ml_bilhetes || [];
+                        const bilhetesTexto = Array.isArray(bilhetesArray) ? bilhetesArray.join(', ') : 'N/A';
+                        
                         html += `
                             <div style="background: white; padding: 20px; border-radius: 15px; border-left: 6px solid #28a745; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
-                                <h5>${bilhete.nome}</h5>
-                                <p><strong>Bilhetes:</strong> ${bilhete.bilhetes.join(', ')}</p>
-                                <p><strong>Telefone:</strong> ${bilhete.telefone}</p>
-                                <p><strong>PIX:</strong> ${bilhete.chave_pix}</p>
-                                <p><strong>Data:</strong> ${new Date(bilhete.data_criacao).toLocaleString('pt-BR')}</p>
+                                <h5>${bilhete.ml_nome || 'Nome não disponível'}</h5>
+                                <p><strong>Bilhetes:</strong> ${bilhetesTexto}</p>
+                                <p><strong>Telefone:</strong> ${bilhete.ml_telefone || 'N/A'}</p>
+                                <p><strong>PIX:</strong> ${bilhete.ml_chave_pix || 'N/A'}</p>
+                                <p><strong>Data:</strong> ${bilhete.ml_data_criacao ? new Date(bilhete.ml_data_criacao).toLocaleString('pt-BR') : 'N/A'}</p>
                             </div>
                         `;
                     });
@@ -1651,13 +1656,13 @@
                     resultado.ganhadores.forEach(ganhador => {
                         html += `
                             <div style="background: white; padding: 20px; border-radius: 15px; border-left: 6px solid #ffd700; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
-                                <h5>${ganhador.nome}</h5>
-                                <p><strong>Bilhete Premiado:</strong> ${ganhador.bilhete_premiado}</p>
-                                <p><strong>Milhar Sorteada:</strong> ${ganhador.milhar_sorteada}</p>
-                                <p><strong>Valor:</strong> ${ganhador.valor}</p>
-                                <p><strong>PIX:</strong> ${ganhador.chave_pix}</p>
-                                <p><strong>Data:</strong> ${new Date(ganhador.data_sorteio).toLocaleString('pt-BR')}</p>
-                                <p><strong>Status:</strong> ${ganhador.status_pagamento}</p>
+                                <h5>${ganhador.ml_nome || 'Nome não disponível'}</h5>
+                                <p><strong>Bilhete Premiado:</strong> ${ganhador.ml_bilhete_premiado || 'N/A'}</p>
+                                <p><strong>Milhar Sorteada:</strong> ${ganhador.ml_milhar_sorteada || 'N/A'}</p>
+                                <p><strong>Valor:</strong> ${ganhador.ml_valor || 'N/A'}</p>
+                                <p><strong>PIX:</strong> ${ganhador.ml_chave_pix || 'N/A'}</p>
+                                <p><strong>Data:</strong> ${ganhador.ml_data_sorteio ? new Date(ganhador.ml_data_sorteio).toLocaleString('pt-BR') : 'N/A'}</p>
+                                <p><strong>Status:</strong> ${ganhador.ml_status_pagamento || 'N/A'}</p>
                             </div>
                         `;
                     });
