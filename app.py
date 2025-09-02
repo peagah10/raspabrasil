@@ -2,7 +2,7 @@ import os
 import random
 import string
 from datetime import datetime, date, timedelta
-from flask import Flask, request, jsonify, session, send_file
+from flask import Flask, request, jsonify, session, send_file, render_template_string
 from dotenv import load_dotenv
 
 # Inicializar Supabase
@@ -37,6 +37,7 @@ PERCENTUAL_COMISSAO_AFILIADO = 50
 PREMIO_INICIAL_ML = 1000.00
 PRECO_BILHETE_ML = 2.00
 PRECO_RASPADINHA_RB = 1.00
+ADMIN_PASSWORD = "paulo10@admin"
 
 # Inicializar cliente Supabase
 supabase = None
@@ -59,6 +60,7 @@ try:
 except Exception as e:
     print(f"❌ Erro ao configurar Mercado Pago: {str(e)}")
 
+# ========== FUNÇÕES AUXILIARES ==========
 
 def log_payment_change(payment_id, status_anterior, status_novo, webhook_data=None):
     """Registra mudanças de status de pagamento"""
@@ -76,24 +78,20 @@ def log_payment_change(payment_id, status_anterior, status_novo, webhook_data=No
         print(f"❌ Erro ao registrar log: {str(e)}")
         return False
 
-
 def gerar_codigo_antifraude():
     """Gera código único no formato RB-XXXXX-YYY"""
     numero = random.randint(10000, 99999)
     letras = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     return f"RB-{numero}-{letras}"
 
-
 def gerar_codigo_afiliado():
     """Gera código único para afiliado no formato AF-XXXXX"""
     numero = random.randint(100000, 999999)
     return f"AF{numero}"
 
-
 def gerar_milhar():
     """Gera número aleatório de 4 dígitos entre 1111 e 9999"""
     return random.randint(1111, 9999)
-
 
 def verificar_codigo_unico(codigo, tabela='br_ganhadores', campo='br_codigo'):
     """Verifica se o código é único no banco de dados"""
@@ -105,7 +103,6 @@ def verificar_codigo_unico(codigo, tabela='br_ganhadores', campo='br_codigo'):
     except Exception:
         return True
 
-
 def gerar_codigo_unico():
     """Gera um código antifraude único"""
     max_tentativas = 10
@@ -115,7 +112,6 @@ def gerar_codigo_unico():
             return codigo
     return f"RB-{random.randint(10000, 99999)}-{uuid.uuid4().hex[:3].upper()}"
 
-
 def gerar_codigo_afiliado_unico():
     """Gera um código de afiliado único"""
     max_tentativas = 10
@@ -124,7 +120,6 @@ def gerar_codigo_afiliado_unico():
         if verificar_codigo_unico(codigo, 'br_afiliados', 'br_codigo'):
             return codigo
     return f"AF{random.randint(100000, 999999)}"
-
 
 def obter_configuracao(chave, valor_padrao=None):
     """Obtém valor de configuração do Supabase"""
@@ -145,7 +140,6 @@ def obter_configuracao(chave, valor_padrao=None):
     except Exception as e:
         print(f"❌ Erro ao obter configuração {chave}: {str(e)}")
         return valor_padrao
-
 
 def atualizar_configuracao(chave, valor, game_type='raspa_brasil'):
     """Atualiza valor de configuração no Supabase"""
@@ -171,7 +165,6 @@ def atualizar_configuracao(chave, valor, game_type='raspa_brasil'):
         print(f"❌ Erro ao atualizar configuração {chave}: {str(e)}")
         return False
 
-
 def obter_total_vendas(game_type='raspa_brasil'):
     """Obtém total de vendas aprovadas do Supabase"""
     if not supabase:
@@ -189,7 +182,6 @@ def obter_total_vendas(game_type='raspa_brasil'):
         print(f"❌ Erro ao obter total de vendas: {str(e)}")
         return 0
 
-
 def obter_total_ganhadores(game_type='raspa_brasil'):
     """Obtém total de ganhadores do Supabase"""
     if not supabase:
@@ -206,7 +198,6 @@ def obter_total_ganhadores(game_type='raspa_brasil'):
         print(f"❌ Erro ao obter total de ganhadores: {str(e)}")
         return 0
 
-
 def obter_total_afiliados():
     """Obtém total de afiliados ativos do Supabase"""
     if not supabase:
@@ -219,7 +210,6 @@ def obter_total_afiliados():
     except Exception as e:
         print(f"❌ Erro ao obter total de afiliados: {str(e)}")
         return 0
-
 
 def obter_afiliado_por_codigo(codigo):
     """Busca afiliado pelo código"""
@@ -234,7 +224,6 @@ def obter_afiliado_por_codigo(codigo):
         print(f"❌ Erro ao buscar afiliado: {str(e)}")
         return None
 
-
 def obter_afiliado_por_cpf(cpf):
     """Busca afiliado pelo CPF"""
     if not supabase or not cpf:
@@ -247,7 +236,6 @@ def obter_afiliado_por_cpf(cpf):
     except Exception as e:
         print(f"❌ Erro ao buscar afiliado por CPF: {str(e)}")
         return None
-
 
 def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
     """Registra click no link do afiliado"""
@@ -274,14 +262,12 @@ def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
         print(f"❌ Erro ao registrar click: {str(e)}")
         return False
 
-
 def calcular_comissao_afiliado(valor_venda):
     """Calcula comissão do afiliado"""
     if not valor_venda or valor_venda <= 0:
         return 0
     percentual = float(obter_configuracao('percentual_comissao_afiliado', '50'))
     return (valor_venda * percentual / 100)
-
 
 def validar_pagamento_aprovado(payment_id):
     """Valida se o pagamento foi realmente aprovado"""
@@ -305,7 +291,6 @@ def validar_pagamento_aprovado(payment_id):
     except Exception as e:
         print(f"❌ Erro ao validar pagamento {payment_id}: {str(e)}")
         return False
-
 
 def verificar_raspadinhas_para_pagamento():
     """Verifica se há raspadinhas disponíveis para este pagamento específico"""
@@ -335,7 +320,6 @@ def verificar_raspadinhas_para_pagamento():
         print(f"❌ Erro ao verificar raspadinhas: {str(e)}")
         return False
 
-
 def sortear_premio_novo_sistema():
     """Sistema de prêmios manual - Só libera quando admin autorizar"""
     try:
@@ -357,7 +341,6 @@ def sortear_premio_novo_sistema():
         print(f"❌ Erro ao verificar prêmio liberado: {str(e)}")
         return None
 
-
 def obter_premio_acumulado():
     """Obtém valor do prêmio acumulado atual do 2 para 1000"""
     valor = obter_configuracao('premio_acumulado', str(PREMIO_INICIAL_ML))
@@ -366,11 +349,11 @@ def obter_premio_acumulado():
     except:
         return PREMIO_INICIAL_ML
 
-
 def atualizar_premio_acumulado(novo_valor):
     """Atualiza valor do prêmio acumulado do 2 para 1000"""
     return atualizar_configuracao('premio_acumulado', str(novo_valor), '2para1000')
 
+# ========== ROTAS PRINCIPAIS ==========
 
 @app.route('/')
 def index():
@@ -393,10 +376,24 @@ def index():
         return content
     except Exception as e:
         return f"""
-        <h1>Erro ao carregar a página</h1>
-        <p>Erro: {str(e)}</p>
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Portal dos Jogos - Erro</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                .error {{ color: #dc2626; }}
+            </style>
+        </head>
+        <body>
+            <h1 class="error">Erro ao carregar a página</h1>
+            <p>Erro: {str(e)}</p>
+            <p><a href="/">Tentar novamente</a></p>
+        </body>
+        </html>
         """, 500
-
 
 @app.route('/health')
 def health_check():
@@ -405,9 +402,11 @@ def health_check():
         'status': 'healthy',
         'supabase': supabase is not None,
         'mercadopago': sdk is not None,
-        'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat(),
+        'version': '2.0.0',
+        'games': ['raspa_brasil', '2para1000'],
+        'features': ['afiliados', 'admin', 'pagamentos_unificados']
     }
-
 
 @app.route('/webhook/mercadopago', methods=['POST'])
 def webhook_mercadopago():
@@ -448,6 +447,7 @@ def webhook_mercadopago():
         print(f"❌ Erro no webhook: {str(e)}")
         return jsonify({'error': 'webhook_error'}), 500
 
+# ========== ROTAS DE PAGAMENTO ==========
 
 @app.route('/create_payment', methods=['POST'])
 def create_payment():
@@ -463,8 +463,8 @@ def create_payment():
 
     if not sdk:
         return jsonify({
-            'error': 'Mercado Pago não configurado.',
-            'details': 'Token do Mercado Pago necessário.'
+            'error': 'Sistema de pagamento temporariamente indisponível.',
+            'details': 'Tente novamente em alguns minutos.'
         }), 500
 
     # Verificar disponibilidade (apenas para Raspa Brasil)
@@ -525,7 +525,6 @@ def create_payment():
                     campo_payment = 'br_payment_id' if game_type == 'raspa_brasil' else 'ml_payment_id'
                     campo_status = 'br_status' if game_type == 'raspa_brasil' else 'ml_status'
                     campo_ip = 'br_ip_cliente' if game_type == 'raspa_brasil' else 'ml_ip_cliente'
-                    campo_user_agent = 'br_user_agent' if game_type == 'raspa_brasil' else 'ml_user_agent'
                     
                     venda_data = {
                         campo_quantidade: quantidade,
@@ -573,15 +572,14 @@ def create_payment():
         print(f"❌ Exceção ao criar pagamento: {str(e)}")
         return jsonify({
             'error': 'Erro interno do servidor',
-            'details': str(e)
+            'details': 'Tente novamente em alguns minutos'
         }), 500
-
 
 @app.route('/check_payment/<payment_id>')
 def check_payment(payment_id):
     """Verifica status do pagamento no Mercado Pago - Unificado"""
     if not sdk:
-        return jsonify({'error': 'Mercado Pago não configurado'}), 500
+        return jsonify({'error': 'Sistema de pagamento indisponível'}), 500
     
     if not payment_id or payment_id in ['undefined', 'null', '']:
         return jsonify({'error': 'Payment ID inválido'}), 400
@@ -614,7 +612,7 @@ def check_payment(payment_id):
                             venda = venda_response.data[0]
                             update_data = {campo_status: 'completed'}
                             
-                            # Processar comissão apenas para Raspa Brasil
+                            # Processar comissão para Raspa Brasil
                             if game_type == 'raspa_brasil' and venda.get('br_afiliado_id'):
                                 comissao = calcular_comissao_afiliado(venda['br_valor_total'])
                                 update_data['br_comissao_paga'] = comissao
@@ -626,8 +624,7 @@ def check_payment(payment_id):
                                 
                                 if afiliado_atual.data:
                                     afiliado = afiliado_atual.data[0]
-                                    campo_quantidade = 'br_quantidade' if game_type == 'raspa_brasil' else 'ml_quantidade'
-                                    novo_total_vendas = (afiliado['br_total_vendas'] or 0) + venda[campo_quantidade]
+                                    novo_total_vendas = (afiliado['br_total_vendas'] or 0) + venda['br_quantidade']
                                     nova_total_comissao = (afiliado['br_total_comissao'] or 0) + comissao
                                     novo_saldo = (afiliado['br_saldo_disponivel'] or 0) + comissao
                                     
@@ -639,7 +636,7 @@ def check_payment(payment_id):
                                     
                                     print(f"💰 Comissão de R$ {comissao:.2f} creditada ao afiliado {venda['br_afiliado_id']}")
                             
-                            # Processar comissão para 2 para 1000 se necessário
+                            # Processar comissão para 2 para 1000
                             elif game_type == '2para1000' and venda.get('ml_afiliado_id'):
                                 comissao = calcular_comissao_afiliado(venda['ml_valor_total'])
                                 
@@ -690,7 +687,6 @@ def check_payment(payment_id):
         print(f"❌ Exceção ao verificar pagamento: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
 # ========== ROTAS RASPA BRASIL ==========
 
 @app.route('/raspar', methods=['POST'])
@@ -740,12 +736,11 @@ def raspar():
         print(f"❌ Erro ao processar raspagem: {str(e)}")
         return jsonify({'ganhou': False, 'erro': str(e)}), 500
 
-
 @app.route('/salvar_ganhador', methods=['POST'])
 def salvar_ganhador():
     """Salva dados do ganhador no Supabase"""
     if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Supabase não conectado'})
+        return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
     try:
         data = request.json
@@ -782,14 +777,13 @@ def salvar_ganhador():
         print(f"❌ Erro ao salvar ganhador: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
-
 # ========== ROTAS 2 PARA 1000 ==========
 
 @app.route('/enviar_bilhete', methods=['POST'])
 def enviar_bilhete():
     """Salva dados do cliente e seus bilhetes do 2 para 1000"""
     if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
     try:
         data = request.json
@@ -824,7 +818,6 @@ def enviar_bilhete():
     except Exception as e:
         print(f"❌ Erro ao enviar bilhete: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
-
 
 @app.route('/resultado_sorteio')
 def resultado_sorteio():
@@ -867,7 +860,6 @@ def resultado_sorteio():
             'valor_acumulado': f"{PREMIO_INICIAL_ML:.2f}".replace('.', ',')
         })
 
-
 @app.route('/ultimos_ganhadores')
 def ultimos_ganhadores():
     """Obtém últimos ganhadores do 2 para 1000"""
@@ -894,14 +886,13 @@ def ultimos_ganhadores():
         print(f"❌ Erro ao obter ganhadores: {str(e)}")
         return jsonify({'ganhadores': []})
 
-
 # ========== ROTAS DE AFILIADOS ==========
 
 @app.route('/cadastrar_afiliado', methods=['POST'])
 def cadastrar_afiliado():
     """Cadastra novo afiliado"""
     if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
     try:
         data = request.json
@@ -960,12 +951,11 @@ def cadastrar_afiliado():
         print(f"❌ Erro ao cadastrar afiliado: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
-
 @app.route('/login_afiliado', methods=['POST'])
 def login_afiliado():
     """Login do afiliado por CPF"""
     if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
     try:
         data = request.json
@@ -999,12 +989,11 @@ def login_afiliado():
         print(f"❌ Erro no login afiliado: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
-
 @app.route('/atualizar_pix_afiliado', methods=['POST'])
 def atualizar_pix_afiliado():
     """Atualiza chave PIX do afiliado"""
     if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
     try:
         data = request.json
@@ -1032,12 +1021,11 @@ def atualizar_pix_afiliado():
         print(f"❌ Erro ao atualizar PIX: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
-
 @app.route('/solicitar_saque_afiliado', methods=['POST'])
 def solicitar_saque_afiliado():
     """Processa solicitação de saque do afiliado"""
     if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
     try:
         data = request.json
@@ -1092,7 +1080,6 @@ def solicitar_saque_afiliado():
         print(f"❌ Erro ao solicitar saque: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
-
 # ========== ROTAS ADMIN ==========
 
 @app.route('/admin/login', methods=['POST'])
@@ -1104,7 +1091,7 @@ def admin_login():
     if not senha:
         return jsonify({'success': False, 'message': 'Senha é obrigatória'})
     
-    if senha == 'paulo10@admin':
+    if senha == ADMIN_PASSWORD:
         session['admin_logado'] = True
         return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
     
@@ -1125,7 +1112,6 @@ def admin_login():
             print(f"❌ Erro ao verificar admin no banco: {str(e)}")
     
     return jsonify({'success': False, 'message': 'Senha incorreta'})
-
 
 @app.route('/admin/stats')
 def admin_stats():
@@ -1220,7 +1206,6 @@ def admin_stats():
             'sistema_ativo': True
         })
 
-
 @app.route('/admin/liberar_premio_manual', methods=['POST'])
 def admin_liberar_premio_manual():
     """Libera prêmio manual para próxima raspagem"""
@@ -1248,7 +1233,6 @@ def admin_liberar_premio_manual():
         print(f"❌ Erro ao liberar prêmio: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
-
 @app.route('/admin/verificar_status_premio')
 def admin_verificar_status_premio():
     """Verifica se há prêmio liberado aguardando"""
@@ -1266,7 +1250,6 @@ def admin_verificar_status_premio():
         print(f"❌ Erro ao verificar status do prêmio: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/admin/sortear', methods=['POST'])
 def admin_sortear():
     """Realiza sorteio diário do 2 para 1000"""
@@ -1274,7 +1257,7 @@ def admin_sortear():
         return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
 
     if not supabase:
-        return jsonify({'sucesso': False, 'erro': 'Sistema indisponível'})
+        return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
     try:
         data = request.json
@@ -1349,27 +1332,151 @@ def admin_sortear():
         print(f"❌ Erro ao realizar sorteio: {str(e)}")
         return jsonify({'sucesso': False, 'erro': str(e)})
 
+# ========== ROTAS AUXILIARES DO ADMIN ==========
 
-# Outras rotas admin simplificadas para economizar espaço...
-# (Implementar conforme necessário)
+@app.route('/admin/ganhadores/<game>')
+def admin_ganhadores(game):
+    """Obtém lista de ganhadores para o admin"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    if not supabase:
+        return jsonify({'ganhadores': []})
+    
+    try:
+        ganhadores = []
+        
+        if game in ['raspa_brasil', 'todos']:
+            rb_response = supabase.table('br_ganhadores').select('*').order('br_data_criacao', desc=True).limit(20).execute()
+            for g in (rb_response.data or []):
+                ganhadores.append({
+                    'nome': g['br_nome'],
+                    'valor': g['br_valor'],
+                    'codigo': g['br_codigo'],
+                    'data': g['br_data_criacao'],
+                    'status': g['br_status_pagamento'],
+                    'jogo': 'Raspa Brasil'
+                })
+        
+        if game in ['2para1000', 'todos']:
+            ml_response = supabase.table('ml_ganhadores').select('*').order('ml_data_sorteio', desc=True).limit(20).execute()
+            for g in (ml_response.data or []):
+                ganhadores.append({
+                    'nome': g['ml_nome'],
+                    'valor': g['ml_valor'],
+                    'milhar': g['ml_bilhete_premiado'],
+                    'data': g['ml_data_sorteio'],
+                    'status': g['ml_status_pagamento'],
+                    'jogo': '2 para 1000'
+                })
+        
+        # Ordenar por data
+        ganhadores.sort(key=lambda x: x['data'], reverse=True)
+        
+        return jsonify({'ganhadores': ganhadores[:20]})
+        
+    except Exception as e:
+        print(f"❌ Erro ao obter ganhadores: {str(e)}")
+        return jsonify({'ganhadores': []})
+
+@app.route('/admin/afiliados')
+def admin_afiliados():
+    """Obtém dados dos afiliados para o admin"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    if not supabase:
+        return jsonify({'afiliados': []})
+    
+    try:
+        response = supabase.table('br_afiliados').select('*').eq('br_status', 'ativo').order('br_total_comissao', desc=True).limit(10).execute()
+        
+        afiliados = []
+        for a in (response.data or []):
+            afiliados.append({
+                'nome': a['br_nome'],
+                'codigo': a['br_codigo'],
+                'email': a['br_email'],
+                'total_clicks': a['br_total_clicks'] or 0,
+                'total_vendas': a['br_total_vendas'] or 0,
+                'total_comissao': float(a['br_total_comissao'] or 0),
+                'saldo_disponivel': float(a['br_saldo_disponivel'] or 0),
+                'data_cadastro': a['br_data_criacao']
+            })
+        
+        return jsonify({'afiliados': afiliados})
+        
+    except Exception as e:
+        print(f"❌ Erro ao obter afiliados: {str(e)}")
+        return jsonify({'afiliados': []})
+
+@app.route('/admin/vendas')
+def admin_vendas():
+    """Obtém relatório de vendas para o admin"""
+    if not session.get('admin_logado'):
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    if not supabase:
+        return jsonify({'vendas': []})
+    
+    try:
+        # Últimos 7 dias
+        sete_dias_atras = (datetime.now() - timedelta(days=7)).date().isoformat()
+        
+        vendas_rb = supabase.table('br_vendas').select('*').gte('br_data_criacao', sete_dias_atras).eq('br_status', 'completed').execute()
+        vendas_ml = supabase.table('ml_vendas').select('*').gte('ml_data_criacao', sete_dias_atras).eq('ml_status', 'completed').execute()
+        
+        vendas = []
+        
+        for v in (vendas_rb.data or []):
+            vendas.append({
+                'payment_id': v['br_payment_id'],
+                'quantidade': v['br_quantidade'],
+                'valor': v['br_valor_total'],
+                'data': v['br_data_criacao'],
+                'jogo': 'Raspa Brasil',
+                'afiliado': bool(v.get('br_afiliado_id'))
+            })
+        
+        for v in (vendas_ml.data or []):
+            vendas.append({
+                'payment_id': v['ml_payment_id'],
+                'quantidade': v['ml_quantidade'],
+                'valor': v['ml_valor_total'],
+                'data': v['ml_data_criacao'],
+                'jogo': '2 para 1000',
+                'afiliado': bool(v.get('ml_afiliado_id'))
+            })
+        
+        # Ordenar por data
+        vendas.sort(key=lambda x: x['data'], reverse=True)
+        
+        return jsonify({'vendas': vendas[:50]})
+        
+    except Exception as e:
+        print(f"❌ Erro ao obter vendas: {str(e)}")
+        return jsonify({'vendas': []})
+
+# ========== INICIALIZAÇÃO ==========
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando PORTAL DOS JOGOS - Sistema Integrado...")
+    print("🚀 Iniciando PORTAL DOS JOGOS - Sistema Integrado v2.0...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
     print(f"🎮 Jogos Disponíveis:")
-    print(f"   - RASPA BRASIL: Raspadinhas virtuais (R$ 1,00)")
-    print(f"   - 2 PARA 1000: Bilhetes da milhar (R$ 2,00)")
+    print(f"   - RASPA BRASIL: Raspadinhas virtuais (R$ {PRECO_RASPADINHA_RB:.2f})")
+    print(f"   - 2 PARA 1000: Bilhetes da milhar (R$ {PRECO_BILHETE_ML:.2f})")
     print(f"👥 Sistema de Afiliados: ✅ UNIFICADO")
     print(f"🎯 Prêmios: Manual (RB) + Sorteio diário (ML)")
     print(f"🔄 Pagamentos: Via PIX unificado")
     print(f"📱 Interface: Responsiva e moderna")
     print(f"🛡️ Segurança: Validações robustas")
     print(f"📊 Admin: Painel unificado")
+    print(f"🔐 Senha Admin: {ADMIN_PASSWORD}")
     print(f"✅ SISTEMA COMPLETO E INTEGRADO!")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
