@@ -1088,7 +1088,7 @@
             background: white;
             padding: clamp(25px, 6vw, 40px);
             border-radius: var(--border-radius);
-            max-width: 900px;
+            max-width: 1200px;
             width: 95%;
             max-height: 85vh;
             overflow-y: auto;
@@ -1187,6 +1187,7 @@
             cursor: pointer;
             font-weight: 600;
             transition: var(--transition);
+            font-size: clamp(12px, 3vw, 14px);
         }
 
         .admin-tab.active {
@@ -1456,6 +1457,16 @@
             .game-features {
                 grid-template-columns: 1fr;
             }
+
+            .admin-tabs {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .admin-tab {
+                text-align: center;
+                padding: 10px 15px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1492,6 +1503,11 @@
             .total-display {
                 font-size: clamp(1.5em, 6vw, 2.2em);
                 padding: 15px;
+            }
+
+            .admin-modal-content {
+                padding: 20px 15px;
+                max-height: 90vh;
             }
         }
 
@@ -2004,7 +2020,7 @@
 
                     <div id="payment-actions-ml">
                         <button class="btn btn-primary" onclick="criarPagamentoRealML()" style="width: 100%; margin-top: 25px;" id="btn-real-payment-ml">
-                            Pagar com PIX
+                            Pagar with PIX
                         </button>
                     </div>
                 </div>
@@ -2288,6 +2304,9 @@
                     <div class="admin-tab" onclick="trocarAbaAdmin('controle-premios')">Prêmios RB</div>
                     <div class="admin-tab" onclick="trocarAbaAdmin('sorteio-ml')">Sorteio ML</div>
                     <div class="admin-tab" onclick="trocarAbaAdmin('afiliados')">Afiliados</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('saques')">Saques</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('bilhetes')">Bilhetes</div>
+                    <div class="admin-tab" onclick="trocarAbaAdmin('raspadinhas')">Raspadinhas</div>
                     <div class="admin-tab" onclick="trocarAbaAdmin('ganhadores')">Ganhadores</div>
                     <div class="admin-tab" onclick="trocarAbaAdmin('vendas')">Vendas</div>
                 </div>
@@ -2464,12 +2483,16 @@
                                 <div style="font-size: 2em; font-weight: 800; color: #dc2626;" id="admin-comissoes-pagas">R$ 0,00</div>
                                 <div style="color: #6c757d;">Comissões Pagas</div>
                             </div>
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 2em; font-weight: 800; color: #007bff;" id="admin-saques-pendentes">0</div>
+                                <div style="color: #6c757d;">Saques Pendentes</div>
+                            </div>
                         </div>
                         
                         <div style="margin-bottom: 25px;">
-                            <h4 style="color: #495057; margin-bottom: 15px;">Top Afiliados</h4>
-                            <div id="admin-top-afiliados" style="background: #f8f9fa; border-radius: 10px; min-height: 200px; padding: 20px;">
-                                <div style="text-align: center; color: #6c757d; padding: 50px 0;">
+                            <h4 style="color: #495057; margin-bottom: 15px;">Lista de Afiliados</h4>
+                            <div id="admin-lista-afiliados" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px; max-height: 400px; overflow-y: auto;">
+                                <div style="text-align: center; color: #6c757d; padding: 100px 0;">
                                     Carregando dados dos afiliados...
                                 </div>
                             </div>
@@ -2481,13 +2504,121 @@
                     </div>
                 </div>
 
+                <!-- Saques dos Afiliados -->
+                <div id="admin-saques" class="admin-tab-content">
+                    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                        <h3 style="color: #007bff; margin-bottom: 25px; text-align: center;">Gerenciamento de Saques</h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 2em; font-weight: 800; color: #ffc107;" id="admin-saques-pendentes-total">0</div>
+                                <div style="color: #6c757d;">Saques Pendentes</div>
+                            </div>
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 2em; font-weight: 800; color: #28a745;" id="admin-saques-pagos-total">0</div>
+                                <div style="color: #6c757d;">Saques Pagos</div>
+                            </div>
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 2em; font-weight: 800; color: #007bff;" id="admin-valor-total-saques">R$ 0,00</div>
+                                <div style="color: #6c757d;">Valor Total</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary" onclick="carregarSaques('pendente')" id="btn-saques-pendentes">
+                                    Pendentes
+                                </button>
+                                <button class="btn btn-secondary" onclick="carregarSaques('pago')" id="btn-saques-pagos">
+                                    Pagos
+                                </button>
+                                <button class="btn btn-primary" onclick="carregarSaques('todos')" id="btn-saques-todos">
+                                    Todos
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="admin-lista-saques" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px; max-height: 500px; overflow-y: auto;">
+                            <div style="text-align: center; color: #6c757d; padding: 100px 0;">
+                                Selecione uma categoria para visualizar os saques
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bilhetes Vendidos -->
+                <div id="admin-bilhetes" class="admin-tab-content">
+                    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                        <h3 style="color: #6f42c1; margin-bottom: 25px; text-align: center;">Bilhetes Vendidos - 2 para 1000</h3>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                                <input type="date" id="filtro-data-bilhetes" style="padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                                <button class="btn btn-primary" onclick="carregarBilhetes()">
+                                    Buscar Bilhetes
+                                </button>
+                                <button class="btn btn-secondary" onclick="carregarBilhetesHoje()">
+                                    Bilhetes de Hoje
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="admin-lista-bilhetes" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px; max-height: 500px; overflow-y: auto;">
+                            <div style="text-align: center; color: #6c757d; padding: 100px 0;">
+                                Clique em "Bilhetes de Hoje" ou selecione uma data para visualizar
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Raspadinhas -->
+                <div id="admin-raspadinhas" class="admin-tab-content">
+                    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                        <h3 style="color: #00b341; margin-bottom: 25px; text-align: center;">Raspadinhas Vendidas - Raspa Brasil</h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 2em; font-weight: 800; color: #00b341;" id="admin-raspadinhas-vendidas">0</div>
+                                <div style="color: #6c757d;">Total Vendidas</div>
+                            </div>
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 2em; font-weight: 800; color: #007bff;" id="admin-raspadinhas-usadas">0</div>
+                                <div style="color: #6c757d;">Já Raspadas</div>
+                            </div>
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                                <div style="font-size: 2em; font-weight: 800; color: #ffc107;" id="admin-raspadinhas-pendentes">0</div>
+                                <div style="color: #6c757d;">Pendentes</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                                <input type="date" id="filtro-data-raspadinhas" style="padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
+                                <button class="btn btn-primary" onclick="carregarRaspadinhas()">
+                                    Buscar Vendas
+                                </button>
+                                <button class="btn btn-secondary" onclick="carregarRaspadinhasHoje()">
+                                    Vendas de Hoje
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="admin-lista-raspadinhas" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px; max-height: 500px; overflow-y: auto;">
+                            <div style="text-align: center; color: #6c757d; padding: 100px 0;">
+                                Clique em "Vendas de Hoje" ou selecione uma data para visualizar
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Ganhadores -->
                 <div id="admin-ganhadores" class="admin-tab-content">
                     <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-                        <h3 style="color: #28a745; margin-bottom: 25px; text-align: center;">Ganhadores Recentes</h3>
+                        <h3 style="color: #28a745; margin-bottom: 25px; text-align: center;">Gerenciamento de Ganhadores</h3>
                         
                         <div style="margin-bottom: 25px;">
-                            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+                                <input type="date" id="filtro-data-ganhadores" style="padding: 10px; border: 2px solid #ddd; border-radius: 8px;">
                                 <button class="btn btn-secondary" onclick="carregarGanhadores('raspa_brasil')" id="btn-ganhadores-rb">
                                     Raspa Brasil
                                 </button>
@@ -2498,9 +2629,17 @@
                                     Todos
                                 </button>
                             </div>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <button class="btn btn-affiliate" onclick="adicionarGanhador()" style="background: linear-gradient(135deg, #28a745, #1e7e34);">
+                                    Adicionar Ganhador
+                                </button>
+                                <button class="btn btn-secondary" onclick="gerarListaGanhadoresDia()">
+                                    Lista do Dia
+                                </button>
+                            </div>
                         </div>
                         
-                        <div id="admin-lista-ganhadores" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px;">
+                        <div id="admin-lista-ganhadores" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px; max-height: 500px; overflow-y: auto;">
                             <div style="text-align: center; color: #6c757d; padding: 100px 0;">
                                 Selecione uma categoria para visualizar os ganhadores
                             </div>
@@ -2556,6 +2695,50 @@
             <div id="modal-message"></div>
             <div style="margin-top: 25px;">
                 <button class="btn btn-secondary" onclick="fecharModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para adicionar ganhador -->
+    <div id="modal-adicionar-ganhador" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 25px; text-align: center; color: #28a745;">Adicionar Ganhador Manual</h3>
+            
+            <div class="form-group">
+                <label>Tipo de Jogo:</label>
+                <select id="novo-ganhador-jogo" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    <option value="raspa_brasil">Raspa Brasil</option>
+                    <option value="2para1000">2 para 1000</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Nome do Ganhador:</label>
+                <input type="text" id="novo-ganhador-nome" placeholder="Digite o nome completo" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+            </div>
+            
+            <div class="form-group">
+                <label>Valor do Prêmio:</label>
+                <input type="text" id="novo-ganhador-valor" placeholder="R$ 100,00" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+            </div>
+            
+            <div class="form-group">
+                <label>Chave PIX:</label>
+                <input type="text" id="novo-ganhador-pix" placeholder="Digite a chave PIX" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+            </div>
+
+            <div class="form-group" id="grupo-bilhete-ml" style="display: none;">
+                <label>Bilhete Ganhador (4 dígitos):</label>
+                <input type="text" id="novo-ganhador-bilhete" placeholder="1234" maxlength="4" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; text-align: center; font-weight: 800; letter-spacing: 2px;">
+            </div>
+            
+            <div style="display: flex; gap: 15px; margin-top: 25px;">
+                <button class="btn btn-secondary" onclick="fecharModalAdicionarGanhador()" style="flex: 1;">
+                    Cancelar
+                </button>
+                <button class="btn btn-primary" onclick="salvarNovoGanhador()" style="flex: 1;">
+                    Salvar Ganhador
+                </button>
             </div>
         </div>
     </div>
@@ -3845,6 +4028,12 @@ Solicito o pagamento do meu prêmio!`;
                 carregarStatusSorteio();
             } else if (aba === 'afiliados') {
                 carregarDadosAfiliados();
+            } else if (aba === 'saques') {
+                carregarSaques('todos');
+            } else if (aba === 'bilhetes') {
+                carregarBilhetesHoje();
+            } else if (aba === 'raspadinhas') {
+                carregarRaspadinhasHoje();
             } else if (aba === 'ganhadores') {
                 carregarGanhadores('todos');
             } else if (aba === 'vendas') {
@@ -4101,69 +4290,227 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // Funções auxiliares do admin (IMPLEMENTADAS)
+        // Funções auxiliares do admin melhoradas
         async function carregarDadosAfiliados() {
             try {
                 const response = await fetch('/admin/afiliados');
                 const resultado = await response.json();
                 
-                const container = document.getElementById('admin-top-afiliados');
+                // Atualizar contadores
+                document.getElementById('admin-total-afiliados').textContent = resultado.afiliados?.length || 0;
+                
+                let totalVendas = 0;
+                let totalComissoes = 0;
+                resultado.afiliados?.forEach(afiliado => {
+                    totalVendas += afiliado.total_vendas || 0;
+                    totalComissoes += afiliado.total_comissao || 0;
+                });
+                
+                document.getElementById('admin-vendas-afiliados').textContent = totalVendas;
+                document.getElementById('admin-comissoes-pagas').textContent = `R$ ${totalComissoes.toFixed(2).replace('.', ',')}`;
+                
+                const container = document.getElementById('admin-lista-afiliados');
                 if (resultado.afiliados && resultado.afiliados.length > 0) {
-                    let html = '<div style="display: grid; gap: 15px;">';
+                    let html = '';
                     
                     resultado.afiliados.forEach((afiliado, index) => {
                         html += `
-                            <div style="background: white; padding: 15px; border-radius: 10px; border-left: 4px solid #ff6b35;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #ff6b35; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center;">
                                     <div>
-                                        <strong>${afiliado.nome}</strong><br>
-                                        <small style="color: #666;">Código: ${afiliado.codigo}</small>
+                                        <strong style="color: #333; font-size: 1.1em;">${afiliado.nome}</strong><br>
+                                        <small style="color: #666;">Código: ${afiliado.codigo}</small><br>
+                                        <small style="color: #666;">Email: ${afiliado.email}</small><br>
+                                        <small style="color: #666;">Data: ${new Date(afiliado.data_cadastro).toLocaleDateString('pt-BR')}</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #007bff; font-weight: 800; font-size: 1.2em;">${afiliado.total_clicks || 0}</div>
+                                        <small style="color: #666;">Cliques</small><br>
+                                        <div style="color: #28a745; font-weight: 800; font-size: 1.2em;">${afiliado.total_vendas || 0}</div>
+                                        <small style="color: #666;">Vendas</small>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="color: #28a745; font-weight: 800;">R$ ${afiliado.total_comissao.toFixed(2).replace('.', ',')}</div>
-                                        <small style="color: #666;">${afiliado.total_vendas} vendas</small>
+                                        <div style="color: #ff6b35; font-weight: 800; font-size: 1.3em;">R$ ${(afiliado.total_comissao || 0).toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">Comissão Total</small><br>
+                                        <div style="color: #6c757d; font-weight: 600;">R$ ${(afiliado.saldo_disponivel || 0).toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">Saldo</small>
                                     </div>
                                 </div>
                             </div>
                         `;
                     });
                     
-                    html += '</div>';
                     container.innerHTML = html;
                 } else {
                     container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum afiliado encontrado</div>';
                 }
+                
+                // Carregar saques pendentes
+                const responseS = await fetch('/admin/saques/pendente');
+                const saques = await responseS.json();
+                document.getElementById('admin-saques-pendentes').textContent = saques.saques?.length || 0;
+                
             } catch (error) {
                 console.error('Erro ao carregar afiliados:', error);
-                const container = document.getElementById('admin-top-afiliados');
+                const container = document.getElementById('admin-lista-afiliados');
                 container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
             }
         }
 
-        async function carregarGanhadores(tipo) {
+        async function carregarSaques(status) {
             try {
-                const response = await fetch(`/admin/ganhadores/${tipo}`);
+                const response = await fetch(`/admin/saques/${status}`);
                 const resultado = await response.json();
                 
-                const container = document.getElementById('admin-lista-ganhadores');
-                if (resultado.ganhadores && resultado.ganhadores.length > 0) {
-                    let html = '<div style="display: grid; gap: 15px;">';
+                const container = document.getElementById('admin-lista-saques');
+                if (resultado.saques && resultado.saques.length > 0) {
+                    // Atualizar contadores
+                    const pendentes = resultado.saques.filter(s => s.status === 'pendente').length;
+                    const pagos = resultado.saques.filter(s => s.status === 'pago').length;
+                    const total = resultado.saques.reduce((sum, s) => sum + s.valor, 0);
                     
-                    resultado.ganhadores.forEach(ganhador => {
+                    document.getElementById('admin-saques-pendentes-total').textContent = pendentes;
+                    document.getElementById('admin-saques-pagos-total').textContent = pagos;
+                    document.getElementById('admin-valor-total-saques').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+                    
+                    let html = '';
+                    
+                    resultado.saques.forEach(saque => {
+                        const statusColor = saque.status === 'pendente' ? '#ffc107' : '#28a745';
+                        const statusText = saque.status === 'pendente' ? 'PENDENTE' : 'PAGO';
+                        
                         html += `
-                            <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #28a745;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid ${statusColor}; margin-bottom: 15px;">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: center;">
                                     <div>
-                                        <strong>${ganhador.nome}</strong><br>
-                                        <span style="color: #28a745; font-weight: 800;">${ganhador.valor}</span><br>
-                                        <small style="color: #666;">${ganhador.jogo}</small>
-                                        ${ganhador.codigo ? `<br><small>Código: ${ganhador.codigo}</small>` : ''}
-                                        ${ganhador.milhar ? `<br><small>Milhar: ${ganhador.milhar}</small>` : ''}
+                                        <strong style="color: #333;">${saque.afiliado_nome}</strong><br>
+                                        <small style="color: #666;">PIX: ${saque.tipo_chave} - ${saque.chave_pix}</small><br>
+                                        <small style="color: #666;">Código: ${saque.afiliado_codigo}</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: ${statusColor}; font-weight: 800; font-size: 1.3em;">R$ ${saque.valor.toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">Valor</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(saque.data_solicitacao).toLocaleDateString('pt-BR')}</div>
+                                        <small style="color: #666;">Data</small>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data).toLocaleDateString('pt-BR')}</div>
-                                        <div style="color: ${ganhador.status === 'pago' ? '#28a745' : '#dc2626'}; font-weight: 600;">
-                                            ${ganhador.status === 'pago' ? 'PAGO' : 'PENDENTE'}
+                                        <div style="color: ${statusColor}; font-weight: 600; font-size: 0.9em; padding: 6px 12px; background: ${statusColor}20; border-radius: 20px;">
+                                            ${statusText}
+                                        </div>
+                                        ${saque.status === 'pendente' ? `<button onclick="marcarSaquePago(${saque.id})" style="margin-top: 8px; padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Marcar Pago</button>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum saque encontrado</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar saques:', error);
+                const container = document.getElementById('admin-lista-saques');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
+            }
+        }
+
+        async function carregarBilhetes(data) {
+            try {
+                const dataFiltro = data || document.getElementById('filtro-data-bilhetes').value || new Date().toISOString().split('T')[0];
+                const response = await fetch(`/admin/bilhetes/${dataFiltro}`);
+                const resultado = await response.json();
+                
+                const container = document.getElementById('admin-lista-bilhetes');
+                if (resultado.bilhetes && resultado.bilhetes.length > 0) {
+                    let html = '';
+                    
+                    resultado.bilhetes.forEach(bilhete => {
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #6f42c1; margin-bottom: 15px;">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center;">
+                                    <div>
+                                        <strong style="color: #333;">${bilhete.nome}</strong><br>
+                                        <small style="color: #666;">Tel: ${bilhete.telefone}</small><br>
+                                        <small style="color: #666;">PIX: ${bilhete.chave_pix}</small><br>
+                                        <small style="color: #666;">Payment: ${bilhete.payment_id}</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #6f42c1; font-weight: 800; font-size: 1.2em;">${bilhete.bilhetes.join(', ')}</div>
+                                        <small style="color: #666;">Bilhetes</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(bilhete.data_sorteio).toLocaleDateString('pt-BR')}</div>
+                                        <small style="color: #666;">Data Sorteio</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum bilhete encontrado para esta data</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar bilhetes:', error);
+                const container = document.getElementById('admin-lista-bilhetes');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
+            }
+        }
+
+        function carregarBilhetesHoje() {
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('filtro-data-bilhetes').value = hoje;
+            carregarBilhetes(hoje);
+        }
+
+        async function carregarRaspadinhas(data) {
+            try {
+                const dataFiltro = data || document.getElementById('filtro-data-raspadinhas').value || new Date().toISOString().split('T')[0];
+                const response = await fetch(`/admin/raspadinhas/${dataFiltro}`);
+                const resultado = await response.json();
+                
+                // Atualizar contadores
+                document.getElementById('admin-raspadinhas-vendidas').textContent = resultado.estatisticas?.total_vendidas || 0;
+                document.getElementById('admin-raspadinhas-usadas').textContent = resultado.estatisticas?.total_usadas || 0;
+                document.getElementById('admin-raspadinhas-pendentes').textContent = resultado.estatisticas?.total_pendentes || 0;
+                
+                const container = document.getElementById('admin-lista-raspadinhas');
+                if (resultado.vendas && resultado.vendas.length > 0) {
+                    let html = '';
+                    
+                    resultado.vendas.forEach(venda => {
+                        const progressoUso = Math.round((venda.raspadinhas_usadas / venda.quantidade) * 100);
+                        const corProgresso = progressoUso === 100 ? '#28a745' : progressoUso > 0 ? '#ffc107' : '#dc2626';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #00b341; margin-bottom: 15px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; align-items: center;">
+                                    <div>
+                                        <strong style="color: #333;">Payment: ${venda.payment_id}</strong><br>
+                                        <small style="color: #666;">IP: ${venda.ip_cliente}</small><br>
+                                        <small style="color: #666;">Valor: R$ ${venda.valor_total.toFixed(2).replace('.', ',')}</small>
+                                        ${venda.afiliado_nome ? `<br><small style="color: #ff6b35;">Afiliado: ${venda.afiliado_nome}</small>` : ''}
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #00b341; font-weight: 800; font-size: 1.3em;">${venda.quantidade}</div>
+                                        <small style="color: #666;">Vendidas</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: ${corProgresso}; font-weight: 800; font-size: 1.2em;">${venda.raspadinhas_usadas}/${venda.quantidade}</div>
+                                        <div style="background: #f0f0f0; border-radius: 10px; height: 8px; margin-top: 5px;">
+                                            <div style="background: ${corProgresso}; height: 100%; border-radius: 10px; width: ${progressoUso}%;"></div>
+                                        </div>
+                                        <small style="color: #666;">${progressoUso}% usado</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(venda.data_criacao).toLocaleDateString('pt-BR')}</div>
+                                        <div style="color: #666; font-size: 0.8em;">${new Date(venda.data_criacao).toLocaleTimeString('pt-BR')}</div>
+                                        <div style="color: ${venda.status === 'completed' ? '#28a745' : '#ffc107'}; font-weight: 600; font-size: 0.8em; margin-top: 4px;">
+                                            ${venda.status === 'completed' ? 'PAGO' : 'PENDENTE'}
                                         </div>
                                     </div>
                                 </div>
@@ -4171,7 +4518,75 @@ Solicito o pagamento do meu prêmio!`;
                         `;
                     });
                     
-                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhuma venda encontrada para esta data</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar raspadinhas:', error);
+                const container = document.getElementById('admin-lista-raspadinhas');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
+            }
+        }
+
+        function carregarRaspadinhasHoje() {
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('filtro-data-raspadinhas').value = hoje;
+            carregarRaspadinhas(hoje);
+        }
+
+        async function carregarGanhadores(game) {
+            try {
+                let url = `/admin/ganhadores/${game}`;
+                const dataFiltro = document.getElementById('filtro-data-ganhadores').value;
+                if (dataFiltro) {
+                    url += `?data=${dataFiltro}`;
+                }
+                
+                const response = await fetch(url);
+                const resultado = await response.json();
+                
+                const container = document.getElementById('admin-lista-ganhadores');
+                if (resultado.ganhadores && resultado.ganhadores.length > 0) {
+                    let html = '';
+                    
+                    resultado.ganhadores.forEach(ganhador => {
+                        const statusColor = ganhador.status === 'pago' ? '#28a745' : '#ffc107';
+                        const gameColor = ganhador.jogo === 'Raspa Brasil' ? '#00b341' : '#007bff';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid ${gameColor}; margin-bottom: 15px;">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: center;">
+                                    <div>
+                                        <strong style="color: #333;">${ganhador.nome}</strong><br>
+                                        <span style="color: ${gameColor}; font-weight: 600;">${ganhador.jogo}</span><br>
+                                        ${ganhador.codigo ? `<small style="color: #666;">Código: ${ganhador.codigo}</small><br>` : ''}
+                                        ${ganhador.milhar ? `<small style="color: #666;">Milhar: ${ganhador.milhar}</small><br>` : ''}
+                                        ${ganhador.chave_pix ? `<small style="color: #666;">PIX: ${ganhador.chave_pix}</small>` : ''}
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: ${gameColor}; font-weight: 800; font-size: 1.3em;">${ganhador.valor}</div>
+                                        <small style="color: #666;">Prêmio</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data).toLocaleDateString('pt-BR')}</div>
+                                        <small style="color: #666;">Data</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <select onchange="alterarStatusGanhador(${ganhador.id}, '${ganhador.jogo}', this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em;">
+                                            <option value="pendente" ${ganhador.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                                            <option value="pago" ${ganhador.status === 'pago' ? 'selected' : ''}>Pago</option>
+                                        </select>
+                                        <div style="margin-top: 8px;">
+                                            <button onclick="editarGanhador(${ganhador.id}, '${ganhador.jogo}')" style="padding: 4px 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin-right: 4px;">Editar</button>
+                                            <button onclick="removerGanhador(${ganhador.id}, '${ganhador.jogo}')" style="padding: 4px 8px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Remover</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
                     container.innerHTML = html;
                 } else {
                     container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum ganhador encontrado</div>';
@@ -4188,13 +4603,29 @@ Solicito o pagamento do meu prêmio!`;
                 const response = await fetch('/admin/vendas');
                 const resultado = await response.json();
                 
+                // Atualizar contadores
+                const vendasRB = resultado.vendas.filter(v => v.jogo === 'Raspa Brasil');
+                const vendasML = resultado.vendas.filter(v => v.jogo === '2 para 1000');
+                const receitaTotal = resultado.vendas.reduce((sum, v) => sum + v.valor, 0);
+                const vendasHoje = resultado.vendas.filter(v => {
+                    const hoje = new Date().toDateString();
+                    const dataVenda = new Date(v.data).toDateString();
+                    return hoje === dataVenda;
+                });
+                
+                document.getElementById('admin-vendas-rb-total').textContent = vendasRB.reduce((sum, v) => sum + v.quantidade, 0);
+                document.getElementById('admin-vendas-ml-total').textContent = vendasML.reduce((sum, v) => sum + v.quantidade, 0);
+                document.getElementById('admin-receita-total').textContent = `R$ ${receitaTotal.toFixed(2).replace('.', ',')}`;
+                document.getElementById('admin-vendas-hoje-total').textContent = vendasHoje.reduce((sum, v) => sum + v.quantidade, 0);
+                
                 const container = document.getElementById('admin-grafico-vendas');
                 if (resultado.vendas && resultado.vendas.length > 0) {
                     let html = '<div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">';
                     
                     resultado.vendas.forEach(venda => {
+                        const gameColor = venda.jogo === 'Raspa Brasil' ? '#00b341' : '#007bff';
                         html += `
-                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${venda.jogo === 'Raspa Brasil' ? '#00b341' : '#007bff'};">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${gameColor};">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong>${venda.jogo}</strong><br>
@@ -4220,6 +4651,200 @@ Solicito o pagamento do meu prêmio!`;
                 console.error('Erro ao carregar vendas:', error);
                 const container = document.getElementById('admin-grafico-vendas');
                 container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
+            }
+        }
+
+        // Funções de gerenciamento de ganhadores
+        function adicionarGanhador() {
+            document.getElementById('modal-adicionar-ganhador').style.display = 'flex';
+            // Mostrar/ocultar campo de bilhete baseado no jogo
+            document.getElementById('novo-ganhador-jogo').addEventListener('change', function() {
+                const grupoBilhete = document.getElementById('grupo-bilhete-ml');
+                if (this.value === '2para1000') {
+                    grupoBilhete.style.display = 'block';
+                } else {
+                    grupoBilhete.style.display = 'none';
+                }
+            });
+        }
+
+        function fecharModalAdicionarGanhador() {
+            document.getElementById('modal-adicionar-ganhador').style.display = 'none';
+            // Limpar campos
+            document.getElementById('novo-ganhador-nome').value = '';
+            document.getElementById('novo-ganhador-valor').value = '';
+            document.getElementById('novo-ganhador-pix').value = '';
+            document.getElementById('novo-ganhador-bilhete').value = '';
+            document.getElementById('novo-ganhador-jogo').value = 'raspa_brasil';
+            document.getElementById('grupo-bilhete-ml').style.display = 'none';
+        }
+
+        async function salvarNovoGanhador() {
+            const jogo = document.getElementById('novo-ganhador-jogo').value;
+            const nome = document.getElementById('novo-ganhador-nome').value.trim();
+            const valor = document.getElementById('novo-ganhador-valor').value.trim();
+            const pix = document.getElementById('novo-ganhador-pix').value.trim();
+            const bilhete = document.getElementById('novo-ganhador-bilhete').value.trim();
+            
+            if (!nome || !valor || !pix) {
+                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos obrigatórios!</p>');
+                return;
+            }
+            
+            if (jogo === '2para1000' && (!bilhete || bilhete.length !== 4)) {
+                mostrarModal('<h3>Atenção</h3><p>Digite um bilhete de 4 dígitos para o 2 para 1000!</p>');
+                return;
+            }
+            
+            try {
+                const dados = {
+                    jogo,
+                    nome,
+                    valor,
+                    chave_pix: pix,
+                    status: 'pendente'
+                };
+                
+                if (jogo === '2para1000') {
+                    dados.bilhete_premiado = bilhete;
+                    dados.milhar_sorteada = bilhete;
+                } else {
+                    dados.codigo = `RB-${Date.now()}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+                }
+                
+                const response = await fetch('/admin/adicionar_ganhador', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    fecharModalAdicionarGanhador();
+                    carregarGanhadores('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Ganhador adicionado com sucesso!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao adicionar ganhador:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao adicionar ganhador. Tente novamente.</p>');
+            }
+        }
+
+        async function alterarStatusGanhador(id, jogo, novoStatus) {
+            try {
+                const response = await fetch('/admin/alterar_status_ganhador', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, jogo, status: novoStatus })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    mostrarModal('<h3>Sucesso!</h3><p>Status atualizado com sucesso!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao alterar status:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao alterar status</p>');
+            }
+        }
+
+        async function editarGanhador(id, jogo) {
+            // Implementar modal de edição (similar ao de adicionar)
+            mostrarModal('<h3>Em Desenvolvimento</h3><p>Funcionalidade de edição será implementada em breve</p>');
+        }
+
+        async function removerGanhador(id, jogo) {
+            if (!confirm('Tem certeza que deseja remover este ganhador?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/remover_ganhador', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, jogo })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    carregarGanhadores('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Ganhador removido com sucesso!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao remover ganhador:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao remover ganhador</p>');
+            }
+        }
+
+        async function gerarListaGanhadoresDia() {
+            const dataFiltro = document.getElementById('filtro-data-ganhadores').value || new Date().toISOString().split('T')[0];
+            
+            try {
+                const response = await fetch(`/admin/lista_ganhadores_dia/${dataFiltro}`);
+                const resultado = await response.json();
+                
+                if (resultado.ganhadores && resultado.ganhadores.length > 0) {
+                    let lista = `LISTA DE GANHADORES - ${new Date(dataFiltro).toLocaleDateString('pt-BR')}\n\n`;
+                    
+                    resultado.ganhadores.forEach((ganhador, index) => {
+                        lista += `${index + 1}. ${ganhador.nome} - ${ganhador.valor} (${ganhador.jogo})\n`;
+                        if (ganhador.codigo) lista += `   Código: ${ganhador.codigo}\n`;
+                        if (ganhador.milhar) lista += `   Milhar: ${ganhador.milhar}\n`;
+                        lista += `   Status: ${ganhador.status.toUpperCase()}\n\n`;
+                    });
+                    
+                    // Criar e baixar arquivo
+                    const blob = new Blob([lista], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `ganhadores_${dataFiltro}.txt`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    mostrarModal('<h3>Lista Gerada!</h3><p>A lista de ganhadores foi baixada com sucesso!</p>');
+                } else {
+                    mostrarModal('<h3>Sem Ganhadores</h3><p>Nenhum ganhador encontrado para esta data.</p>');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao gerar lista:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao gerar lista de ganhadores</p>');
+            }
+        }
+
+        async function marcarSaquePago(saqueId) {
+            try {
+                const response = await fetch('/admin/marcar_saque_pago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ saque_id: saqueId })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    carregarSaques('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Saque marcado como pago!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao marcar saque como pago:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao marcar saque como pago</p>');
             }
         }
 
