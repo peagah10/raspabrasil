@@ -3591,7 +3591,7 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // Funções de Afiliados (simplificadas)
+        // Funções de Afiliados
         function abrirAfiliados() {
             mostrarPagina('affiliate-page');
             if (currentAffiliate) {
@@ -3789,7 +3789,7 @@ Solicito o pagamento do meu prêmio!`;
                 const response = await fetch('/solicitar_saque_afiliado', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codigo: currentAfiliado.codigo })
+                    body: JSON.stringify({ codigo: currentAffiliate.codigo })
                 });
 
                 const resultado = await response.json();
@@ -4101,20 +4101,126 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // Funções auxiliares do admin
+        // Funções auxiliares do admin (IMPLEMENTADAS)
         async function carregarDadosAfiliados() {
-            // Implementação simplificada
-            console.log('Carregando dados dos afiliados...');
+            try {
+                const response = await fetch('/admin/afiliados');
+                const resultado = await response.json();
+                
+                const container = document.getElementById('admin-top-afiliados');
+                if (resultado.afiliados && resultado.afiliados.length > 0) {
+                    let html = '<div style="display: grid; gap: 15px;">';
+                    
+                    resultado.afiliados.forEach((afiliado, index) => {
+                        html += `
+                            <div style="background: white; padding: 15px; border-radius: 10px; border-left: 4px solid #ff6b35;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>${afiliado.nome}</strong><br>
+                                        <small style="color: #666;">Código: ${afiliado.codigo}</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #28a745; font-weight: 800;">R$ ${afiliado.total_comissao.toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">${afiliado.total_vendas} vendas</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum afiliado encontrado</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar afiliados:', error);
+                const container = document.getElementById('admin-top-afiliados');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
+            }
         }
 
         async function carregarGanhadores(tipo) {
-            // Implementação simplificada
-            console.log('Carregando ganhadores:', tipo);
+            try {
+                const response = await fetch(`/admin/ganhadores/${tipo}`);
+                const resultado = await response.json();
+                
+                const container = document.getElementById('admin-lista-ganhadores');
+                if (resultado.ganhadores && resultado.ganhadores.length > 0) {
+                    let html = '<div style="display: grid; gap: 15px;">';
+                    
+                    resultado.ganhadores.forEach(ganhador => {
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #28a745;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>${ganhador.nome}</strong><br>
+                                        <span style="color: #28a745; font-weight: 800;">${ganhador.valor}</span><br>
+                                        <small style="color: #666;">${ganhador.jogo}</small>
+                                        ${ganhador.codigo ? `<br><small>Código: ${ganhador.codigo}</small>` : ''}
+                                        ${ganhador.milhar ? `<br><small>Milhar: ${ganhador.milhar}</small>` : ''}
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data).toLocaleDateString('pt-BR')}</div>
+                                        <div style="color: ${ganhador.status === 'pago' ? '#28a745' : '#dc2626'}; font-weight: 600;">
+                                            ${ganhador.status === 'pago' ? 'PAGO' : 'PENDENTE'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum ganhador encontrado</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar ganhadores:', error);
+                const container = document.getElementById('admin-lista-ganhadores');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
+            }
         }
 
         async function carregarRelatorioVendas() {
-            // Implementação simplificada
-            console.log('Carregando relatório de vendas...');
+            try {
+                const response = await fetch('/admin/vendas');
+                const resultado = await response.json();
+                
+                const container = document.getElementById('admin-grafico-vendas');
+                if (resultado.vendas && resultado.vendas.length > 0) {
+                    let html = '<div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">';
+                    
+                    resultado.vendas.forEach(venda => {
+                        html += `
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${venda.jogo === 'Raspa Brasil' ? '#00b341' : '#007bff'};">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>${venda.jogo}</strong><br>
+                                        <span>Qtd: ${venda.quantidade}</span><br>
+                                        <small style="color: #666;">ID: ${venda.payment_id}</small>
+                                        ${venda.afiliado ? '<br><small style="color: #ff6b35;">Via Afiliado</small>' : ''}
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #28a745; font-weight: 800;">R$ ${venda.valor.toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">${new Date(venda.data).toLocaleDateString('pt-BR')}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhuma venda encontrada</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar vendas:', error);
+                const container = document.getElementById('admin-grafico-vendas');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados</div>';
+            }
         }
 
         // Inicialização
