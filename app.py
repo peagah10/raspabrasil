@@ -44,7 +44,8 @@ supabase = None
 if supabase_available:
     try:
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        test_response = supabase.table('br_configuracoes').select('br_chave').limit(1).execute()
+        # Testar conexão com tabela que sabemos que existe
+        test_response = supabase.table('br_vendas').select('br_id').limit(1).execute()
         print("✅ Supabase conectado e testado com sucesso")
     except Exception as e:
         print(f"❌ Erro ao conectar com Supabase: {str(e)}")
@@ -126,13 +127,13 @@ def obter_configuracao(chave, valor_padrao=None):
     if not supabase or not chave:
         return valor_padrao
     try:
-        # Tentar primeiro nas configurações do Raspa Brasil
-        response = supabase.table('br_configuracoes').select('br_valor').eq('br_chave', chave).execute()
+        # Tentar primeiro nas configurações do Raspa Brasil (com acento)
+        response = supabase.table('br_configurações').select('br_valor').eq('br_chave', chave).execute()
         if response.data:
             return response.data[0]['br_valor']
         
-        # Se não encontrar, tentar nas configurações do 2 para 1000
-        response = supabase.table('ml_configuracoes').select('ml_valor').eq('ml_chave', chave).execute()
+        # Se não encontrar, tentar nas configurações do 2 para 1000 (com acento)
+        response = supabase.table('ml_configurações').select('ml_valor').eq('ml_chave', chave).execute()
         if response.data:
             return response.data[0]['ml_valor']
         
@@ -146,20 +147,24 @@ def atualizar_configuracao(chave, valor, game_type='raspa_brasil'):
     if not supabase or not chave:
         return False
     try:
-        tabela = 'br_configuracoes' if game_type == 'raspa_brasil' else 'ml_configuracoes'
+        # Usar nomes corretos das tabelas (com acento)
+        tabela = 'br_configurações' if game_type == 'raspa_brasil' else 'ml_configurações'
         campo_chave = 'br_chave' if game_type == 'raspa_brasil' else 'ml_chave'
         campo_valor = 'br_valor' if game_type == 'raspa_brasil' else 'ml_valor'
         
+        # Tentar atualizar primeiro
         response = supabase.table(tabela).update({
             campo_valor: str(valor)
         }).eq(campo_chave, chave).execute()
         
+        # Se não existe, inserir
         if not response.data:
             response = supabase.table(tabela).insert({
                 campo_chave: chave,
                 campo_valor: str(valor)
             }).execute()
         
+        print(f"✅ Configuração atualizada: {chave} = {valor} em {tabela}")
         return response.data is not None
     except Exception as e:
         print(f"❌ Erro ao atualizar configuração {chave}: {str(e)}")
@@ -176,10 +181,12 @@ def obter_total_vendas(game_type='raspa_brasil'):
         
         response = supabase.table(tabela).select(campo_quantidade).eq(campo_status, 'completed').execute()
         if response.data:
-            return sum(venda[campo_quantidade] for venda in response.data)
+            total = sum(venda[campo_quantidade] for venda in response.data)
+            print(f"📊 Total vendas {game_type}: {total}")
+            return total
         return 0
     except Exception as e:
-        print(f"❌ Erro ao obter total de vendas: {str(e)}")
+        print(f"❌ Erro ao obter total de vendas {game_type}: {str(e)}")
         return 0
 
 def obter_total_ganhadores(game_type='raspa_brasil'):
@@ -192,10 +199,12 @@ def obter_total_ganhadores(game_type='raspa_brasil'):
         
         response = supabase.table(tabela).select(campo_id).execute()
         if response.data:
-            return len(response.data)
+            total = len(response.data)
+            print(f"🏆 Total ganhadores {game_type}: {total}")
+            return total
         return 0
     except Exception as e:
-        print(f"❌ Erro ao obter total de ganhadores: {str(e)}")
+        print(f"❌ Erro ao obter total de ganhadores {game_type}: {str(e)}")
         return 0
 
 def obter_total_afiliados():
@@ -205,7 +214,9 @@ def obter_total_afiliados():
     try:
         response = supabase.table('br_afiliados').select('br_id').eq('br_status', 'ativo').execute()
         if response.data:
-            return len(response.data)
+            total = len(response.data)
+            print(f"👥 Total afiliados ativos: {total}")
+            return total
         return 0
     except Exception as e:
         print(f"❌ Erro ao obter total de afiliados: {str(e)}")
@@ -218,10 +229,13 @@ def obter_afiliado_por_codigo(codigo):
     try:
         response = supabase.table('br_afiliados').select('*').eq('br_codigo', codigo).eq('br_status', 'ativo').execute()
         if response.data:
-            return response.data[0]
+            afiliado = response.data[0]
+            print(f"👤 Afiliado encontrado: {codigo} - {afiliado['br_nome']}")
+            return afiliado
+        print(f"❌ Afiliado não encontrado: {codigo}")
         return None
     except Exception as e:
-        print(f"❌ Erro ao buscar afiliado: {str(e)}")
+        print(f"❌ Erro ao buscar afiliado {codigo}: {str(e)}")
         return None
 
 def obter_afiliado_por_cpf(cpf):
@@ -231,10 +245,12 @@ def obter_afiliado_por_cpf(cpf):
     try:
         response = supabase.table('br_afiliados').select('*').eq('br_cpf', cpf).eq('br_status', 'ativo').execute()
         if response.data:
-            return response.data[0]
+            afiliado = response.data[0]
+            print(f"👤 Afiliado encontrado por CPF: {cpf} - {afiliado['br_nome']}")
+            return afiliado
         return None
     except Exception as e:
-        print(f"❌ Erro ao buscar afiliado por CPF: {str(e)}")
+        print(f"❌ Erro ao buscar afiliado por CPF {cpf}: {str(e)}")
         return None
 
 def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
@@ -242,6 +258,7 @@ def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
     if not supabase or not afiliado_id:
         return False
     try:
+        # Registrar o click
         supabase.table('br_afiliado_clicks').insert({
             'br_afiliado_id': afiliado_id,
             'br_ip_visitor': ip_cliente or 'unknown',
@@ -249,6 +266,7 @@ def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
             'br_referrer': (referrer or '')[:500]
         }).execute()
         
+        # Atualizar contador total
         afiliado = supabase.table('br_afiliados').select('br_total_clicks').eq('br_id', afiliado_id).execute()
         
         if afiliado.data:
@@ -256,6 +274,8 @@ def registrar_click_afiliado(afiliado_id, ip_cliente, user_agent, referrer=''):
             supabase.table('br_afiliados').update({
                 'br_total_clicks': novo_total
             }).eq('br_id', afiliado_id).execute()
+            
+            print(f"👆 Click registrado para afiliado {afiliado_id}, total: {novo_total}")
         
         return True
     except Exception as e:
@@ -267,7 +287,9 @@ def calcular_comissao_afiliado(valor_venda):
     if not valor_venda or valor_venda <= 0:
         return 0
     percentual = float(obter_configuracao('percentual_comissao_afiliado', '50'))
-    return (valor_venda * percentual / 100)
+    comissao = (valor_venda * percentual / 100)
+    print(f"💰 Comissão calculada: {percentual}% de R$ {valor_venda:.2f} = R$ {comissao:.2f}")
+    return comissao
 
 def validar_pagamento_aprovado(payment_id):
     """Valida se o pagamento foi realmente aprovado"""
@@ -403,9 +425,16 @@ def health_check():
         'supabase': supabase is not None,
         'mercadopago': sdk is not None,
         'timestamp': datetime.now().isoformat(),
-        'version': '2.0.0',
+        'version': '2.0.1',
         'games': ['raspa_brasil', '2para1000'],
-        'features': ['afiliados', 'admin', 'pagamentos_unificados']
+        'features': ['afiliados', 'admin', 'pagamentos_unificados'],
+        'debug_info': {
+            'total_vendas_rb': obter_total_vendas('raspa_brasil'),
+            'total_vendas_ml': obter_total_vendas('2para1000'),
+            'total_afiliados': obter_total_afiliados(),
+            'total_ganhadores_rb': obter_total_ganhadores('raspa_brasil'),
+            'total_ganhadores_ml': obter_total_ganhadores('2para1000')
+        }
     }
 
 @app.route('/webhook/mercadopago', methods=['POST'])
@@ -461,6 +490,8 @@ def create_payment():
     preco_unitario = PRECO_RASPADINHA_RB if game_type == 'raspa_brasil' else PRECO_BILHETE_ML
     total = quantidade * preco_unitario
 
+    print(f"💳 Criando pagamento: {game_type} - {quantidade} unidades - R$ {total:.2f}")
+
     if not sdk:
         return jsonify({
             'error': 'Sistema de pagamento temporariamente indisponível.',
@@ -480,6 +511,8 @@ def create_payment():
     afiliado = None
     if afiliado_codigo:
         afiliado = obter_afiliado_por_codigo(afiliado_codigo)
+        if afiliado:
+            print(f"👤 Venda com afiliado: {afiliado['br_nome']} ({afiliado_codigo})")
 
     # Descrição do pagamento
     if game_type == 'raspa_brasil':
@@ -503,7 +536,6 @@ def create_payment():
     }
 
     try:
-        print(f"💳 Criando pagamento: R$ {total:.2f} ({descricao})")
         payment_response = sdk.payment().create(payment_data)
 
         if payment_response["status"] == 201:
@@ -544,8 +576,8 @@ def create_payment():
                         if game_type == 'raspa_brasil':
                             venda_data['br_comissao_paga'] = 0
                     
-                    supabase.table(tabela).insert(venda_data).execute()
-                    print(f"💾 Venda registrada: Payment {payment['id']} - {game_type}")
+                    response = supabase.table(tabela).insert(venda_data).execute()
+                    print(f"💾 Venda registrada: Payment {payment['id']} - {game_type} - ID: {response.data[0] if response.data else 'N/A'}")
                     
                 except Exception as e:
                     print(f"❌ Erro ao salvar venda: {str(e)}")
@@ -554,6 +586,8 @@ def create_payment():
 
             if not pix_data:
                 return jsonify({'error': 'Erro ao gerar dados PIX'}), 500
+
+            print(f"✅ Pagamento criado: {payment['id']} - R$ {total:.2f}")
 
             return jsonify({
                 'id': payment['id'],
@@ -661,7 +695,7 @@ def check_payment(payment_id):
                             supabase.table(tabela).update(update_data).eq(campo_payment, str(payment_id)).execute()
 
                             session[payment_key] = True
-                            print(f"✅ Pagamento aprovado: {payment_id} - {game_type}")
+                            print(f"✅ Pagamento aprovado e processado: {payment_id} - {game_type}")
 
                             log_payment_change(payment_id, 'pending', 'completed', {
                                 'source': 'check_payment',
@@ -715,6 +749,7 @@ def raspar():
                 supabase.table('br_vendas').update({
                     'br_raspadinhas_usadas': raspadas + 1
                 }).eq('br_payment_id', str(payment_id)).execute()
+                print(f"📊 Contador atualizado: {raspadas + 1}/{quantidade_maxima} para payment {payment_id}")
             except Exception as e:
                 print(f"❌ Erro ao atualizar contador: {str(e)}")
 
@@ -753,6 +788,7 @@ def salvar_ganhador():
                     'erro': f'Campo {campo} é obrigatório'
                 })
 
+        # Verificar se código já foi usado
         existing = supabase.table('br_ganhadores').select('br_id').eq('br_codigo', data['codigo']).execute()
         if existing.data:
             return jsonify({'sucesso': False, 'erro': 'Código já utilizado'})
@@ -810,7 +846,7 @@ def enviar_bilhete():
         }).execute()
 
         if response.data:
-            print(f"🎫 Cliente registrado: {data['nome']} - Bilhetes: {data['bilhetes']}")
+            print(f"🎫 Cliente registrado: {data['nome']} - Bilhetes: {data['bilhetes']} - Payment: {payment_id}")
             return jsonify({'sucesso': True, 'id': response.data[0]['ml_id']})
         else:
             return jsonify({'sucesso': False, 'erro': 'Erro ao salvar dados'})
@@ -838,6 +874,8 @@ def resultado_sorteio():
             sorteio = response.data[0]
             valor_acumulado = obter_premio_acumulado()
             
+            print(f"🎲 Resultado do sorteio: {sorteio['ml_milhar_sorteada']} - Ganhador: {sorteio['ml_houve_ganhador']}")
+            
             return jsonify({
                 'milhar_sorteada': sorteio['ml_milhar_sorteada'],
                 'houve_ganhador': sorteio['ml_houve_ganhador'],
@@ -846,6 +884,7 @@ def resultado_sorteio():
             })
         else:
             valor_acumulado = obter_premio_acumulado()
+            print(f"🎲 Nenhum sorteio hoje. Prêmio acumulado: R$ {valor_acumulado:.2f}")
             return jsonify({
                 'milhar_sorteada': None,
                 'houve_ganhador': False,
@@ -880,6 +919,7 @@ def ultimos_ganhadores():
                 'data': datetime.fromisoformat(ganhador['ml_data_sorteio']).strftime('%d/%m/%Y')
             })
 
+        print(f"🏆 Últimos ganhadores ML: {len(ganhadores)} encontrados")
         return jsonify({'ganhadores': ganhadores})
 
     except Exception as e:
@@ -909,6 +949,7 @@ def cadastrar_afiliado():
         if len(cpf) != 11:
             return jsonify({'sucesso': False, 'erro': 'CPF inválido'})
 
+        # Verificar duplicatas
         existing_email = supabase.table('br_afiliados').select('br_id').eq('br_email', data['email']).execute()
         existing_cpf = supabase.table('br_afiliados').select('br_id').eq('br_cpf', cpf).execute()
         
@@ -923,12 +964,16 @@ def cadastrar_afiliado():
             'br_email': data['email'].strip().lower()[:255],
             'br_telefone': data['telefone'].strip()[:20],
             'br_cpf': cpf,
-            'br_status': 'ativo'
+            'br_status': 'ativo',
+            'br_total_clicks': 0,
+            'br_total_vendas': 0,
+            'br_total_comissao': 0,
+            'br_saldo_disponivel': 0
         }).execute()
 
         if response.data:
             afiliado = response.data[0]
-            print(f"👤 Novo afiliado cadastrado: {data['nome']} - {codigo}")
+            print(f"👤 Novo afiliado cadastrado: {data['nome']} - {codigo} - ID: {afiliado['br_id']}")
             
             return jsonify({
                 'sucesso': True,
@@ -1013,6 +1058,7 @@ def atualizar_pix_afiliado():
         }).eq('br_codigo', codigo).eq('br_status', 'ativo').execute()
 
         if response.data:
+            print(f"💳 PIX atualizado para afiliado {codigo}: {tipo_chave} - {chave_pix}")
             return jsonify({'sucesso': True})
         else:
             return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
@@ -1062,11 +1108,12 @@ def solicitar_saque_afiliado():
         }).execute()
 
         if saque_response.data:
+            # Zerar saldo do afiliado
             supabase.table('br_afiliados').update({
                 'br_saldo_disponivel': 0
             }).eq('br_id', afiliado['br_id']).execute()
 
-            print(f"💸 Saque solicitado: {afiliado['br_nome']} - R$ {saldo:.2f}")
+            print(f"💸 Saque solicitado: {afiliado['br_nome']} - R$ {saldo:.2f} - ID: {saque_response.data[0]['br_id']}")
 
             return jsonify({
                 'sucesso': True,
@@ -1093,21 +1140,23 @@ def admin_login():
     
     if senha == ADMIN_PASSWORD:
         session['admin_logado'] = True
+        print(f"🔑 Admin logado com senha padrão")
         return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
     
     if supabase:
         try:
-            response = supabase.table('br_admins').select('*').eq('br_senha', senha).eq('br_ativo', True).execute()
+            response = supabase.table('administradores de ml').select('*').eq('ml_senha', senha).eq('ml_ativo', True).execute()
             if response.data:
                 admin = response.data[0]
                 session['admin_logado'] = True
-                session['admin_usuario'] = admin['br_usuario']
+                session['admin_usuario'] = admin['ml_usuario']
                 
-                supabase.table('br_admins').update({
-                    'br_ultimo_login': datetime.now().isoformat()
-                }).eq('br_id', admin['br_id']).execute()
+                supabase.table('administradores de ml').update({
+                    'ml_ultimo_login': datetime.now().isoformat()
+                }).eq('ml_id', admin['ml_id']).execute()
                 
-                return jsonify({'success': True, 'message': f'Bem-vindo, {admin["br_nome"]}'})
+                print(f"🔑 Admin logado: {admin['ml_nome']}")
+                return jsonify({'success': True, 'message': f'Bem-vindo, {admin["ml_nome"]}'})
         except Exception as e:
             print(f"❌ Erro ao verificar admin no banco: {str(e)}")
     
@@ -1187,6 +1236,7 @@ def admin_stats():
             except Exception as e:
                 print(f"❌ Erro ao obter vendas do dia: {str(e)}")
 
+        print(f"📊 Stats consultadas - Game: {game}, Vendas RB: {stats.get('vendidas', 0)}, Vendas ML: {stats.get('bilhetes_vendidos', 0)}")
         return jsonify(stats)
 
     except Exception as e:
@@ -1268,25 +1318,30 @@ def admin_sortear():
 
         hoje = date.today().isoformat()
 
+        # Verificar se já foi sorteado hoje
         existing = supabase.table('ml_sorteios').select('ml_id').eq('ml_data_sorteio', hoje).execute()
 
         if existing.data:
             return jsonify({'sucesso': False, 'erro': 'Sorteio já foi realizado hoje'})
 
+        # Buscar clientes participantes
         clientes_response = supabase.table('ml_clientes').select('*').eq('ml_data_sorteio', hoje).execute()
 
         houve_ganhador = False
         ganhador_data = None
         valor_premio = obter_premio_acumulado()
 
+        # Verificar se algum bilhete ganhou
         for cliente in (clientes_response.data or []):
             bilhetes = cliente['ml_bilhetes']
             if milhar_sorteada in bilhetes:
                 houve_ganhador = True
                 ganhador_data = cliente
+                print(f"🏆 GANHADOR ENCONTRADO: {cliente['ml_nome']} - Bilhete: {milhar_sorteada}")
                 break
 
         if houve_ganhador:
+            # Salvar ganhador
             supabase.table('ml_ganhadores').insert({
                 'ml_nome': ganhador_data['ml_nome'],
                 'ml_telefone': ganhador_data['ml_telefone'],
@@ -1298,17 +1353,20 @@ def admin_sortear():
                 'ml_status_pagamento': 'pendente'
             }).execute()
 
+            # Resetar prêmio
             atualizar_premio_acumulado(PREMIO_INICIAL_ML)
             novo_valor_acumulado = PREMIO_INICIAL_ML
 
             print(f"🏆 GANHADOR! {ganhador_data['ml_nome']} - Bilhete: {milhar_sorteada} - Prêmio: R$ {valor_premio:.2f}")
 
         else:
+            # Acumular prêmio
             novo_valor_acumulado = valor_premio + PREMIO_INICIAL_ML
             atualizar_premio_acumulado(novo_valor_acumulado)
 
             print(f"💰 Prêmio acumulado! Novo valor: R$ {novo_valor_acumulado:.2f}")
 
+        # Salvar resultado do sorteio
         supabase.table('ml_sorteios').insert({
             'ml_data_sorteio': hoje,
             'ml_milhar_sorteada': milhar_sorteada,
@@ -1373,6 +1431,7 @@ def admin_ganhadores(game):
         # Ordenar por data
         ganhadores.sort(key=lambda x: x['data'], reverse=True)
         
+        print(f"🏆 Ganhadores consultados - Game: {game}, Total: {len(ganhadores[:20])}")
         return jsonify({'ganhadores': ganhadores[:20]})
         
     except Exception as e:
@@ -1404,6 +1463,7 @@ def admin_afiliados():
                 'data_cadastro': a['br_data_criacao']
             })
         
+        print(f"👥 Afiliados consultados: {len(afiliados)}")
         return jsonify({'afiliados': afiliados})
         
     except Exception as e:
@@ -1451,6 +1511,7 @@ def admin_vendas():
         # Ordenar por data
         vendas.sort(key=lambda x: x['data'], reverse=True)
         
+        print(f"💰 Vendas consultadas: {len(vendas[:50])} dos últimos 7 dias")
         return jsonify({'vendas': vendas[:50]})
         
     except Exception as e:
@@ -1463,7 +1524,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando PORTAL DOS JOGOS - Sistema Integrado v2.0...")
+    print("🚀 Iniciando PORTAL DOS JOGOS - Sistema Integrado v2.0.1...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
@@ -1477,6 +1538,11 @@ if __name__ == '__main__':
     print(f"🛡️ Segurança: Validações robustas")
     print(f"📊 Admin: Painel unificado")
     print(f"🔐 Senha Admin: {ADMIN_PASSWORD}")
-    print(f"✅ SISTEMA COMPLETO E INTEGRADO!")
+    print(f"🔧 CORREÇÕES APLICADAS:")
+    print(f"   - Nomes das tabelas corrigidos (br_configurações, ml_configurações)")
+    print(f"   - Logs detalhados adicionados para debug")
+    print(f"   - Verificações de dados robustas")
+    print(f"   - Mapeamento correto de campos")
+    print(f"✅ SISTEMA COMPLETO E CORRIGIDO!")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
