@@ -6,7 +6,7 @@
     <title>GANHA BRASIL - Raspa Brasil & 2 para 1000</title>
 
     <!-- Open Graph (Facebook, Instagram, WhatsApp) -->
-    <meta property="og:title" content="Ganha Brasil - Raspa Brasil & 2 para 1000">
+    <meta property="og:title" content="GANHA BRASIL - Raspa Brasil & 2 para 1000">
     <meta property="og:description" content="Dois jogos em um só lugar! Raspadinhas virtuais e bilhetes da milhar. Ganhe até R$1.000! Pagamento seguro via Pix.">
     <meta property="og:image" content="https://raspabrasil.onrender.com/static/images/logo.jpg">
     <meta property="og:url" content="https://raspabrasil.onrender.com">
@@ -197,20 +197,11 @@
             50% { transform: scale(1.08) rotate(5deg); }
         }
 
-        /* Botão Indique e Ganhe - Centralizado */
-        .indique-ganhe-container {
+        /* Botão Indique e Ganhe */
+        .indique-ganhe-btn {
             position: fixed;
             top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            pointer-events: none;
-        }
-
-        .indique-ganhe-btn {
+            right: 20px;
             background: linear-gradient(135deg, #77ff6b59, #ffd93d);
             border: none;
             border-radius: 50px;
@@ -226,7 +217,7 @@
             overflow: hidden;
             position: relative;
             animation: pulse-glow 2s infinite;
-            pointer-events: auto;
+            z-index: 1000;
         }
 
         .indique-ganhe-btn:hover {
@@ -1381,86 +1372,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* PDF Styles */
-        .pdf-content {
-            background: white;
-            padding: 40px;
-            max-width: 800px;
-            margin: 0 auto;
-            border-radius: 15px;
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        .pdf-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 30px;
-            background: linear-gradient(135deg, #00b341, #ffd700);
-            color: white;
-            border-radius: 15px;
-            position: relative;
-        }
-
-        .pdf-logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px auto;
-            background: #00b341;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            color: white;
-            font-weight: 800;
-            border: 3px solid #ffd700;
-        }
-
-        .pdf-title {
-            font-size: 2.5em;
-            font-weight: 800;
-            margin-bottom: 10px;
-        }
-
-        .pdf-subtitle {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        .pdf-winners-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 30px;
-        }
-
-        .pdf-winners-table th {
-            background: #00b341;
-            color: white;
-            padding: 15px;
-            text-align: left;
-            font-weight: 700;
-            border-bottom: 3px solid #ffd700;
-        }
-
-        .pdf-winners-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #ddd;
-            font-weight: 600;
-        }
-
-        .pdf-winners-table tr:nth-child(even) {
-            background: #f8f9fa;
-        }
-
-        .pdf-footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            color: #666;
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -1529,14 +1440,13 @@
                 font-size: 14px;
             }
 
-            .indique-ganhe-container {
+            .indique-ganhe-btn {
                 position: relative;
-                top: 0;
-                left: 0;
-                transform: none;
+                top: auto;
+                right: auto;
                 margin: 10px auto;
+                display: block;
                 width: auto;
-                padding: 0 20px;
             }
 
             .game-selection {
@@ -1647,22 +1557,13 @@
                 color: #f1f1f1;
             }
         }
-
-        @keyframes ripple {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
     </style>
 </head>
 <body>
-    <!-- Botão Indique e Ganhe - Centralizado -->
-    <div class="indique-ganhe-container">
-        <button class="indique-ganhe-btn" onclick="abrirAfiliados()">
-            INDIQUE E GANHE
-        </button>
-    </div>
+    <!-- Botão Indique e Ganhe -->
+    <button class="indique-ganhe-btn" onclick="abrirAfiliados()">
+        INDIQUE E GANHE
+    </button>
 
     <!-- Botão WhatsApp Flutuante -->
     <a href="https://wa.me/5582996092684?text=Olá!%20Preciso%20de%20suporte." target="_blank" class="whatsapp-float" title="Suporte WhatsApp">
@@ -2733,10 +2634,7 @@
                                     Adicionar Ganhador
                                 </button>
                                 <button class="btn btn-secondary" onclick="gerarListaGanhadoresDia()">
-                                    Lista do Dia (TXT)
-                                </button>
-                                <button class="btn btn-primary" onclick="gerarPDFGanhadores()">
-                                    Gerar PDF
+                                    Lista do Dia
                                 </button>
                             </div>
                         </div>
@@ -2853,40 +2751,6 @@
             <p>acabou de ganhar <strong style="font-size: 1.5em;">R$ 1.000,00!</strong></p>
             <p>Seja o próximo ganhador!</p>
             <button class="close-btn" onclick="closeWinnerAlert()">QUERO JOGAR AGORA!</button>
-        </div>
-    </div>
-
-    <!-- PDF Content (oculto) -->
-    <div id="pdf-content" style="display: none;">
-        <div class="pdf-content">
-            <div class="pdf-header">
-                <div class="pdf-logo">🇧🇷</div>
-                <div class="pdf-title">RASPA BRASIL</div>
-                <div class="pdf-subtitle">Raspou, Achou, Ganhou!</div>
-                <div style="margin-top: 15px; font-size: 1em;">
-                    Relatório do dia: <span id="pdf-data-relatorio"></span>
-                </div>
-            </div>
-            
-            <div id="pdf-ganhadores-content">
-                <h3 style="color: #00b341; margin-bottom: 20px; text-align: center; font-size: 1.8em;">Lista de Ganhadores do Dia</h3>
-                <table class="pdf-winners-table" id="pdf-winners-table">
-                    <thead>
-                        <tr>
-                            <th>Nome Completo</th>
-                            <th>Valor Ganho</th>
-                            <th>Data do Prêmio</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pdf-winners-tbody">
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="pdf-footer">
-                <p><strong>O próximo ganhador pode ser você!</strong></p>
-                <p>Raspa Brasil</p>
-            </div>
         </div>
     </div>
 
@@ -5031,163 +4895,68 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        async function gerarPDFGanhadores() {
-            const dataFiltro = document.getElementById('filtro-data-ganhadores').value || new Date().toISOString().split('T')[0];
-            
-            try {
-                const response = await fetch(`/admin/lista_ganhadores_dia/${dataFiltro}`);
-                const resultado = await response.json();
-                
-                if (resultado.ganhadores && resultado.ganhadores.length > 0) {
-                    // Atualizar conteúdo do PDF
-                    document.getElementById('pdf-data-relatorio').textContent = new Date(dataFiltro).toLocaleDateString('pt-BR');
-                    
-                    const tbody = document.getElementById('pdf-winners-tbody');
-                    tbody.innerHTML = '';
-                    
-                    resultado.ganhadores.forEach(ganhador => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${ganhador.nome}</td>
-                            <td>${ganhador.valor}</td>
-                            <td>${new Date(ganhador.data).toLocaleDateString('pt-BR')}</td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                    
-                    // Mostrar o conteúdo PDF temporariamente
-                    const pdfContent = document.getElementById('pdf-content');
-                    pdfContent.style.display = 'block';
-                    
-                    // Gerar PDF usando html2canvas + jsPDF
-                    try {
-                        const canvas = await html2canvas(pdfContent.querySelector('.pdf-content'), {
-                            scale: 2,
-                            useCORS: true,
-                            allowTaint: true,
-                            backgroundColor: '#ffffff'
-                        });
-                        
-                        const { jsPDF } = window.jspdf;
-                        const pdf = new jsPDF('p', 'mm', 'a4');
-                        
-                        const imgWidth = 210;
-                        const pageHeight = 295;
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                        let heightLeft = imgHeight;
-                        
-                        const imgData = canvas.toDataURL('image/png');
-                        let position = 0;
-                        
-                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                        
-                        while (heightLeft >= 0) {
-                            position = heightLeft - imgHeight;
-                            pdf.addPage();
-                            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                            heightLeft -= pageHeight;
-                        }
-                        
-                        pdf.save(`ganhadores_${dataFiltro}.pdf`);
-                        mostrarModal('<h3>PDF Gerado!</h3><p>O PDF dos ganhadores foi baixado com sucesso!</p>');
-                        
-                    } catch (pdfError) {
-                        console.error('Erro ao gerar PDF:', pdfError);
-                        mostrarModal('<h3>Erro no PDF</h3><p>Erro ao gerar o arquivo PDF</p>');
-                    }
-                    
-                    // Ocultar o conteúdo PDF novamente
-                    pdfContent.style.display = 'none';
-                    
-                } else {
-                    mostrarModal('<h3>Sem Ganhadores</h3><p>Nenhum ganhador encontrado para esta data.</p>');
-                }
-                
-            } catch (error) {
-                console.error('Erro ao gerar PDF:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF de ganhadores</p>');
-            }
-        }
-
         async function marcarSaquePago(saqueId) {
             try {
                 const response = await fetch('/admin/marcar_saque_pago', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ saque_id: saqueId })
-            });
-            
-            const resultado = await response.json();
-            
-            if (resultado.sucesso) {
-                carregarSaques('todos');
-                mostrarModal('<h3>Sucesso!</h3><p>Saque marcado como pago!</p>');
-            } else {
-                mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-            }
-            
-        } catch (error) {
-            console.error('Erro ao marcar saque como pago:', error);
-            mostrarModal('<h3>Erro</h3><p>Erro ao processar pagamento do saque</p>');
-        }
-    }
-
-    // Verificar parâmetro de referência de afiliado
-    function verificarReferenciaAfiliado() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const refCode = urlParams.get('ref');
-        
-        if (refCode) {
-            localStorage.setItem('raspa_ref', refCode);
-            sessionStorage.setItem('raspa_ref', refCode);
-            
-            // Registrar clique do afiliado
-            fetch('/registrar_clique_afiliado', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigo: refCode })
-            }).catch(error => console.log('Erro ao registrar clique:', error));
-        }
-    }
-
-    // Auto-login de afiliado se salvo
-    async function autoLoginAfiliado() {
-        const savedCpf = localStorage.getItem('affiliate_cpf');
-        if (savedCpf && !currentAffiliate) {
-            try {
-                const response = await fetch('/login_afiliado', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cpf: savedCpf })
+                    body: JSON.stringify({ saque_id: saqueId })
                 });
-
+                
                 const resultado = await response.json();
+                
                 if (resultado.sucesso) {
-                    currentAffiliate = resultado.afiliado;
+                    carregarSaques('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Saque marcado como pago!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
                 }
+                
             } catch (error) {
-                console.log('Erro no auto-login:', error);
+                console.error('Erro ao marcar saque como pago:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao marcar saque como pago</p>');
             }
         }
-    }
 
-    // Formatação de data brasileira
-    function formatarDataBR(dataISO) {
-        return new Date(dataISO).toLocaleDateString('pt-BR');
-    }
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarDisplayRB();
+            atualizarDisplayML();
+            initBannerSlider();
+            initWinnerAlerts();
+            gerarGanhadoresSlider();
+            
+            // Verificar código de afiliado na URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode && refCode.trim() !== '' && refCode.length > 2) {
+                localStorage.setItem('raspa_ref', refCode.trim());
+                sessionStorage.setItem('raspa_ref', refCode.trim());
+                console.log('Código de afiliado detectado:', refCode.trim());
+            } else {
+                localStorage.removeItem('raspa_ref');
+                sessionStorage.removeItem('raspa_ref');
+            }
+            
+            // Auto-login do afiliado se houver
+            const savedCpf = localStorage.getItem('affiliate_cpf');
+            if (savedCpf) {
+                // Implementar auto-login se necessário
+            }
+            
+            // Recarregar dados periodicamente
+            setInterval(() => {
+                if (gameMode === 'ml') {
+                    carregarResultadoSorteioML();
+                    carregarUltimosGanhadoresML();
+                }
+            }, 30000);
+        });
 
-    function formatarDataHoraBR(dataISO) {
-        const data = new Date(dataISO);
-        return `${data.toLocaleDateString('pt-BR')} às ${data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-    }
-
-    // Funções de Dark Mode
-    function initDarkMode() {
+        // Detectar modo escuro
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.classList.add('dark');
         }
-        
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
             if (event.matches) {
                 document.documentElement.classList.add('dark');
@@ -5195,231 +4964,7 @@ Solicito o pagamento do meu prêmio!`;
                 document.documentElement.classList.remove('dark');
             }
         });
-    }
-
-    // Limpar intervalo de verificação de pagamento ao sair da página
-    window.addEventListener('beforeunload', () => {
-        if (paymentCheckInterval) {
-            clearInterval(paymentCheckInterval);
-        }
-    });
-
-    // Prevenção contra spam de cliques
-    function throttle(func, limit) {
-        let inThrottle;
-        return function() {
-            const args = arguments;
-            const context = this;
-            if (!inThrottle) {
-                func.apply(context, args);
-                inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
-            }
-        }
-    }
-
-    // Aplicar throttle nos botões principais
-    const throttledIrParaPagamentoRB = throttle(irParaPagamentoRB, 2000);
-    const throttledIrParaPagamentoML = throttle(irParaPagamentoML, 2000);
-
-    // Validação de CPF
-    function validarCPF(cpf) {
-        cpf = cpf.replace(/\D/g, '');
-        if (cpf.length !== 11 || /^(.)\1{10}$/.test(cpf)) return false;
-        
-        let soma = 0;
-        for (let i = 0; i < 9; i++) {
-            soma += parseInt(cpf.charAt(i)) * (10 - i);
-        }
-        let resto = (soma * 10) % 11;
-        if (resto === 10 || resto === 11) resto = 0;
-        if (resto !== parseInt(cpf.charAt(9))) return false;
-        
-        soma = 0;
-        for (let i = 0; i < 10; i++) {
-            soma += parseInt(cpf.charAt(i)) * (11 - i);
-        }
-        resto = (soma * 10) % 11;
-        if (resto === 10 || resto === 11) resto = 0;
-        return resto === parseInt(cpf.charAt(10));
-    }
-
-    // Validação de e-mail
-    function validarEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-
-    // Função para mostrar loading
-    function mostrarLoading(elemento) {
-        elemento.innerHTML = '<div class="loading">Carregando...</div>';
-    }
-
-    // Função para ocultar loading
-    function ocultarLoading(elemento, conteudoOriginal) {
-        elemento.innerHTML = conteudoOriginal;
-    }
-
-    // Tratamento de erros global
-    window.addEventListener('error', function(e) {
-        console.error('Erro JavaScript:', e.error);
-    });
-
-    // Tratamento de erros de promises rejeitadas
-    window.addEventListener('unhandledrejection', function(e) {
-        console.error('Promise rejeitada:', e.reason);
-    });
-
-    // Inicialização quando a página carrega
-    document.addEventListener('DOMContentLoaded', function() {
-        // Verificar referência de afiliado
-        verificarReferenciaAfiliado();
-        
-        // Auto-login de afiliado
-        autoLoginAfiliado();
-        
-        // Gerar ganhadores do slider
-        gerarGanhadoresSlider();
-        
-        // Inicializar dark mode
-        initDarkMode();
-        
-        // Inicializar banner slider
-        initBannerSlider();
-        
-        // Inicializar alertas de ganhadores
-        initWinnerAlerts();
-        
-        // Configurar quantidade inicial
-        atualizarDisplayRB();
-        atualizarDisplayML();
-        
-        console.log('Ganha brasil inicializado com sucesso!');
-    });
-
-    // Funcionalidades específicas para dispositivos móveis
-    if ('ontouchstart' in window) {
-        // Melhorar experiência touch
-        document.addEventListener('touchstart', function() {}, { passive: true });
-        
-        // Prevenir zoom no double-tap em botões
-        document.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                setTimeout(() => {
-                    this.click();
-                }, 10);
-            });
-        });
-    }
-
-    // Service Worker para cache (opcional)
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            // Registrar service worker se necessário
-            console.log('Service Worker disponível');
-        });
-    }
-
-    // Detecção de conexão
-    function verificarConexao() {
-        if (navigator.onLine) {
-            console.log('Conexão online');
-        } else {
-            mostrarModal('<h3>Sem Conexão</h3><p>Verifique sua conexão com a internet.</p>');
-        }
-    }
-
-    window.addEventListener('online', verificarConexao);
-    window.addEventListener('offline', verificarConexao);
-
-    // Preloader para imagens importantes
-    function precarregarImagens() {
-        const imagens = [
-            'https://pfst.cf2.poecdn.net/base/image/6334603f4a3905c7fd614b3b09aa286277d7dbe6636795bc8742d06a7e88e5b8?w=980&h=980',
-            'https://pfst.cf2.poecdn.net/base/image/f5e5ea7363d8a169389771ca089524300491c180be4956341b918e8d3d1c474c?w=626&h=417'
-        ];
-        
-        imagens.forEach(src => {
-            const img = new Image();
-            img.src = src;
-        });
-    }
-
-    // Chamar precarregamento
-    precarregarImagens();
-
-    // Animações de entrada
-    function animarEntrada() {
-        const elementos = document.querySelectorAll('.page.active .container > *');
-        elementos.forEach((el, index) => {
-            el.style.animation = `fadeIn 0.6s ease-in-out ${index * 0.1}s both`;
-        });
-    }
-
-    // Chamar animação na troca de páginas
-    const originalMostrarPagina = mostrarPagina;
-    mostrarPagina = function(pageId) {
-        originalMostrarPagina(pageId);
-        setTimeout(animarEntrada, 50);
-    };
-
-    // Configurações de segurança
-    if (typeof window.Poe !== 'undefined') {
-        Object.freeze(window.Poe);
-    }
-    
-    // Exportar algumas funções globais necessárias
-    window.raspaBrasilApp = {
-        voltarSelecaoJogos,
-        irParaRaspaBrasil,
-        irPara2Para1000,
-        abrirAfiliados,
-        abrirAdmin,
-        aumentarQuantidadeRB,
-        diminuirQuantidadeRB,
-        aumentarQuantidadeML,
-        diminuirQuantidadeML,
-        copiarCodigoPixRB,
-        copiarCodigoPixML,
-        enviarWhatsAppRB,
-        enviarBilheteML,
-        cadastrarAfiliado,
-        loginAfiliado,
-        copiarLinkAfiliado,
-        salvarChavePix,
-        solicitarSaque,
-        loginAdmin,
-        trocarAbaAdmin,
-        liberarPremioManual,
-        realizarSorteio,
-        carregarDadosAfiliados,
-        carregarSaques,
-        carregarBilhetes,
-        carregarRaspadinhas,
-        carregarGanhadores,
-        carregarRelatorioVendas,
-        adicionarGanhador,
-        salvarNovoGanhador,
-        alterarStatusGanhador,
-        editarGanhador,
-        removerGanhador,
-        gerarListaGanhadoresDia,
-        gerarPDFGanhadores,
-        marcarSaquePago,
-        closeWinnerAlert,
-        fecharModal,
-        fecharAdmin,
-        fecharModalAdicionarGanhador
-    };
-
-    // Log final de inicialização
-    console.log('🇧🇷 Ganha Brasil - Sistema carregado com sucesso!');
-    console.log('📱 Responsivo: ✅');
-    console.log('🎮 Jogos: Raspa Brasil + 2 para 1000');
-    console.log('💰 Sistema de Afiliados: ✅');
-    console.log('⚙️ Área Administrativa: ✅');
-    console.log('🔒 Segurança: ✅');
-</script>
+    </script>
 </body>
 </html>
+
