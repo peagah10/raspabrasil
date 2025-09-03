@@ -6,9 +6,6 @@ from flask import Flask, request, jsonify, session, send_file, Response
 from dotenv import load_dotenv
 import json
 import traceback
-from functools import wraps
-import hashlib
-import time
 
 # Inicializar Supabase
 try:
@@ -49,17 +46,7 @@ PREMIO_INICIAL_ML = 1000.00
 PRECO_BILHETE_ML = 2.00
 PRECO_RASPADINHA_RB = 1.00
 ADMIN_PASSWORD = "paulo10@admin"
-APP_VERSION = "2.2.0"
-
-# Rate limiting básico
-request_counts = {}
-RATE_LIMIT = 100  # requests por minuto
-RATE_WINDOW = 60  # janela em segundos
-
-# Cache simples para configurações
-config_cache = {}
-cache_timeout = {}
-CACHE_DURATION = 300  # 5 minutos
+APP_VERSION = "2.1.0"
 
 # Inicializar cliente Supabase
 supabase = None
@@ -83,117 +70,47 @@ try:
 except Exception as e:
     print(f"❌ Erro ao configurar Mercado Pago: {str(e)}")
 
-# ========== DECORADORES DE SEGURANÇA ==========
-
-def rate_limit_decorator(func):
-    """Decorator para rate limiting básico"""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        client_ip = request.remote_addr or 'unknown'
-        current_time = time.time()
-        
-        # Limpar contadores antigos
-        request_counts[client_ip] = [
-            req_time for req_time in request_counts.get(client_ip, [])
-            if current_time - req_time < RATE_WINDOW
-        ]
-        
-        # Verificar limite
-        if len(request_counts.get(client_ip, [])) >= RATE_LIMIT:
-            log_error("rate_limit", f"Rate limit exceeded for {client_ip}")
-            return jsonify({'error': 'Muitas requisições. Tente novamente em alguns minutos.'}), 429
-        
-        # Adicionar nova requisição
-        if client_ip not in request_counts:
-            request_counts[client_ip] = []
-        request_counts[client_ip].append(current_time)
-        
-        return func(*args, **kwargs)
-    return wrapper
-
-def admin_required(func):
-    """Decorator para rotas que exigem admin"""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if not validar_session_admin():
-            return jsonify({'error': 'Acesso negado - Admin requerido'}), 403
-        return func(*args, **kwargs)
-    return wrapper
-
-def validate_json(func):
-    """Decorator para validar JSON de entrada"""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if request.method in ['POST', 'PUT', 'PATCH']:
-            if not request.is_json:
-                return jsonify({'error': 'Content-Type deve ser application/json'}), 400
-            try:
-                data = request.get_json()
-                if data is None:
-                    return jsonify({'error': 'JSON inválido'}), 400
-            except Exception:
-                return jsonify({'error': 'Erro ao processar JSON'}), 400
-        return func(*args, **kwargs)
-    return wrapper
-
-# ========== FUNÇÕES AUXILIARES MELHORADAS ==========
+# ========== FUNÇÕES AUXILIARES ==========
 
 def log_error(operation, error, extra_data=None):
-    """Log de erros centralizado e melhorado"""
-    error_msg = str(error)
-    timestamp = datetime.now().isoformat()
-    
-    print(f"❌ [{timestamp}] [{operation}] {error_msg}")
+    """Log de erros centralizado"""
+    print(f"❌ [{operation}] {str(error)}")
     if extra_data:
-        print(f"   📊 Dados extras: {extra_data}")
+        print(f"   Dados extras: {extra_data}")
     
     if supabase:
         try:
-            # Preparar dados para log
-            log_data = {
-                'br_operacao': operation[:100],
-                'br_erro': error_msg[:500],
-                'br_timestamp': timestamp,
-                'br_ip_cliente': request.remote_addr if request else 'system',
-                'br_user_agent': request.headers.get('User-Agent', '')[:500] if request else 'system'
-            }
-            
-            if extra_data:
-                log_data['br_dados_extras'] = json.dumps(extra_data, default=str)[:1000]
-            
-            supabase.table('br_logs_sistema').insert(log_data).execute()
-        except Exception as log_err:
-            print(f"❌ Erro ao salvar log: {log_err}")
+            supabase.table('br_logs_sistema').insert({
+                'br_operacao': operation,
+                'br_erro': str(error)[:500],
+                'br_dados_extras': json.dumps(extra_data) if extra_data else None,
+                'br_timestamp': datetime.now().isoformat()
+            }).execute()
+        except:
+            pass
 
 def log_info(operation, message, extra_data=None):
-    """Log de informações centralizado e melhorado"""
-    timestamp = datetime.now().isoformat()
-    print(f"ℹ️ [{timestamp}] [{operation}] {message}")
+    """Log de informações centralizado"""
+    print(f"ℹ️ [{operation}] {message}")
     if extra_data:
-        print(f"   📊 Dados: {extra_data}")
+        print(f"   Dados: {extra_data}")
 
-def log_security_event(event_type, details, severity='medium'):
-    """Log específico para eventos de segurança"""
-    timestamp = datetime.now().isoformat()
-    client_ip = request.remote_addr if request else 'system'
-    user_agent = request.headers.get('User-Agent', '') if request else 'system'
-    
-    print(f"🛡️ [{timestamp}] [SECURITY-{severity.upper()}] {event_type}")
-    print(f"   📍 IP: {client_ip}")
-    print(f"   🔍 Detalhes: {details}")
-    
-    if supabase:
-        try:
-            supabase.table('br_logs_seguranca').insert({
-                'br_evento': event_type[:100],
-                'br_detalhes': str(details)[:500],
-                'br_severidade': severity,
-                'br_ip_cliente': client_ip,
-                'br_user_agent': user_agent[:500],
-                'br_timestamp': timestamp
-            }).execute()
-        except Exception:
-            pass
+def log_payment_change(payment_id, status_anterior, status_novo, webhook_data=None):
+    """Registra mudanças de status de pagamento"""
+    if not supabase or not payment_id:
+        return False
+    try:
+        supabase.table('br_logs_pagamento').insert({
+            'br_payment_id': str(payment_id),
+            'br_status_anterior': status_anterior,
+            'br_status_novo': status_novo,
+            'br_webhook_data': webhook_data,
+            'br_timestamp': datetime.now().isoformat()
+        }).execute()
+        return True
+    except Exception as e:
+        log_error("log_payment_change", e, {"payment_id": payment_id})
+        return False
 
 def gerar_codigo_antifraude():
     """Gera código único no formato RB-XXXXX-YYY"""
@@ -239,36 +156,19 @@ def gerar_codigo_afiliado_unico():
     return f"AF{random.randint(100000, 999999)}"
 
 def obter_configuracao(chave, valor_padrao=None):
-    """Obtém valor de configuração do Supabase com cache"""
+    """Obtém valor de configuração do Supabase"""
     if not supabase or not chave:
         return valor_padrao
-    
-    # Verificar cache
-    cache_key = f"config_{chave}"
-    current_time = time.time()
-    
-    if cache_key in config_cache and cache_key in cache_timeout:
-        if current_time < cache_timeout[cache_key]:
-            return config_cache[cache_key]
-    
     try:
         # Tentar na tabela de configurações RB primeiro
         response = supabase.table('br_configuracoes').select('br_valor').eq('br_chave', chave).execute()
         if response.data:
-            valor = response.data[0]['br_valor']
-            # Atualizar cache
-            config_cache[cache_key] = valor
-            cache_timeout[cache_key] = current_time + CACHE_DURATION
-            return valor
+            return response.data[0]['br_valor']
         
         # Tentar na tabela ML
         response = supabase.table('ml_configuracoes').select('ml_valor').eq('ml_chave', chave).execute()
         if response.data:
-            valor = response.data[0]['ml_valor']
-            # Atualizar cache
-            config_cache[cache_key] = valor
-            cache_timeout[cache_key] = current_time + CACHE_DURATION
-            return valor
+            return response.data[0]['ml_valor']
         
         return valor_padrao
     except Exception as e:
@@ -276,7 +176,7 @@ def obter_configuracao(chave, valor_padrao=None):
         return valor_padrao
 
 def atualizar_configuracao(chave, valor, game_type='raspa_brasil'):
-    """Atualiza valor de configuração no Supabase e limpa cache"""
+    """Atualiza valor de configuração no Supabase"""
     if not supabase or not chave:
         return False
     try:
@@ -296,120 +196,14 @@ def atualizar_configuracao(chave, valor, game_type='raspa_brasil'):
                 campo_valor: str(valor)
             }).execute()
         
-        # Limpar cache
-        cache_key = f"config_{chave}"
-        if cache_key in config_cache:
-            del config_cache[cache_key]
-        if cache_key in cache_timeout:
-            del cache_timeout[cache_key]
-        
         log_info("atualizar_configuracao", f"{chave} = {valor} em {tabela}")
         return response.data is not None
     except Exception as e:
         log_error("atualizar_configuracao", e, {"chave": chave, "valor": valor})
         return False
 
-def sanitizar_dados_entrada(data):
-    """Sanitiza dados de entrada para evitar problemas de segurança"""
-    if isinstance(data, dict):
-        sanitized = {}
-        for key, value in data.items():
-            if isinstance(value, str):
-                # Remover caracteres perigosos
-                sanitized_value = value.strip()
-                # Limitar tamanho
-                sanitized_value = sanitized_value[:1000] if len(sanitized_value) > 1000 else sanitized_value
-                # Validar caracteres básicos para campos específicos
-                if key in ['cpf', 'telefone'] and not sanitized_value.replace(' ', '').replace('-', '').replace('.', '').replace('(', '').replace(')', '').isdigit():
-                    if key == 'cpf' and len(sanitized_value.replace(' ', '').replace('-', '').replace('.', '')) != 11:
-                        continue
-                sanitized[key] = sanitized_value
-            elif isinstance(value, (int, float)):
-                sanitized[key] = value
-            elif isinstance(value, list):
-                sanitized[key] = value[:100] if len(value) > 100 else value  # Limitar listas
-            else:
-                sanitized[key] = value
-        return sanitized
-    elif isinstance(data, str):
-        return data.strip()[:1000]
-    return data
-
-def validar_session_admin():
-    """Valida se o usuário está logado como admin com timeout"""
-    admin_logado = session.get('admin_logado', False)
-    login_time = session.get('admin_login_time')
-    
-    if not admin_logado or not login_time:
-        return False
-    
-    try:
-        login_datetime = datetime.fromisoformat(login_time)
-        # Session expira em 8 horas
-        if datetime.now() - login_datetime > timedelta(hours=8):
-            session.pop('admin_logado', None)
-            session.pop('admin_login_time', None)
-            log_security_event("admin_session_expired", f"Session expirou para {login_time}")
-            return False
-        return True
-    except Exception:
-        return False
-
-def validar_cpf(cpf):
-    """Validação real de CPF"""
-    if not cpf:
-        return False
-    
-    # Remove caracteres não numéricos
-    cpf = ''.join(filter(str.isdigit, cpf))
-    
-    if len(cpf) != 11:
-        return False
-    
-    # Verifica se todos os dígitos são iguais
-    if cpf == cpf[0] * 11:
-        return False
-    
-    # Validação do primeiro dígito verificador
-    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
-    resto = soma % 11
-    digito1 = 0 if resto < 2 else 11 - resto
-    
-    if int(cpf[9]) != digito1:
-        return False
-    
-    # Validação do segundo dígito verificador
-    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
-    resto = soma % 11
-    digito2 = 0 if resto < 2 else 11 - resto
-    
-    return int(cpf[10]) == digito2
-
-def validar_email(email):
-    """Validação básica de e-mail"""
-    if not email or '@' not in email:
-        return False
-    
-    partes = email.split('@')
-    if len(partes) != 2:
-        return False
-    
-    local, dominio = partes
-    if not local or not dominio or '.' not in dominio:
-        return False
-    
-    return True
-
 def obter_total_vendas(game_type='raspa_brasil'):
-    """Obtém total de vendas aprovadas do Supabase com cache"""
-    cache_key = f"vendas_{game_type}"
-    current_time = time.time()
-    
-    # Verificar cache (cache menor para dados dinâmicos)
-    if cache_key in config_cache and cache_key in cache_timeout:
-        if current_time < cache_timeout[cache_key]:
-            return config_cache[cache_key]
-    
+    """Obtém total de vendas aprovadas do Supabase"""
     if not supabase:
         return 0
     try:
@@ -420,9 +214,6 @@ def obter_total_vendas(game_type='raspa_brasil'):
         response = supabase.table(tabela).select(campo_quantidade).eq(campo_status, 'completed').execute()
         if response.data:
             total = sum(venda[campo_quantidade] for venda in response.data)
-            # Cache por 2 minutos apenas
-            config_cache[cache_key] = total
-            cache_timeout[cache_key] = current_time + 120
             log_info("obter_total_vendas", f"Total {game_type}: {total}")
             return total
         return 0
@@ -616,22 +407,23 @@ def atualizar_premio_acumulado(novo_valor):
     """Atualiza valor do prêmio acumulado do 2 para 1000"""
     return atualizar_configuracao('premio_acumulado', str(novo_valor), '2para1000')
 
-def log_payment_change(payment_id, status_anterior, status_novo, webhook_data=None):
-    """Registra mudanças de status de pagamento"""
-    if not supabase or not payment_id:
-        return False
-    try:
-        supabase.table('br_logs_pagamento').insert({
-            'br_payment_id': str(payment_id),
-            'br_status_anterior': status_anterior,
-            'br_status_novo': status_novo,
-            'br_webhook_data': json.dumps(webhook_data) if webhook_data else None,
-            'br_timestamp': datetime.now().isoformat()
-        }).execute()
-        return True
-    except Exception as e:
-        log_error("log_payment_change", e, {"payment_id": payment_id})
-        return False
+def validar_session_admin():
+    """Valida se o usuário está logado como admin"""
+    return session.get('admin_logado', False)
+
+def sanitizar_dados_entrada(data):
+    """Sanitiza dados de entrada para evitar problemas de segurança"""
+    if isinstance(data, dict):
+        sanitized = {}
+        for key, value in data.items():
+            if isinstance(value, str):
+                sanitized[key] = value.strip()[:500]  # Limitar tamanho
+            else:
+                sanitized[key] = value
+        return sanitized
+    elif isinstance(data, str):
+        return data.strip()[:500]
+    return data
 
 # ========== ROTAS PRINCIPAIS ==========
 
@@ -662,7 +454,7 @@ def index():
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Portal dos Jogos - Erro</title>
+            <title>GANHA BRASIL - Erro</title>
             <style>
                 body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #00b341, #ffd700); }}
                 .error {{ color: #dc2626; background: white; padding: 30px; border-radius: 15px; margin: 20px auto; max-width: 500px; }}
@@ -716,7 +508,7 @@ def health_check():
                 'flask': True
             },
             'games': ['raspa_brasil', '2para1000'],
-            'features': ['afiliados', 'admin', 'pagamentos_unificados', 'sistema_manual_premios', 'rate_limiting', 'security_enhanced'],
+            'features': ['afiliados', 'admin', 'pagamentos_unificados', 'sistema_manual_premios'],
             'statistics': stats,
             'configuration': {
                 'total_raspadinhas': TOTAL_RASPADINHAS,
@@ -736,7 +528,6 @@ def health_check():
         }, 500
 
 @app.route('/webhook/mercadopago', methods=['POST'])
-@rate_limit_decorator
 def webhook_mercadopago():
     """Webhook do Mercado Pago para notificações de pagamento"""
     try:
@@ -778,8 +569,6 @@ def webhook_mercadopago():
 # ========== ROTAS DE PAGAMENTO ==========
 
 @app.route('/create_payment', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def create_payment():
     """Cria pagamento PIX real via Mercado Pago - Unificado para ambos os jogos"""
     try:
@@ -788,16 +577,14 @@ def create_payment():
         game_type = data.get('game_type', 'raspa_brasil')
         afiliado_codigo = data.get('ref_code') or session.get('ref_code')
 
-        # Validações básicas melhoradas
+        # Validações básicas
         if not isinstance(quantidade, int) or quantidade < 1 or quantidade > 50:
-            log_security_event("invalid_payment_quantity", f"Quantidade inválida: {quantidade}", "low")
             return jsonify({
                 'error': 'Quantidade inválida',
                 'details': 'A quantidade deve ser entre 1 e 50'
             }), 400
 
         if game_type not in ['raspa_brasil', '2para1000']:
-            log_security_event("invalid_game_type", f"Tipo de jogo inválido: {game_type}", "low")
             return jsonify({
                 'error': 'Tipo de jogo inválido',
                 'details': 'Use raspa_brasil ou 2para1000'
@@ -819,7 +606,6 @@ def create_payment():
         if game_type == 'raspa_brasil':
             vendidas = obter_total_vendas('raspa_brasil')
             if vendidas + quantidade > TOTAL_RASPADINHAS:
-                log_info("create_payment", f"Raspadinhas esgotadas: {vendidas} + {quantidade} > {TOTAL_RASPADINHAS}")
                 return jsonify({
                     'error': 'Raspadinhas esgotadas',
                     'details': f'Restam apenas {TOTAL_RASPADINHAS - vendidas} disponíveis'
@@ -845,9 +631,9 @@ def create_payment():
             "description": descricao,
             "payment_method_id": "pix",
             "payer": {
-                "email": "cliente@portaldosjogos.com",
+                "email": "cliente@ganhabrasil.com",
                 "first_name": "Cliente",
-                "last_name": "Portal dos Jogos"
+                "last_name": "Ganha Brasil"
             },
             "notification_url": f"{request.url_root.rstrip('/')}/webhook/mercadopago",
             "external_reference": f"{game_type.upper()}_{int(datetime.now().timestamp())}_{quantidade}"
@@ -901,11 +687,6 @@ def create_payment():
                     response = supabase.table(tabela).insert(venda_data).execute()
                     log_info("create_payment", f"Venda registrada: Payment {payment['id']} - {game_type}")
                     
-                    # Limpar cache de vendas
-                    cache_key = f"vendas_{game_type}"
-                    if cache_key in config_cache:
-                        del config_cache[cache_key]
-                    
                 except Exception as e:
                     log_error("create_payment", e, {"payment_id": payment['id']})
 
@@ -938,7 +719,6 @@ def create_payment():
         }), 500
 
 @app.route('/check_payment/<payment_id>')
-@rate_limit_decorator
 def check_payment(payment_id):
     """Verifica status do pagamento no Mercado Pago - Unificado"""
     try:
@@ -1033,11 +813,6 @@ def check_payment(payment_id):
                                 'amount': payment.get('transaction_amount', 0),
                                 'game_type': game_type
                             })
-                            
-                            # Limpar cache de vendas
-                            cache_key = f"vendas_{game_type}"
-                            if cache_key in config_cache:
-                                del config_cache[cache_key]
 
                     except Exception as e:
                         log_error("check_payment", e, {"payment_id": payment_id})
@@ -1060,12 +835,10 @@ def check_payment(payment_id):
 # ========== ROTAS RASPA BRASIL ==========
 
 @app.route('/raspar', methods=['POST'])
-@rate_limit_decorator
 def raspar():
     """Processa raspagem - Sistema manual completo com promoção 10+2"""
     try:
         if not verificar_raspadinhas_para_pagamento():
-            log_security_event("unauthorized_raspar", "Tentativa de raspar sem pagamento válido")
             return jsonify({
                 'ganhou': False,
                 'erro': 'Pagamento não encontrado ou não aprovado. Pague primeiro para jogar.'
@@ -1121,8 +894,6 @@ def raspar():
         return jsonify({'ganhou': False, 'erro': 'Erro interno do servidor'}), 500
 
 @app.route('/salvar_ganhador', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def salvar_ganhador():
     """Salva dados do ganhador no Supabase"""
     try:
@@ -1139,17 +910,16 @@ def salvar_ganhador():
                     'erro': f'Campo {campo} é obrigatório'
                 })
 
-        # Validações melhoradas
-        if len(data['nome']) < 3 or len(data['nome']) > 255:
-            return jsonify({'sucesso': False, 'erro': 'Nome deve ter entre 3 e 255 caracteres'})
+        # Validações
+        if len(data['nome']) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
 
-        if len(data['chave_pix']) < 5 or len(data['chave_pix']) > 255:
+        if len(data['chave_pix']) < 5:
             return jsonify({'sucesso': False, 'erro': 'Chave PIX inválida'})
 
         # Verificar se código já foi usado
         existing = supabase.table('br_ganhadores').select('br_id').eq('br_codigo', data['codigo']).execute()
         if existing.data:
-            log_security_event("duplicate_winner_code", f"Código já utilizado: {data['codigo']}")
             return jsonify({'sucesso': False, 'erro': 'Código já utilizado'})
 
         response = supabase.table('br_ganhadores').insert({
@@ -1176,8 +946,6 @@ def salvar_ganhador():
 # ========== ROTAS 2 PARA 1000 ==========
 
 @app.route('/enviar_bilhete', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def enviar_bilhete():
     """Salva dados do cliente e seus bilhetes do 2 para 1000"""
     try:
@@ -1194,20 +962,15 @@ def enviar_bilhete():
                     'erro': f'Campo {campo} é obrigatório'
                 })
 
-        # Validações melhoradas
-        if len(data['nome']) < 3 or len(data['nome']) > 255:
-            return jsonify({'sucesso': False, 'erro': 'Nome deve ter entre 3 e 255 caracteres'})
+        # Validações
+        if len(data['nome']) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
 
-        if len(data['telefone']) < 10 or len(data['telefone']) > 20:
+        if len(data['telefone']) < 10:
             return jsonify({'sucesso': False, 'erro': 'Telefone inválido'})
 
-        if not isinstance(data['bilhetes'], list) or len(data['bilhetes']) == 0 or len(data['bilhetes']) > 50:
+        if not isinstance(data['bilhetes'], list) or len(data['bilhetes']) == 0:
             return jsonify({'sucesso': False, 'erro': 'Bilhetes inválidos'})
-
-        # Validar bilhetes (devem ser números de 4 dígitos)
-        for bilhete in data['bilhetes']:
-            if not isinstance(bilhete, str) or len(bilhete) != 4 or not bilhete.isdigit():
-                return jsonify({'sucesso': False, 'erro': 'Formato de bilhete inválido'})
 
         payment_id = data.get('payment_id') or session.get('payment_id')
         if not payment_id:
@@ -1310,39 +1073,7 @@ def ultimos_ganhadores():
 
 # ========== ROTAS DE AFILIADOS ==========
 
-@app.route('/registrar_clique_afiliado', methods=['POST'])
-@rate_limit_decorator
-@validate_json
-def registrar_clique_afiliado():
-    """Registra clique no link do afiliado"""
-    try:
-        data = sanitizar_dados_entrada(request.json)
-        codigo = data.get('codigo')
-        
-        if not codigo:
-            return jsonify({'sucesso': False, 'erro': 'Código do afiliado é obrigatório'})
-        
-        afiliado = obter_afiliado_por_codigo(codigo)
-        if afiliado:
-            registrar_click_afiliado(
-                afiliado['br_id'],
-                request.remote_addr,
-                request.headers.get('User-Agent', ''),
-                request.headers.get('Referer', '')
-            )
-            log_info("registrar_clique_afiliado", f"Clique registrado para afiliado: {codigo}")
-            return jsonify({'sucesso': True})
-        else:
-            log_error("registrar_clique_afiliado", "Afiliado não encontrado", {"codigo": codigo})
-            return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
-    
-    except Exception as e:
-        log_error("registrar_clique_afiliado", e)
-        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
-
 @app.route('/cadastrar_afiliado', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def cadastrar_afiliado():
     """Cadastra novo afiliado"""
     try:
@@ -1359,31 +1090,25 @@ def cadastrar_afiliado():
                     'erro': f'Campo {campo} é obrigatório'
                 })
 
-        # Validações melhoradas
+        # Validações
         cpf = data['cpf'].replace('.', '').replace('-', '').replace(' ', '')
-        if not validar_cpf(cpf):
-            log_security_event("invalid_cpf_registration", f"CPF inválido na tentativa de cadastro: {cpf}")
+        if len(cpf) != 11 or not cpf.isdigit():
             return jsonify({'sucesso': False, 'erro': 'CPF inválido'})
 
-        if not validar_email(data['email']):
+        if '@' not in data['email'] or len(data['email']) < 5:
             return jsonify({'sucesso': False, 'erro': 'E-mail inválido'})
 
-        if len(data['nome']) < 3 or len(data['nome']) > 255:
-            return jsonify({'sucesso': False, 'erro': 'Nome deve ter entre 3 e 255 caracteres'})
-
-        if len(data['telefone']) < 10 or len(data['telefone']) > 20:
-            return jsonify({'sucesso': False, 'erro': 'Telefone inválido'})
+        if len(data['nome']) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
 
         # Verificar duplicatas
-        existing_email = supabase.table('br_afiliados').select('br_id').eq('br_email', data['email'].lower()).execute()
+        existing_email = supabase.table('br_afiliados').select('br_id').eq('br_email', data['email']).execute()
         existing_cpf = supabase.table('br_afiliados').select('br_id').eq('br_cpf', cpf).execute()
         
         if existing_email.data:
-            log_security_event("duplicate_email_registration", f"E-mail já cadastrado: {data['email']}")
             return jsonify({'sucesso': False, 'erro': 'E-mail já cadastrado'})
         
         if existing_cpf.data:
-            log_security_event("duplicate_cpf_registration", f"CPF já cadastrado: {cpf}")
             return jsonify({'sucesso': False, 'erro': 'CPF já cadastrado'})
 
         codigo = gerar_codigo_afiliado_unico()
@@ -1428,8 +1153,6 @@ def cadastrar_afiliado():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/login_afiliado', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def login_afiliado():
     """Login do afiliado por CPF"""
     try:
@@ -1439,14 +1162,12 @@ def login_afiliado():
         data = sanitizar_dados_entrada(request.json)
         cpf = data.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
         
-        if not validar_cpf(cpf):
-            log_security_event("invalid_cpf_login", f"CPF inválido na tentativa de login: {cpf}")
+        if not cpf or len(cpf) != 11 or not cpf.isdigit():
             return jsonify({'sucesso': False, 'erro': 'CPF inválido'})
 
         afiliado = obter_afiliado_por_cpf(cpf)
         
         if afiliado:
-            log_info("login_afiliado", f"Login bem-sucedido para afiliado: {cpf}")
             return jsonify({
                 'sucesso': True,
                 'afiliado': {
@@ -1463,7 +1184,6 @@ def login_afiliado():
                 }
             })
         else:
-            log_security_event("failed_affiliate_login", f"CPF não encontrado: {cpf}")
             return jsonify({'sucesso': False, 'erro': 'CPF não encontrado ou afiliado inativo'})
 
     except Exception as e:
@@ -1471,8 +1191,6 @@ def login_afiliado():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/atualizar_pix_afiliado', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def atualizar_pix_afiliado():
     """Atualiza chave PIX do afiliado"""
     try:
@@ -1490,11 +1208,8 @@ def atualizar_pix_afiliado():
                 'erro': 'Código e chave PIX são obrigatórios'
             })
 
-        if len(chave_pix) < 5 or len(chave_pix) > 255:
+        if len(chave_pix) < 5:
             return jsonify({'sucesso': False, 'erro': 'Chave PIX inválida'})
-
-        if tipo_chave not in ['cpf', 'email', 'telefone', 'aleatoria']:
-            return jsonify({'sucesso': False, 'erro': 'Tipo de chave inválido'})
 
         response = supabase.table('br_afiliados').update({
             'br_chave_pix': chave_pix,
@@ -1512,8 +1227,6 @@ def atualizar_pix_afiliado():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/solicitar_saque_afiliado', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def solicitar_saque_afiliado():
     """Processa solicitação de saque do afiliado"""
     try:
@@ -1529,7 +1242,6 @@ def solicitar_saque_afiliado():
         afiliado_response = supabase.table('br_afiliados').select('*').eq('br_codigo', codigo).eq('br_status', 'ativo').execute()
 
         if not afiliado_response.data:
-            log_security_event("invalid_withdrawal_request", f"Tentativa de saque com código inválido: {codigo}")
             return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
 
         afiliado = afiliado_response.data[0]
@@ -1586,10 +1298,8 @@ def solicitar_saque_afiliado():
 # ========== ROTAS ADMIN ==========
 
 @app.route('/admin/login', methods=['POST'])
-@rate_limit_decorator
-@validate_json
 def admin_login():
-    """Login do admin com segurança aprimorada"""
+    """Login do admin"""
     try:
         data = sanitizar_dados_entrada(request.json)
         senha = data.get('senha')
@@ -1603,12 +1313,10 @@ def admin_login():
         if senha == senha_configurada:
             session['admin_logado'] = True
             session['admin_login_time'] = datetime.now().isoformat()
-            session['admin_ip'] = request.remote_addr
-            log_info("admin_login", f"Admin logado com sucesso - IP: {request.remote_addr}")
-            log_security_event("admin_login_success", f"Login admin bem-sucedido", "low")
+            log_info("admin_login", f"Admin logado com sucesso")
             return jsonify({'success': True, 'message': 'Login realizado com sucesso'})
         
-        log_security_event("admin_login_failed", f"Tentativa de login com senha incorreta", "medium")
+        log_error("admin_login", "Tentativa de login com senha incorreta", {"ip": request.remote_addr})
         return jsonify({'success': False, 'message': 'Senha incorreta'})
     
     except Exception as e:
@@ -1616,10 +1324,12 @@ def admin_login():
         return jsonify({'success': False, 'message': 'Erro interno do servidor'})
 
 @app.route('/admin/stats')
-@admin_required
 def admin_stats():
     """Estatísticas do sistema unificado"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+
         game = request.args.get('game', 'both')
         
         stats = {}
@@ -1694,11 +1404,12 @@ def admin_stats():
         })
 
 @app.route('/admin/liberar_premio_manual', methods=['POST'])
-@admin_required
-@validate_json
 def admin_liberar_premio_manual():
     """Libera prêmio manual para próxima raspagem"""
     try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
         data = sanitizar_dados_entrada(request.json)
         valor = data.get('valor')
         
@@ -1716,7 +1427,6 @@ def admin_liberar_premio_manual():
         
         if atualizar_configuracao('premio_manual_liberado', valor, 'raspa_brasil'):
             log_info("admin_liberar_premio_manual", f"Prêmio manual liberado: {valor}")
-            log_security_event("admin_premio_liberado", f"Admin liberou prêmio: {valor}", "low")
             return jsonify({'sucesso': True})
         else:
             return jsonify({'sucesso': False, 'erro': 'Erro ao salvar configuração'})
@@ -1726,10 +1436,12 @@ def admin_liberar_premio_manual():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/admin/verificar_status_premio')
-@admin_required
 def admin_verificar_status_premio():
     """Verifica se há prêmio liberado aguardando"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         premio_liberado = obter_configuracao('premio_manual_liberado', '')
         
         return jsonify({
@@ -1741,11 +1453,12 @@ def admin_verificar_status_premio():
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
 @app.route('/admin/sortear', methods=['POST'])
-@admin_required
-@validate_json
 def admin_sortear():
     """Realiza sorteio diário do 2 para 1000"""
     try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+
         if not supabase:
             return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
 
@@ -1798,7 +1511,6 @@ def admin_sortear():
             novo_valor_acumulado = PREMIO_INICIAL_ML
 
             log_info("admin_sortear", f"GANHADOR! {ganhador_data['ml_nome']} - Bilhete: {milhar_sorteada} - Prêmio: R$ {valor_premio:.2f}")
-            log_security_event("admin_sorteio_realizado", f"Sorteio realizado com ganhador: {ganhador_data['ml_nome']}", "low")
 
         else:
             # Acumular prêmio
@@ -1806,7 +1518,6 @@ def admin_sortear():
             atualizar_premio_acumulado(novo_valor_acumulado)
 
             log_info("admin_sortear", f"Prêmio acumulado! Novo valor: R$ {novo_valor_acumulado:.2f}")
-            log_security_event("admin_sorteio_realizado", f"Sorteio realizado sem ganhador - prêmio acumulado", "low")
 
         # Salvar resultado do sorteio
         supabase.table('ml_sorteios').insert({
@@ -1836,10 +1547,12 @@ def admin_sortear():
 # ========== ROTAS AUXILIARES DO ADMIN ==========
 
 @app.route('/admin/ganhadores/<game>')
-@admin_required
 def admin_ganhadores(game):
     """Obtém lista de ganhadores para o admin"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'ganhadores': []})
         
@@ -1893,11 +1606,12 @@ def admin_ganhadores(game):
         return jsonify({'ganhadores': []})
 
 @app.route('/admin/adicionar_ganhador', methods=['POST'])
-@admin_required
-@validate_json
 def admin_adicionar_ganhador():
     """Adiciona ganhador manual"""
     try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
         
@@ -1910,11 +1624,11 @@ def admin_adicionar_ganhador():
         if not all([jogo, nome, valor, chave_pix]):
             return jsonify({'sucesso': False, 'erro': 'Todos os campos são obrigatórios'})
         
-        # Validações melhoradas
-        if len(nome) < 3 or len(nome) > 255:
-            return jsonify({'sucesso': False, 'erro': 'Nome deve ter entre 3 e 255 caracteres'})
+        # Validações
+        if len(nome) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
         
-        if len(chave_pix) < 5 or len(chave_pix) > 255:
+        if len(chave_pix) < 5:
             return jsonify({'sucesso': False, 'erro': 'Chave PIX inválida'})
         
         if jogo == 'raspa_brasil':
@@ -1951,7 +1665,6 @@ def admin_adicionar_ganhador():
         
         if response.data:
             log_info("admin_adicionar_ganhador", f"Ganhador manual adicionado: {nome} - {valor} - {jogo}")
-            log_security_event("admin_ganhador_adicionado", f"Ganhador manual adicionado: {nome} - {jogo}", "low")
             return jsonify({'sucesso': True})
         else:
             return jsonify({'sucesso': False, 'erro': 'Erro ao inserir ganhador'})
@@ -1961,11 +1674,12 @@ def admin_adicionar_ganhador():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/admin/alterar_status_ganhador', methods=['POST'])
-@admin_required
-@validate_json
 def admin_alterar_status_ganhador():
     """Altera status do ganhador"""
     try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
         
@@ -1995,7 +1709,6 @@ def admin_alterar_status_ganhador():
         
         if response.data:
             log_info("admin_alterar_status_ganhador", f"Status alterado: Ganhador {ganhador_id} - {jogo} -> {status}")
-            log_security_event("admin_status_alterado", f"Status de ganhador alterado: ID {ganhador_id} -> {status}", "low")
             return jsonify({'sucesso': True})
         else:
             return jsonify({'sucesso': False, 'erro': 'Ganhador não encontrado'})
@@ -2005,11 +1718,12 @@ def admin_alterar_status_ganhador():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/admin/remover_ganhador', methods=['POST'])
-@admin_required
-@validate_json
 def admin_remover_ganhador():
     """Remove ganhador"""
     try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
         
@@ -2028,7 +1742,6 @@ def admin_remover_ganhador():
             return jsonify({'sucesso': False, 'erro': 'Jogo inválido'})
         
         log_info("admin_remover_ganhador", f"Ganhador removido: ID {ganhador_id} - {jogo}")
-        log_security_event("admin_ganhador_removido", f"Ganhador removido: ID {ganhador_id} - {jogo}", "medium")
         return jsonify({'sucesso': True})
             
     except Exception as e:
@@ -2036,10 +1749,12 @@ def admin_remover_ganhador():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/admin/afiliados')
-@admin_required
 def admin_afiliados():
     """Obtém dados dos afiliados para o admin"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'afiliados': []})
         
@@ -2066,10 +1781,12 @@ def admin_afiliados():
         return jsonify({'afiliados': []})
 
 @app.route('/admin/saques/<status>')
-@admin_required
 def admin_saques(status):
     """Obtém lista de saques para o admin"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'saques': []})
         
@@ -2107,11 +1824,12 @@ def admin_saques(status):
         return jsonify({'saques': []})
 
 @app.route('/admin/marcar_saque_pago', methods=['POST'])
-@admin_required
-@validate_json
 def admin_marcar_saque_pago():
     """Marca saque como pago"""
     try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
         
@@ -2129,7 +1847,6 @@ def admin_marcar_saque_pago():
         
         if response.data:
             log_info("admin_marcar_saque_pago", f"Saque marcado como pago: ID {saque_id}")
-            log_security_event("admin_saque_aprovado", f"Saque aprovado pelo admin: ID {saque_id}", "low")
             return jsonify({'sucesso': True})
         else:
             return jsonify({'sucesso': False, 'erro': 'Saque não encontrado'})
@@ -2139,10 +1856,12 @@ def admin_marcar_saque_pago():
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/admin/bilhetes/<data_filtro>')
-@admin_required
 def admin_bilhetes(data_filtro):
     """Obtém bilhetes vendidos por data"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'bilhetes': []})
         
@@ -2167,10 +1886,12 @@ def admin_bilhetes(data_filtro):
         return jsonify({'bilhetes': []})
 
 @app.route('/admin/raspadinhas/<data_filtro>')
-@admin_required
 def admin_raspadinhas(data_filtro):
     """Obtém raspadinhas vendidas por data"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'vendas': [], 'estatisticas': {}})
         
@@ -2215,10 +1936,12 @@ def admin_raspadinhas(data_filtro):
         return jsonify({'vendas': [], 'estatisticas': {}})
 
 @app.route('/admin/vendas')
-@admin_required
 def admin_vendas():
     """Obtém relatório de vendas para o admin"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'vendas': []})
         
@@ -2261,10 +1984,12 @@ def admin_vendas():
         return jsonify({'vendas': []})
 
 @app.route('/admin/lista_ganhadores_dia/<data_filtro>')
-@admin_required
 def admin_lista_ganhadores_dia(data_filtro):
     """Gera lista de ganhadores do dia"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'ganhadores': []})
         
@@ -2308,50 +2033,26 @@ def admin_lista_ganhadores_dia(data_filtro):
 # ========== ROTAS DE LOGS E DEBUGGING ==========
 
 @app.route('/admin/logs')
-@admin_required
 def admin_logs():
     """Obtém logs do sistema para debugging"""
     try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'logs': []})
         
-        tipo = request.args.get('tipo', 'sistema')  # sistema, seguranca, pagamento
+        # Últimos logs
+        response = supabase.table('br_logs_sistema').select('*').order('br_timestamp', desc=True).limit(50).execute()
         
-        if tipo == 'seguranca':
-            response = supabase.table('br_logs_seguranca').select('*').order('br_timestamp', desc=True).limit(50).execute()
-            logs = []
-            for log in (response.data or []):
-                logs.append({
-                    'tipo': 'seguranca',
-                    'evento': log['br_evento'],
-                    'detalhes': log['br_detalhes'],
-                    'severidade': log['br_severidade'],
-                    'ip_cliente': log['br_ip_cliente'],
-                    'timestamp': log['br_timestamp']
-                })
-        elif tipo == 'pagamento':
-            response = supabase.table('br_logs_pagamento').select('*').order('br_timestamp', desc=True).limit(50).execute()
-            logs = []
-            for log in (response.data or []):
-                logs.append({
-                    'tipo': 'pagamento',
-                    'payment_id': log['br_payment_id'],
-                    'status_anterior': log['br_status_anterior'],
-                    'status_novo': log['br_status_novo'],
-                    'timestamp': log['br_timestamp']
-                })
-        else:
-            response = supabase.table('br_logs_sistema').select('*').order('br_timestamp', desc=True).limit(50).execute()
-            logs = []
-            for log in (response.data or []):
-                logs.append({
-                    'tipo': 'sistema',
-                    'operacao': log['br_operacao'],
-                    'erro': log['br_erro'],
-                    'timestamp': log['br_timestamp'],
-                    'ip_cliente': log.get('br_ip_cliente'),
-                    'dados_extras': log.get('br_dados_extras')
-                })
+        logs = []
+        for log in (response.data or []):
+            logs.append({
+                'operacao': log['br_operacao'],
+                'erro': log['br_erro'],
+                'timestamp': log['br_timestamp'],
+                'dados_extras': log.get('br_dados_extras')
+            })
         
         return jsonify({'logs': logs})
         
@@ -2360,73 +2061,26 @@ def admin_logs():
         return jsonify({'logs': []})
 
 @app.route('/admin/clear_logs', methods=['POST'])
-@admin_required
-@validate_json
 def admin_clear_logs():
     """Limpa logs antigos do sistema"""
     try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
         if not supabase:
             return jsonify({'sucesso': False, 'erro': 'Sistema temporariamente indisponível'})
         
-        data = sanitizar_dados_entrada(request.json)
-        tipo = data.get('tipo', 'sistema')
-        dias = int(data.get('dias', 7))
+        # Deletar logs mais antigos que 7 dias
+        sete_dias_atras = (datetime.now() - timedelta(days=7)).isoformat()
         
-        if dias < 1 or dias > 30:
-            return jsonify({'sucesso': False, 'erro': 'Dias deve ser entre 1 e 30'})
+        response = supabase.table('br_logs_sistema').delete().lt('br_timestamp', sete_dias_atras).execute()
         
-        # Deletar logs mais antigos que X dias
-        data_limite = (datetime.now() - timedelta(days=dias)).isoformat()
-        
-        if tipo == 'sistema':
-            response = supabase.table('br_logs_sistema').delete().lt('br_timestamp', data_limite).execute()
-        elif tipo == 'seguranca':
-            response = supabase.table('br_logs_seguranca').delete().lt('br_timestamp', data_limite).execute()
-        elif tipo == 'pagamento':
-            response = supabase.table('br_logs_pagamento').delete().lt('br_timestamp', data_limite).execute()
-        else:
-            return jsonify({'sucesso': False, 'erro': 'Tipo de log inválido'})
-        
-        log_info("admin_clear_logs", f"Logs {tipo} antigos limpos ({dias} dias)")
-        log_security_event("admin_logs_cleared", f"Admin limpou logs {tipo} ({dias} dias)", "low")
+        log_info("admin_clear_logs", "Logs antigos limpos")
         return jsonify({'sucesso': True})
         
     except Exception as e:
         log_error("admin_clear_logs", e)
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
-
-@app.route('/admin/system_info')
-@admin_required
-def admin_system_info():
-    """Informações detalhadas do sistema"""
-    try:
-        info = {
-            'version': APP_VERSION,
-            'python_version': f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
-            'flask_version': '2.3.0',  # Aproximado
-            'supabase_connected': bool(supabase),
-            'mercadopago_connected': bool(sdk),
-            'uptime': datetime.now().isoformat(),
-            'cache_entries': len(config_cache),
-            'rate_limit_ips': len(request_counts),
-            'admin_session_ip': session.get('admin_ip'),
-            'admin_login_time': session.get('admin_login_time'),
-            'configuracoes': {
-                'total_raspadinhas': TOTAL_RASPADINHAS,
-                'premio_inicial_ml': PREMIO_INICIAL_ML,
-                'preco_raspadinha': PRECO_RASPADINHA_RB,
-                'preco_bilhete': PRECO_BILHETE_ML,
-                'comissao_afiliado': PERCENTUAL_COMISSAO_AFILIADO,
-                'rate_limit': RATE_LIMIT,
-                'cache_duration': CACHE_DURATION
-            }
-        }
-        
-        return jsonify(info)
-        
-    except Exception as e:
-        log_error("admin_system_info", e)
-        return jsonify({'error': 'Erro ao obter informações do sistema'})
 
 # ========== INICIALIZAÇÃO ==========
 
@@ -2434,7 +2088,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando PORTAL DOS JOGOS - Sistema Integrado v2.2.0...")
+    print("🚀 Iniciando GANHA BRASIL - Sistema Integrado v2.1.0...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅' if sdk else '❌'}")
     print(f"🔗 Supabase: {'✅' if supabase else '❌'}")
@@ -2445,32 +2099,22 @@ if __name__ == '__main__':
     print(f"🎯 Prêmios: Manual (RB) + Sorteio diário (ML)")
     print(f"🔄 Pagamentos: Via PIX unificado")
     print(f"📱 Interface: Responsiva e moderna")
-    print(f"🛡️ Segurança: Validações robustas + Rate limiting")
+    print(f"🛡️ Segurança: Validações robustas")
     print(f"📊 Admin: Painel unificado completo")
     print(f"🔐 Senha Admin: {ADMIN_PASSWORD}")
     print(f"🎨 Frontend: Integração total com index.html")
-    print(f"🔧 MELHORIAS V2.2.0:")
-    print(f"   ✅ Sistema de rate limiting implementado")
-    print(f"   ✅ Validações de CPF e e-mail reais")
-    print(f"   ✅ Sistema de cache para configurações")
-    print(f"   ✅ Logs de segurança separados")
-    print(f"   ✅ Sanitização melhorada de dados")
-    print(f"   ✅ Decoradores de segurança (@admin_required, @rate_limit_decorator)")
-    print(f"   ✅ Validação de JSON obrigatória")
-    print(f"   ✅ Controle de sessão admin com timeout")
-    print(f"   ✅ Sistema de logs estruturado por tipo")
-    print(f"   ✅ Endpoint para informações do sistema")
-    print(f"   ✅ Integração completa com index.html atualizado")
-    print(f"   ✅ Tratamento de erros aprimorado")
-    print(f"   ✅ Cache invalidation automático")
-    print(f"   ✅ Logs de auditoria para ações administrativas")
-    print(f"🚀 RECURSOS AVANÇADOS:")
-    print(f"   - Rate limiting: {RATE_LIMIT} requests/{RATE_WINDOW}s")
-    print(f"   - Cache TTL: {CACHE_DURATION}s")
-    print(f"   - Session timeout: 8 horas")
-    print(f"   - Logs por categoria: sistema, segurança, pagamento")
-    print(f"   - Validações de entrada robustas")
-    print(f"   - Sistema antifraude básico")
-    print(f"✅ SISTEMA TOTALMENTE FUNCIONAL E SEGURO!")
+    print(f"🔧 MELHORIAS V2.1.0:")
+    print(f"   - Sistema de logs centralizado e melhorado")
+    print(f"   - Validações de segurança aprimoradas")
+    print(f"   - Sanitização de dados de entrada")
+    print(f"   - Controle de sessão de admin melhorado")
+    print(f"   - Tratamento de erros mais robusto")
+    print(f"   - Sistema de debugging avançado")
+    print(f"   - Validações de dados mais rigorosas")
+    print(f"   - Logs de auditoria para ações administrativas")
+    print(f"   - Health check mais detalhado")
+    print(f"   - Prevenção contra ataques básicos")
+    print(f"✅ SISTEMA TOTALMENTE FUNCIONAL E OTIMIZADO!")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
+
