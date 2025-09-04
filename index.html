@@ -111,7 +111,7 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        /* Botão Indique e Ganhe - CORRIGIDO */
+        /* Botão Indique e Ganhe - CORRIGIDO E CENTRALIZADO */
         .indique-ganhe-btn {
             position: fixed;
             top: 20px;
@@ -133,6 +133,7 @@
             position: relative;
             animation: pulse-glow 2s infinite;
             z-index: 1000;
+            white-space: nowrap;
         }
 
         .indique-ganhe-btn:hover {
@@ -156,19 +157,33 @@
         /* Responsive para mobile */
         @media (max-width: 768px) {
             .container {
-                margin-top: 20px;
+                margin-top: 120px;
+                padding: 15px;
             }
             
             .indique-ganhe-btn {
-                position: static;
-                transform: none;
-                margin: 10px auto 20px auto;
-                display: block;
-                width: auto;
+                position: fixed;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 14px;
+                padding: 15px 25px;
             }
             
             .indique-ganhe-btn:hover {
-                transform: translateY(-3px);
+                transform: translateX(-50%) translateY(-3px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin-top: 100px;
+                padding: 10px;
+            }
+            
+            .indique-ganhe-btn {
+                font-size: 12px;
+                padding: 12px 20px;
             }
         }
 
@@ -2514,7 +2529,7 @@
                     </div>
                 </div>
 
-                <!-- Ganhadores -->
+                <!-- Ganhadores CORRIGIDO -->
                 <div id="admin-ganhadores" class="admin-tab-content">
                     <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                         <h3 style="color: #28a745; margin-bottom: 25px; text-align: center;">Gerenciamento de Ganhadores</h3>
@@ -2605,14 +2620,14 @@
         </div>
     </div>
 
-    <!-- Modal para adicionar ganhador -->
+    <!-- Modal para adicionar ganhador CORRIGIDO -->
     <div id="modal-adicionar-ganhador" class="modal">
         <div class="modal-content">
             <h3 style="margin-bottom: 25px; text-align: center; color: #28a745;">Adicionar Ganhador Manual</h3>
             
             <div class="form-group">
                 <label>Tipo de Jogo:</label>
-                <select id="novo-ganhador-jogo" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                <select id="novo-ganhador-jogo" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;" onchange="toggleBilheteField()">
                     <option value="raspa_brasil">Raspa Brasil</option>
                     <option value="2para1000">2 para 1000</option>
                 </select>
@@ -4246,7 +4261,7 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // Funções auxiliares do admin melhoradas
+        // FUNÇÕES ADMIN CORRIGIDAS
         async function carregarDadosAfiliados() {
             try {
                 const response = await fetch('/admin/afiliados');
@@ -4389,6 +4404,29 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
+        async function marcarSaquePago(saqueId) {
+            try {
+                const response = await fetch('/admin/marcar_saque_pago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ saque_id: saqueId })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    carregarSaques('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Saque marcado como pago!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao marcar saque como pago:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao marcar saque como pago</p>');
+            }
+        }
+
         async function carregarBilhetes(data) {
             try {
                 const dataFiltro = data || document.getElementById('filtro-data-bilhetes').value || obterDataHoraBrasilia().toISOString().split('T')[0];
@@ -4517,6 +4555,7 @@ Solicito o pagamento do meu prêmio!`;
             carregarRaspadinhas(hoje);
         }
 
+        // FUNÇÕES DE GANHADORES CORRIGIDAS
         async function carregarGanhadores(game) {
             try {
                 let url = `/admin/ganhadores/${game}`;
@@ -4585,68 +4624,18 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        async function carregarRelatorioVendas() {
-            try {
-                const response = await fetch('/admin/vendas');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const resultado = await response.json();
-                
-                // Atualizar contadores
-                const vendasRB = resultado.vendas.filter(v => v.jogo === 'Raspa Brasil');
-                const vendasML = resultado.vendas.filter(v => v.jogo === '2 para 1000');
-                const receitaTotal = resultado.vendas.reduce((sum, v) => sum + v.valor, 0);
-                const vendasHoje = resultado.vendas.filter(v => {
-                    const hoje = obterDataHoraBrasilia().toDateString();
-                    const dataVenda = new Date(v.data).toDateString();
-                    return hoje === dataVenda;
-                });
-                
-                document.getElementById('admin-vendas-rb-total').textContent = vendasRB.reduce((sum, v) => sum + v.quantidade, 0);
-                document.getElementById('admin-vendas-ml-total').textContent = vendasML.reduce((sum, v) => sum + v.quantidade, 0);
-                document.getElementById('admin-receita-total').textContent = `R$ ${receitaTotal.toFixed(2).replace('.', ',')}`;
-                document.getElementById('admin-vendas-hoje-total').textContent = vendasHoje.reduce((sum, v) => sum + v.quantidade, 0);
-                
-                const container = document.getElementById('admin-grafico-vendas');
-                if (resultado.vendas && resultado.vendas.length > 0) {
-                    let html = '<div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">';
-                    
-                    resultado.vendas.forEach(venda => {
-                        const gameColor = venda.jogo === 'Raspa Brasil' ? '#00b341' : '#007bff';
-                        html += `
-                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${gameColor};">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <strong>${venda.jogo}</strong><br>
-                                        <span>Qtd: ${venda.quantidade}</span><br>
-                                        <small style="color: #666;">ID: ${venda.payment_id}</small>
-                                        ${venda.afiliado ? '<br><small style="color: #ff6b35;">Via Afiliado</small>' : ''}
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: #28a745; font-weight: 800;">R$ ${venda.valor.toFixed(2).replace('.', ',')}</div>
-                                        <small style="color: #666;">${new Date(venda.data).toLocaleDateString('pt-BR')}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhuma venda encontrada</div>';
-                }
-            } catch (error) {
-                console.error('Erro ao carregar vendas:', error);
-                const container = document.getElementById('admin-grafico-vendas');
-                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados de vendas</div>';
+        // Função para mostrar/ocultar campo bilhete
+        function toggleBilheteField() {
+            const jogo = document.getElementById('novo-ganhador-jogo').value;
+            const grupoBilhete = document.getElementById('grupo-bilhete-ml');
+            
+            if (jogo === '2para1000') {
+                grupoBilhete.style.display = 'block';
+            } else {
+                grupoBilhete.style.display = 'none';
             }
         }
 
-        // Funções de gerenciamento de ganhadores CORRIGIDAS
         function adicionarGanhador() {
             document.getElementById('modal-adicionar-ganhador').style.display = 'flex';
             // Limpar campos
@@ -4655,17 +4644,7 @@ Solicito o pagamento do meu prêmio!`;
             document.getElementById('novo-ganhador-pix').value = '';
             document.getElementById('novo-ganhador-bilhete').value = '';
             document.getElementById('novo-ganhador-jogo').value = 'raspa_brasil';
-            document.getElementById('grupo-bilhete-ml').style.display = 'none';
-            
-            // Mostrar/ocultar campo de bilhete baseado no jogo
-            document.getElementById('novo-ganhador-jogo').addEventListener('change', function() {
-                const grupoBilhete = document.getElementById('grupo-bilhete-ml');
-                if (this.value === '2para1000') {
-                    grupoBilhete.style.display = 'block';
-                } else {
-                    grupoBilhete.style.display = 'none';
-                }
-            });
+            toggleBilheteField();
         }
 
         function fecharModalAdicionarGanhador() {
@@ -4701,8 +4680,6 @@ Solicito o pagamento do meu prêmio!`;
                 if (jogo === '2para1000') {
                     dados.bilhete_premiado = bilhete;
                     dados.milhar_sorteada = bilhete;
-                } else {
-                    dados.codigo = `RB-${Date.now()}-${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
                 }
                 
                 const response = await fetch('/admin/adicionar_ganhador', {
@@ -4752,8 +4729,7 @@ Solicito o pagamento do meu prêmio!`;
         }
 
         async function editarGanhador(id, jogo) {
-            // Implementar modal de edição (similar ao de adicionar)
-            mostrarModal('<h3>Em Desenvolvimento</h3><p>Funcionalidade de edição será implementada em breve</p>');
+            mostrarModal('<h3>Funcionalidade de Edição</h3><p>A edição de ganhadores será implementada na próxima versão.</p>');
         }
 
         async function removerGanhador(id, jogo) {
@@ -4818,7 +4794,7 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // NOVA FUNÇÃO PARA GERAR PDF DOS GANHADORES
+        // FUNÇÃO PDF CORRIGIDA
         async function gerarListaGanhadoresPDF() {
             const dataFiltro = document.getElementById('filtro-data-ganhadores').value || obterDataHoraBrasilia().toISOString().split('T')[0];
             
@@ -4852,7 +4828,7 @@ Solicito o pagamento do meu prêmio!`;
                     // Cabeçalho
                     doc.setFontSize(20);
                     doc.setFont('helvetica', 'bold');
-                    doc.text('RASPA BRASIL', pageWidth/2, currentY, { align: 'center' });
+                    doc.text('GANHA BRASIL', pageWidth/2, currentY, { align: 'center' });
                     currentY += 10;
                     
                     doc.setFontSize(16);
@@ -4914,7 +4890,7 @@ Solicito o pagamento do meu prêmio!`;
                     doc.setTextColor(100, 100, 100);
                     doc.text(`O próximo ganhador pode ser você!`, pageWidth/2, currentY, { align: 'center' });
                     currentY += 10;
-                    doc.text(`Raspa Brasil`, pageWidth/2, currentY, { align: 'center' });
+                    doc.text(`Ganha Brasil`, pageWidth/2, currentY, { align: 'center' });
                     
                     // Salvar o PDF
                     const nomeArquivo = `ganhadores_${dataFiltro}.pdf`;
@@ -4931,26 +4907,64 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        async function marcarSaquePago(saqueId) {
+        async function carregarRelatorioVendas() {
             try {
-                const response = await fetch('/admin/marcar_saque_pago', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ saque_id: saqueId })
-                });
+                const response = await fetch('/admin/vendas');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
                 const resultado = await response.json();
                 
-                if (resultado.sucesso) {
-                    carregarSaques('todos');
-                    mostrarModal('<h3>Sucesso!</h3><p>Saque marcado como pago!</p>');
-                } else {
-                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                }
+                // Atualizar contadores
+                const vendasRB = resultado.vendas.filter(v => v.jogo === 'Raspa Brasil');
+                const vendasML = resultado.vendas.filter(v => v.jogo === '2 para 1000');
+                const receitaTotal = resultado.vendas.reduce((sum, v) => sum + v.valor, 0);
+                const vendasHoje = resultado.vendas.filter(v => {
+                    const hoje = obterDataHoraBrasilia().toDateString();
+                    const dataVenda = new Date(v.data).toDateString();
+                    return hoje === dataVenda;
+                });
                 
+                document.getElementById('admin-vendas-rb-total').textContent = vendasRB.reduce((sum, v) => sum + v.quantidade, 0);
+                document.getElementById('admin-vendas-ml-total').textContent = vendasML.reduce((sum, v) => sum + v.quantidade, 0);
+                document.getElementById('admin-receita-total').textContent = `R$ ${receitaTotal.toFixed(2).replace('.', ',')}`;
+                document.getElementById('admin-vendas-hoje-total').textContent = vendasHoje.reduce((sum, v) => sum + v.quantidade, 0);
+                
+                const container = document.getElementById('admin-grafico-vendas');
+                if (resultado.vendas && resultado.vendas.length > 0) {
+                    let html = '<div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">';
+                    
+                    resultado.vendas.forEach(venda => {
+                        const gameColor = venda.jogo === 'Raspa Brasil' ? '#00b341' : '#007bff';
+                        html += `
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${gameColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>${venda.jogo}</strong><br>
+                                        <span>Qtd: ${venda.quantidade}</span><br>
+                                        <small style="color: #666;">ID: ${venda.payment_id}</small>
+                                        ${venda.afiliado ? '<br><small style="color: #ff6b35;">Via Afiliado</small>' : ''}
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #28a745; font-weight: 800;">R$ ${venda.valor.toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">${new Date(venda.data).toLocaleDateString('pt-BR')}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhuma venda encontrada</div>';
+                }
             } catch (error) {
-                console.error('Erro ao marcar saque como pago:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao marcar saque como pago</p>');
+                console.error('Erro ao carregar vendas:', error);
+                const container = document.getElementById('admin-grafico-vendas');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados de vendas</div>';
             }
         }
 
