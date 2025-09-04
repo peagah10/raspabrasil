@@ -99,10 +99,6 @@
             }
         }
 
-        .winner-animation {
-            animation: winnerPulse 1s ease-in-out;
-        }
-
         .container {
             max-width: 1000px;
             margin: 0 auto;
@@ -110,9 +106,70 @@
             background: rgba(255, 255, 255, 0.98);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-heavy);
-            margin-top: 20px;
+            margin-top: 80px;
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Botão Indique e Ganhe - CORRIGIDO */
+        .indique-ganhe-btn {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ff6b35, #ffd93d);
+            border: none;
+            border-radius: 50px;
+            padding: 18px 35px;
+            color: #fff;
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            overflow: hidden;
+            position: relative;
+            animation: pulse-glow 2s infinite;
+            z-index: 1000;
+        }
+
+        .indique-ganhe-btn:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 8px 25px rgba(252, 199, 85, 0.507);
+            }
+            50% {
+                box-shadow: 0 12px 35px rgba(245, 255, 107, 0.664), 0 0 0 10px rgba(255, 107, 107, 0.1);
+                transform: translateX(-50%) scale(1.05);
+            }
+            100% {
+                box-shadow: 0 8px 25px rgba(255, 240, 107, 0.4);
+            }
+        }
+
+        /* Responsive para mobile */
+        @media (max-width: 768px) {
+            .container {
+                margin-top: 20px;
+            }
+            
+            .indique-ganhe-btn {
+                position: static;
+                transform: none;
+                margin: 10px auto 20px auto;
+                display: block;
+                width: auto;
+            }
+            
+            .indique-ganhe-btn:hover {
+                transform: translateY(-3px);
+            }
         }
 
         /* Header Moderno */
@@ -195,66 +252,6 @@
         @keyframes pulse {
             0%, 100% { transform: scale(1) rotate(0deg); }
             50% { transform: scale(1.08) rotate(5deg); }
-        }
-
-        /* Botão Indique e Ganhe - CORRIGIDO PARA CENTRALIZAR */
-        .indique-ganhe-btn {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #77ff6b59, #ffd93d);
-            border: none;
-            border-radius: 50px;
-            padding: 18px 35px;
-            color: #fff;
-            font-size: clamp(14px, 3vw, 18px);
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
-            overflow: hidden;
-            position: relative;
-            animation: pulse-glow 2s infinite;
-            z-index: 1000;
-        }
-
-        .indique-ganhe-btn:hover {
-            transform: translateX(-50%) translateY(-3px);
-            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
-            animation-play-state: paused;
-        }
-
-        @keyframes pulse-glow {
-            0% {
-                box-shadow: 0 8px 25px rgba(252, 199, 85, 0.507);
-            }
-            50% {
-                box-shadow: 0 12px 35px rgba(245, 255, 107, 0.664), 0 0 0 10px rgba(255, 107, 107, 0.1);
-                transform: translateX(-50%) scale(1.05);
-            }
-            100% {
-                box-shadow: 0 8px 25px rgba(255, 240, 107, 0.4);
-            }
-        }
-
-        /* Responsive para mobile */
-        @media (max-width: 768px) {
-            .indique-ganhe-btn {
-                position: relative;
-                top: auto;
-                left: auto;
-                transform: none;
-                margin: 10px auto;
-                display: block;
-                width: auto;
-            }
-            
-            .indique-ganhe-btn:hover {
-                transform: translateY(-3px);
-            }
         }
 
         /* Seleção de Jogos */
@@ -496,15 +493,6 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-        }
-
-        .banner-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(0, 179, 65, 0.3), rgba(255, 215, 0, 0.2));
         }
 
         .slide {
@@ -760,12 +748,8 @@
         }
 
         @keyframes scrollLeft {
-            0% {
-                transform: translateX(0);
-            }
-            100% {
-                transform: translateX(-50%);
-            }
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         .winner-item {
@@ -778,21 +762,6 @@
             flex-shrink: 0;
             border: 2px solid #28a745;
             position: relative;
-        }
-
-        .winner-item::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            font-size: 30px;
-            background: #28a745;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .winner-name {
@@ -1273,28 +1242,6 @@
             animation: winnerPulse 1s ease-in-out;
         }
 
-        .winner-alert-content::before {
-            content: '';
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 60px;
-            animation: bounce 1s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateX(-50%) translateY(0);
-            }
-            40% {
-                transform: translateX(-50%) translateY(-10px);
-            }
-            60% {
-                transform: translateX(-50%) translateY(-5px);
-            }
-        }
-
         .winner-alert h2 {
             font-size: clamp(1.8em, 6vw, 2.5em);
             margin: 30px 0 20px 0;
@@ -1392,11 +1339,6 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                padding: 15px;
-            }
-            
             .winners-slider {
                 padding: 20px 15px;
             }
@@ -1519,53 +1461,6 @@
                 max-height: 90vh;
             }
         }
-
-        /* Dark Mode Support */
-        @media (prefers-color-scheme: dark) {
-            .dark {
-                color-scheme: dark;
-            }
-            
-            .dark .container {
-                background: rgba(30, 30, 30, 0.98);
-                color: #f1f1f1;
-            }
-            
-            .dark .form-group input,
-            .dark .form-group select {
-                background: #2a2a2a;
-                color: #f1f1f1;
-                border-color: #555;
-            }
-            
-            .dark .form-group input:focus,
-            .dark .form-group select:focus {
-                border-color: var(--primary-green);
-                background: #333;
-            }
-            
-            .dark .modal-content,
-            .dark .admin-modal-content {
-                background: #2a2a2a;
-                color: #f1f1f1;
-            }
-            
-            .dark .winner-item {
-                background: #2a2a2a;
-                color: #f1f1f1;
-            }
-            
-            .dark .pix-code {
-                background: #2a2a2a;
-                color: #f1f1f1;
-                border-color: var(--primary-green);
-            }
-            
-            .dark .game-card {
-                background: rgba(30, 30, 30, 0.95);
-                color: #f1f1f1;
-            }
-        }
     </style>
 </head>
 <body>
@@ -1584,7 +1479,6 @@
         <div id="game-selection-page" class="page active">
             <!-- Banner Slider -->
             <div class="banner-slider">
-                <div class="banner-image"></div>
                 <div class="slide active">
                     <div class="slide-content">
                         <div class="logo-brasil">
@@ -2029,7 +1923,7 @@
 
                     <div id="payment-actions-ml">
                         <button class="btn btn-primary" onclick="criarPagamentoRealML()" style="width: 100%; margin-top: 25px;" id="btn-real-payment-ml">
-                            Pagar with PIX
+                            Pagar com PIX
                         </button>
                     </div>
                 </div>
@@ -2928,24 +2822,6 @@
 
         function showAlert(message) {
             mostrarModal(`<h3>Aviso</h3><p>${message}</p>`);
-        }
-
-        function showPrompt(message, callback) {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'flex';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <p style="margin-bottom: 20px; font-size: 16px;">${message}</p>
-                    <input type="text" id="prompt-input" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; font-size: 16px;">
-                    <div style="display: flex; gap: 15px;">
-                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()" style="flex: 1;">Cancelar</button>
-                        <button class="btn btn-primary" onclick="const value = document.getElementById('prompt-input').value; this.closest('.modal').remove(); if(callback) callback(value);" style="flex: 1;">OK</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            setTimeout(() => document.getElementById('prompt-input').focus(), 100);
         }
 
         function mascaraCPF(input) {
@@ -4096,6 +3972,8 @@ Solicito o pagamento do meu prêmio!`;
                 carregarGanhadores('todos');
             } else if (aba === 'vendas') {
                 carregarRelatorioVendas();
+            } else if (aba === 'dashboard') {
+                carregarEstatisticasAdmin();
             }
         }
 
@@ -4282,8 +4160,28 @@ Solicito o pagamento do meu prêmio!`;
                     }
                 }
                 
+                // Carregar participantes de hoje
+                await carregarParticipantesHoje();
+                
             } catch (error) {
                 console.error('Erro ao carregar status do sorteio:', error);
+            }
+        }
+
+        async function carregarParticipantesHoje() {
+            try {
+                const hoje = obterDataHoraBrasilia().toISOString().split('T')[0];
+                const response = await fetch(`/admin/bilhetes/${hoje}`);
+                const resultado = await response.json();
+                
+                if (document.getElementById('admin-participantes-hoje')) {
+                    const totalBilhetes = (resultado.bilhetes || []).reduce((sum, bilhete) => {
+                        return sum + (bilhete.bilhetes ? bilhete.bilhetes.length : 0);
+                    }, 0);
+                    document.getElementById('admin-participantes-hoje').textContent = totalBilhetes;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar participantes:', error);
             }
         }
 
@@ -5108,266 +5006,8 @@ Solicito o pagamento do meu prêmio!`;
                }
            });
            
-           // Prevenção de spam em botões
-           document.addEventListener('click', function(e) {
-               if (e.target.classList.contains('btn') && !e.target.disabled) {
-                   const originalText = e.target.innerHTML;
-                   e.target.disabled = true;
-                   setTimeout(() => {
-                       e.target.disabled = false;
-                   }, 2000);
-               }
-           });
-           
-           // Melhorar responsividade em mudanças de orientação
-           window.addEventListener('orientationchange', function() {
-               setTimeout(() => {
-                   window.location.reload();
-               }, 500);
-           });
-           
-           console.log('GANHA BRASIL - Sistema inicializado com sucesso!');
+           console.log('🎉 GANHA BRASIL carregado com sucesso! 🇧🇷');
        });
-
-       // Funções de utilidade
-       function formatarTelefone(input) {
-           let telefone = input.value.replace(/\D/g, '');
-           telefone = telefone.replace(/^(\d{2})(\d)/, '($1) $2');
-           telefone = telefone.replace(/(\d{5})(\d{4})$/, '$1-$2');
-           input.value = telefone;
-       }
-
-       function validarEmail(email) {
-           const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-           return re.test(email);
-       }
-
-       function validarCPF(cpf) {
-           cpf = cpf.replace(/\D/g, '');
-           if (cpf.length !== 11) return false;
-           
-           // Verificar se todos os dígitos são iguais
-           if (/^(\d)\1{10}$/.test(cpf)) return false;
-           
-           // Validar primeiro dígito verificador
-           let soma = 0;
-           for (let i = 0; i < 9; i++) {
-               soma += parseInt(cpf.charAt(i)) * (10 - i);
-           }
-           let resto = 11 - (soma % 11);
-           if (resto === 10 || resto === 11) resto = 0;
-           if (resto !== parseInt(cpf.charAt(9))) return false;
-           
-           // Validar segundo dígito verificador
-           soma = 0;
-           for (let i = 0; i < 10; i++) {
-               soma += parseInt(cpf.charAt(i)) * (11 - i);
-           }
-           resto = 11 - (soma % 11);
-           if (resto === 10 || resto === 11) resto = 0;
-           return resto === parseInt(cpf.charAt(10));
-       }
-
-       // Função para registrar clique em link de afiliado
-       async function registrarCliqueAfiliado(refCode) {
-           if (!refCode) return;
-           
-           try {
-               await fetch('/registrar_clique_afiliado', {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({ codigo: refCode })
-               });
-           } catch (error) {
-               console.log('Erro ao registrar clique do afiliado:', error);
-           }
-       }
-
-       // Registrar clique se houver código de afiliado
-       document.addEventListener('DOMContentLoaded', function() {
-           const refCode = localStorage.getItem('raspa_ref') || sessionStorage.getItem('raspa_ref');
-           if (refCode) {
-               registrarCliqueAfiliado(refCode);
-           }
-       });
-
-       // Função para detectar dispositivo móvel
-       function isMobile() {
-           return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-       }
-
-       // Otimizações para mobile
-       if (isMobile()) {
-           // Desabilitar zoom duplo clique
-           document.addEventListener('touchstart', function(e) {
-               if (e.touches.length > 1) {
-                   e.preventDefault();
-               }
-           }, { passive: false });
-
-           let lastTouchEnd = 0;
-           document.addEventListener('touchend', function(e) {
-               const now = (new Date()).getTime();
-               if (now - lastTouchEnd <= 300) {
-                   e.preventDefault();
-               }
-               lastTouchEnd = now;
-           }, { passive: false });
-       }
-
-       // Função para detectar se está online
-       function verificarConexao() {
-           if (!navigator.onLine) {
-               mostrarModal('<h3>Sem Conexão</h3><p>Verifique sua conexão com a internet e tente novamente.</p>');
-               return false;
-           }
-           return true;
-       }
-
-       // Adicionar verificação de conexão antes de ações importantes
-       window.addEventListener('online', function() {
-           console.log('Conexão restaurada');
-       });
-
-       window.addEventListener('offline', function() {
-           mostrarModal('<h3>Conexão Perdida</h3><p>Sua conexão com a internet foi perdida. Algumas funcionalidades podem não funcionar.</p>');
-       });
-
-       // Performance: Lazy loading para imagens
-       document.addEventListener('DOMContentLoaded', function() {
-           if ('IntersectionObserver' in window) {
-               const imageObserver = new IntersectionObserver((entries, observer) => {
-                   entries.forEach(entry => {
-                       if (entry.isIntersecting) {
-                           const img = entry.target;
-                           img.src = img.dataset.src;
-                           img.classList.remove('lazy');
-                           imageObserver.unobserve(img);
-                       }
-                   });
-               });
-
-               document.querySelectorAll('img[data-src]').forEach(img => {
-                   imageObserver.observe(img);
-               });
-           }
-       });
-
-       // Função para debug (apenas em desenvolvimento)
-       function debugInfo() {
-           if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-               console.log('=== DEBUG INFO ===');
-               console.log('Quantidade RB:', quantidadeRB);
-               console.log('Quantidade ML:', quantidadeML);
-               console.log('Game Mode:', gameMode);
-               console.log('Current Affiliate:', currentAffiliate);
-               console.log('Payment ID:', currentPaymentId);
-               console.log('Ref Code:', localStorage.getItem('raspa_ref'));
-               console.log('==================');
-           }
-       }
-
-       // Função para limpar cache quando necessário
-       function limparCache() {
-           if ('caches' in window) {
-               caches.keys().then(names => {
-                   names.forEach(name => {
-                       caches.delete(name);
-                   });
-               });
-           }
-       }
-
-       // Service Worker para cache (se disponível)
-       if ('serviceWorker' in navigator) {
-           window.addEventListener('load', function() {
-               navigator.serviceWorker.register('/sw.js')
-                   .then(registration => {
-                       console.log('SW registrado:', registration);
-                   })
-                   .catch(error => {
-                       console.log('SW falhou:', error);
-                   });
-           });
-       }
-
-       // Função para backup de dados locais
-       function backupLocalData() {
-           const data = {
-               affiliate_cpf: localStorage.getItem('affiliate_cpf'),
-               raspa_ref: localStorage.getItem('raspa_ref'),
-               timestamp: Date.now()
-           };
-           localStorage.setItem('backup_data', JSON.stringify(data));
-       }
-
-       // Função para restaurar dados locais
-       function restoreLocalData() {
-           const backup = localStorage.getItem('backup_data');
-           if (backup) {
-               try {
-                   const data = JSON.parse(backup);
-                   // Restaurar apenas se backup for recente (últimas 24h)
-                   if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
-                       if (data.affiliate_cpf) {
-                           localStorage.setItem('affiliate_cpf', data.affiliate_cpf);
-                       }
-                       if (data.raspa_ref) {
-                           localStorage.setItem('raspa_ref', data.raspa_ref);
-                       }
-                   }
-               } catch (error) {
-                   console.log('Erro ao restaurar backup:', error);
-               }
-           }
-       }
-
-       // Backup automático a cada 5 minutos
-       setInterval(backupLocalData, 5 * 60 * 1000);
-
-       // Analytics simples (se necessário)
-       function trackEvent(category, action, label) {
-           if (window.gtag) {
-               gtag('event', action, {
-                   event_category: category,
-                   event_label: label
-               });
-           }
-       }
-
-       // Função para reportar erros
-       function reportError(error, context) {
-           console.error(`Erro em ${context}:`, error);
-           
-           // Em produção, enviar erro para servidor de monitoramento
-           if (window.location.hostname !== 'localhost') {
-               fetch('/log_error', {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({
-                       error: error.message,
-                       stack: error.stack,
-                       context: context,
-                       userAgent: navigator.userAgent,
-                       url: window.location.href,
-                       timestamp: new Date().toISOString()
-                   })
-               }).catch(() => {
-                   // Falha silenciosa se não conseguir enviar erro
-               });
-           }
-       }
-
-       // Capturar erros globais
-       window.addEventListener('error', function(e) {
-           reportError(e.error, 'Global Error');
-       });
-
-       window.addEventListener('unhandledrejection', function(e) {
-           reportError(new Error(e.reason), 'Unhandled Promise Rejection');
-       });
-
-       console.log('🎉 GANHA BRASIL carregado com sucesso! 🇧🇷');
-   </script>
+    </script>
 </body>
 </html>
