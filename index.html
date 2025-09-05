@@ -3002,7 +3002,7 @@
                     <p style="margin-bottom: 25px; font-size: 16px; line-height: 1.5;">${message}</p>
                     <div style="display: flex; gap: 15px;">
                         <button class="btn btn-secondary" onclick="this.closest('.modal').remove()" style="flex: 1;">Cancelar</button>
-                        <button class="btn btn-primary" onclick="this.closest('.modal').remove(); (${onConfirm.toString()})()" style="flex: 1;">Confirmar</button>
+                        <button class="btn btn-primary" onclick="this.closest('.modal').remove(); typeof ${onConfirm.name} === 'function' && ${onConfirm.name}()" style="flex: 1;">Confirmar</button>
                     </div>
                 </div>
             `;
@@ -3282,6 +3282,12 @@
         }
 
         async function rasparMinhaRaspadinha(raspadinhaId) {
+            if (!clienteLogado) {
+                mostrarModal('<h3>Login necessário</h3><p>Faça login para raspar!</p>');
+                mostrarLogin();
+                return;
+            }
+            
             mostrarPagina('raspa-brasil-game');
             
             // Criar apenas uma raspadinha
@@ -4216,97 +4222,85 @@ Solicito o pagamento do meu prêmio!`;
             document.getElementById('affiliate-login').style.display = 'none';
             document.getElementById('affiliate-dashboard').style.display = 'none';
         }
-        // Adicionar esta função antes de cadastrarAfiliado()
-async function verificarConectividade() {
-    try {
-        const response = await fetch('/health', { 
-            method: 'GET',
-            timeout: 5000 
-        });
-        return response.ok;
-    } catch (error) {
-        console.error('Erro de conectividade:', error);
-        return false;
-    }
-}
+
         async function cadastrarAfiliado() {
-    const nome = document.getElementById('affiliate-nome').value.trim();
-    const telefone = document.getElementById('affiliate-telefone').value.trim();
-    const email = document.getElementById('affiliate-email').value.trim();
-    const cpf = document.getElementById('affiliate-cpf').value.trim();
+            const nome = document.getElementById('affiliate-nome').value.trim();
+            const telefone = document.getElementById('affiliate-telefone').value.trim();
+            const email = document.getElementById('affiliate-email').value.trim();
+            const cpf = document.getElementById('affiliate-cpf').value.trim();
 
-    console.log('Dados do formulário:', { nome, telefone, email, cpf });
+            console.log('Dados do formulário:', { nome, telefone, email, cpf });
 
-    if (!nome || !telefone || !email || !cpf) {
-        mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos!</p>');
-        return;
-    }
+            if (!nome || !telefone || !email || !cpf) {
+                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos!</p>');
+                return;
+            }
 
-    // Validações mais flexíveis
-    if (nome.length < 2) {
-        mostrarModal('<h3>Atenção</h3><p>Nome deve ter pelo menos 2 caracteres!</p>');
-        return;
-    }
+            // Validações mais flexíveis
+            if (nome.length < 2) {
+                mostrarModal('<h3>Atenção</h3><p>Nome deve ter pelo menos 2 caracteres!</p>');
+                return;
+            }
 
-    if (!email.includes('@') || email.length < 5) {
-        mostrarModal('<h3>Atenção</h3><p>Digite um email válido!</p>');
-        return;
-    }
+            if (!email.includes('@') || email.length < 5) {
+                mostrarModal('<h3>Atenção</h3><p>Digite um email válido!</p>');
+                return;
+            }
 
-    const cpfLimpo = cpf.replace(/\D/g, '');
-    if (cpfLimpo.length !== 11) {
-        mostrarModal('<h3>Atenção</h3><p>CPF deve ter 11 dígitos!</p>');
-        return;
-    }
+            const cpfLimpo = cpf.replace(/\D/g, '');
+            if (cpfLimpo.length !== 11) {
+                mostrarModal('<h3>Atenção</h3><p>CPF deve ter 11 dígitos!</p>');
+                return;
+            }
 
-    if (telefone.length < 10) {
-        mostrarModal('<h3>Atenção</h3><p>Telefone deve ter pelo menos 10 dígitos!</p>');
-        return;
-    }
+            if (telefone.length < 10) {
+                mostrarModal('<h3>Atenção</h3><p>Telefone deve ter pelo menos 10 dígitos!</p>');
+                return;
+            }
 
-    try {
-        console.log('Enviando dados para o servidor...');
-        
-        const response = await fetch('/cadastrar_afiliado', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                nome: nome, 
-                telefone: telefone, 
-                email: email.toLowerCase(), 
-                cpf: cpfLimpo 
-            })
-        });
+            try {
+                console.log('Enviando dados para o servidor...');
+                
+                const response = await fetch('/cadastrar_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        nome: nome, 
+                        telefone: telefone, 
+                        email: email.toLowerCase(), 
+                        cpf: cpfLimpo 
+                    })
+                });
 
-        console.log('Status da resposta:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
+                console.log('Status da resposta:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const resultado = await response.json();
+                console.log('Resultado do servidor:', resultado);
+                
+                if (resultado.sucesso) {
+                    currentAffiliate = resultado.afiliado;
+                    localStorage.setItem('affiliate_cpf', cpfLimpo);
+                    
+                    exibirDashboardAfiliado();
+                    mostrarModal(`
+                        <h3>Cadastro Realizado!</h3>
+                        <p>Bem-vindo ao programa de afiliados!</p>
+                        <p><strong>Seu código:</strong> ${resultado.afiliado.codigo}</p>
+                    `);
+                } else {
+                    console.error('Erro retornado pelo servidor:', resultado.erro);
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro || 'Erro desconhecido'}</p>`);
+                }
+
+            } catch (error) {
+                console.error('Erro ao cadastrar afiliado:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro de conexão. Verifique sua internet e tente novamente.</p>');
+            }
         }
-
-        const resultado = await response.json();
-        console.log('Resultado do servidor:', resultado);
-        
-        if (resultado.sucesso) {
-            currentAffiliate = resultado.afiliado;
-            localStorage.setItem('affiliate_cpf', cpfLimpo);
-            
-            exibirDashboardAfiliado();
-            mostrarModal(`
-                <h3>Cadastro Realizado!</h3>
-                <p>Bem-vindo ao programa de afiliados!</p>
-                <p><strong>Seu código:</strong> ${resultado.afiliado.codigo}</p>
-            `);
-        } else {
-            console.error('Erro retornado pelo servidor:', resultado.erro);
-            mostrarModal(`<h3>Erro</h3><p>${resultado.erro || 'Erro desconhecido'}</p>`);
-        }
-
-    } catch (error) {
-        console.error('Erro ao cadastrar afiliado:', error);
-        mostrarModal('<h3>Erro</h3><p>Erro de conexão. Verifique sua internet e tente novamente.</p>');
-    }
-}
 
         async function loginAfiliado() {
             const cpf = document.getElementById('login-affiliate-cpf').value.replace(/\D/g, '');
@@ -5135,24 +5129,24 @@ async function verificarConectividade() {
                                 <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: center;">
                                     <div>
                                         <strong style="color: #333;">${ganhador.nome}</strong><br>
-                                        <span style="color: ${gameColor}; font-weight: 600;">${ganhador.jogo}</span><br>
-                                        ${ganhador.codigo ? `<small style="color: #666;">Código: ${ganhador.codigo}</small><br>` : ''}
-                                        ${ganhador.milhar ? `<small style="color: #666;">Milhar: ${ganhador.milhar}</small><br>` : ''}
-                                        ${ganhador.chave_pix ? `<small style="color: #666;">PIX: ${ganhador.chave_pix}</small>` : ''}
+                                        <small style="color: #666;">PIX: ${ganhador.chave_pix}</small><br>
+                                        <small style="color: #666;">Jogo: ${ganhador.jogo}</small>
+                                        ${ganhador.codigo ? `<br><small style="color: #666;">Código: ${ganhador.codigo}</small>` : ''}
+                                        ${ganhador.bilhete_ganhador ? `<br><small style="color: #666;">Bilhete: ${ganhador.bilhete_ganhador}</small>` : ''}
                                     </div>
                                     <div style="text-align: center;">
                                         <div style="color: ${gameColor}; font-weight: 800; font-size: 1.3em;">${ganhador.valor}</div>
                                         <small style="color: #666;">Prêmio</small>
                                     </div>
                                     <div style="text-align: center;">
-                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data_premio).toLocaleDateString('pt-BR')}</div>
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data_ganho).toLocaleDateString('pt-BR')}</div>
                                         <small style="color: #666;">Data</small>
                                     </div>
                                     <div style="text-align: right;">
                                         <div style="color: ${statusColor}; font-weight: 600; font-size: 0.9em; padding: 6px 12px; background: ${statusColor}20; border-radius: 20px;">
                                             ${ganhador.status === 'pago' ? 'PAGO' : 'PENDENTE'}
                                         </div>
-                                        ${ganhador.status === 'pendente' ? `<button onclick="marcarGanhadorPago(${ganhador.id})" style="margin-top: 8px; padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Marcar Pago</button>` : ''}
+                                        ${ganhador.status !== 'pago' ? `<button onclick="marcarGanhadorPago(${ganhador.id})" style="margin-top: 8px; padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Marcar Pago</button>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -5163,7 +5157,6 @@ async function verificarConectividade() {
                 } else {
                     container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum ganhador encontrado</div>';
                 }
-                
             } catch (error) {
                 console.error('Erro ao carregar ganhadores:', error);
                 const container = document.getElementById('admin-lista-ganhadores');
@@ -5200,11 +5193,14 @@ async function verificarConectividade() {
 
         function fecharModalAdicionarGanhador() {
             document.getElementById('modal-adicionar-ganhador').style.display = 'none';
+            
             // Limpar campos
             document.getElementById('novo-ganhador-nome').value = '';
             document.getElementById('novo-ganhador-valor').value = '';
             document.getElementById('novo-ganhador-pix').value = '';
             document.getElementById('novo-ganhador-bilhete').value = '';
+            document.getElementById('novo-ganhador-jogo').value = 'raspa_brasil';
+            toggleBilheteField();
         }
 
         function toggleBilheteField() {
@@ -5222,35 +5218,30 @@ async function verificarConectividade() {
             const jogo = document.getElementById('novo-ganhador-jogo').value;
             const nome = document.getElementById('novo-ganhador-nome').value.trim();
             const valor = document.getElementById('novo-ganhador-valor').value.trim();
-            const pix = document.getElementById('novo-ganhador-pix').value.trim();
+            const chavePix = document.getElementById('novo-ganhador-pix').value.trim();
             const bilhete = document.getElementById('novo-ganhador-bilhete').value.trim();
             
-            if (!nome || !valor || !pix) {
+            if (!nome || !valor || !chavePix) {
                 mostrarModal('<h3>Atenção</h3><p>Preencha todos os campos obrigatórios!</p>');
                 return;
             }
             
             if (jogo === '2para1000' && (!bilhete || bilhete.length !== 4)) {
-                mostrarModal('<h3>Atenção</h3><p>Digite o bilhete ganhador (4 dígitos)!</p>');
+                mostrarModal('<h3>Atenção</h3><p>Digite um bilhete válido (4 dígitos)!</p>');
                 return;
             }
             
             try {
-                const data = {
-                    jogo,
-                    nome,
-                    valor,
-                    chave_pix: pix
-                };
-                
-                if (jogo === '2para1000') {
-                    data.milhar = bilhete;
-                }
-                
                 const response = await fetch('/admin/adicionar_ganhador', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        jogo,
+                        nome,
+                        valor,
+                        chave_pix: chavePix,
+                        bilhete_ganhador: jogo === '2para1000' ? bilhete : null
+                    })
                 });
                 
                 const resultado = await response.json();
@@ -5270,50 +5261,64 @@ async function verificarConectividade() {
         }
 
         function gerarListaGanhadoresDia() {
-            const data = document.getElementById('filtro-data-ganhadores').value || obterDataHoraBrasilia().toISOString().split('T')[0];
+            const hoje = obterDataHoraBrasilia().toISOString().split('T')[0];
+            document.getElementById('filtro-data-ganhadores').value = hoje;
             carregarGanhadores('todos');
         }
 
         async function gerarListaGanhadoresPDF() {
             try {
+                const dataFiltro = document.getElementById('filtro-data-ganhadores').value || obterDataHoraBrasilia().toISOString().split('T')[0];
+                const response = await fetch(`/admin/ganhadores/todos?data=${dataFiltro}`);
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar ganhadores');
+                }
+                
+                const resultado = await response.json();
+                
+                if (!resultado.ganhadores || resultado.ganhadores.length === 0) {
+                    mostrarModal('<h3>Atenção</h3><p>Nenhum ganhador encontrado para gerar PDF.</p>');
+                    return;
+                }
+                
+                // Criar PDF usando jsPDF
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
-                const response = await fetch('/admin/ganhadores/todos');
-                const resultado = await response.json();
-                
-                doc.setFontSize(20);
-                doc.text('Lista de Ganhadores - Ganha Brasil', 20, 30);
-                
+                // Título
+                doc.setFontSize(16);
+                doc.text('GANHA BRASIL - Lista de Ganhadores', 20, 20);
                 doc.setFontSize(12);
+                doc.text(`Data: ${new Date(dataFiltro).toLocaleDateString('pt-BR')}`, 20, 30);
+                
                 let y = 50;
                 
-                if (resultado.ganhadores && resultado.ganhadores.length > 0) {
-                    resultado.ganhadores.forEach((ganhador, index) => {
-                        if (y > 270) {
-                            doc.addPage();
-                            y = 30;
-                        }
-                        
-                        doc.text(`${index + 1}. ${ganhador.nome}`, 20, y);
-                        doc.text(`Jogo: ${ganhador.jogo}`, 20, y + 10);
-                        doc.text(`Prêmio: ${ganhador.valor}`, 20, y + 20);
-                        doc.text(`Data: ${new Date(ganhador.data_premio).toLocaleDateString('pt-BR')}`, 20, y + 30);
-                        if (ganhador.codigo) doc.text(`Código: ${ganhador.codigo}`, 20, y + 40);
-                        if (ganhador.milhar) doc.text(`Milhar: ${ganhador.milhar}`, 20, y + 40);
-                        
-                        y += 60;
-                    });
-                } else {
-                    doc.text('Nenhum ganhador encontrado', 20, y);
-                }
+                resultado.ganhadores.forEach((ganhador, index) => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    
+                    doc.text(`${index + 1}. ${ganhador.nome}`, 20, y);
+                    doc.text(`   Jogo: ${ganhador.jogo}`, 20, y + 7);
+                    doc.text(`   Prêmio: ${ganhador.valor}`, 20, y + 14);
+                    doc.text(`   PIX: ${ganhador.chave_pix}`, 20, y + 21);
+                    if (ganhador.bilhete_ganhador) {
+                        doc.text(`   Bilhete: ${ganhador.bilhete_ganhador}`, 20, y + 28);
+                        y += 35;
+                    } else {
+                        y += 28;
+                    }
+                    
+                    y += 5;
+                });
                 
-                const dataAtual = obterDataHoraBrasilia().toLocaleDateString('pt-BR').replace(/\//g, '-');
-                doc.save(`Ganhadores-${dataAtual}.pdf`);
+                doc.save(`ganhadores_${dataFiltro}.pdf`);
                 
             } catch (error) {
                 console.error('Erro ao gerar PDF:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF. Verifique se a biblioteca jsPDF está carregada.</p>');
+                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF dos ganhadores</p>');
             }
         }
 
@@ -5328,25 +5333,29 @@ async function verificarConectividade() {
                 const resultado = await response.json();
                 
                 // Atualizar contadores
-                document.getElementById('admin-vendas-rb-total').textContent = resultado.vendas_rb || 0;
-                document.getElementById('admin-vendas-ml-total').textContent = resultado.vendas_ml || 0;
+                document.getElementById('admin-vendas-rb-total').textContent = resultado.raspadinhas_vendidas || 0;
+                document.getElementById('admin-vendas-ml-total').textContent = resultado.bilhetes_vendidos || 0;
                 document.getElementById('admin-receita-total').textContent = `R$ ${(resultado.receita_total || 0).toFixed(2).replace('.', ',')}`;
-                document.getElementById('admin-vendas-hoje-total').textContent = (resultado.vendas_hoje || 0);
+                document.getElementById('admin-vendas-hoje-total').textContent = (resultado.vendas_hoje || 0) + (resultado.vendas_hoje_ml || 0);
                 
-                // Gráfico simples
+                // Gráfico simples das vendas
                 const container = document.getElementById('admin-grafico-vendas');
-                if (resultado.vendas_7_dias && resultado.vendas_7_dias.length > 0) {
-                    let html = '<div style="display: flex; justify-content: space-between; align-items: end; height: 150px; gap: 10px;">';
+                if (resultado.vendas_ultimos_dias) {
+                    let html = '<div style="display: flex; gap: 10px; align-items: end; height: 150px; padding: 20px;">';
                     
-                    const maxVendas = Math.max(...resultado.vendas_7_dias.map(v => v.total));
+                    const maxVendas = Math.max(...resultado.vendas_ultimos_dias.map(v => v.total));
                     
-                    resultado.vendas_7_dias.forEach(dia => {
-                        const altura = maxVendas > 0 ? (dia.total / maxVendas) * 120 : 0;
+                    resultado.vendas_ultimos_dias.forEach(dia => {
+                        const altura = (dia.total / maxVendas) * 100;
                         html += `
-                            <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
-                                <div style="background: linear-gradient(135deg, #007bff, #0056b3); width: 100%; height: ${altura}px; border-radius: 4px 4px 0 0; min-height: 2px;"></div>
-                                <div style="margin-top: 5px; font-size: 0.8em; font-weight: 600; color: #666;">${dia.total}</div>
-                                <div style="font-size: 0.7em; color: #999;">${new Date(dia.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
+                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                <div style="background: #007bff; width: 100%; height: ${altura}%; min-height: 5px; margin-bottom: 10px; border-radius: 4px 4px 0 0;"></div>
+                                <div style="font-size: 0.8em; color: #666; text-align: center;">
+                                    ${new Date(dia.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                </div>
+                                <div style="font-weight: 600; color: #333; text-align: center;">
+                                    ${dia.total}
+                                </div>
                             </div>
                         `;
                     });
@@ -5354,35 +5363,35 @@ async function verificarConectividade() {
                     html += '</div>';
                     container.innerHTML = html;
                 } else {
-                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Sem dados de vendas para exibir</div>';
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Dados de vendas não disponíveis</div>';
                 }
                 
             } catch (error) {
-                console.error('Erro ao carregar relatório:', error);
+                console.error('Erro ao carregar relatório de vendas:', error);
                 const container = document.getElementById('admin-grafico-vendas');
-                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados do relatório</div>';
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar relatório de vendas</div>';
             }
         }
 
-        // Verificar referência de afiliado na URL
+        // Verificar parâmetro de referência na URL
         function verificarReferencia() {
             const urlParams = new URLSearchParams(window.location.search);
-            const ref = urlParams.get('ref');
+            const refCode = urlParams.get('ref');
             
-            if (ref) {
-                localStorage.setItem('raspa_ref', ref);
-                sessionStorage.setItem('raspa_ref', ref);
+            if (refCode) {
+                localStorage.setItem('raspa_ref', refCode);
+                sessionStorage.setItem('raspa_ref', refCode);
                 
-                // Registrar clique
-                fetch('/click_afiliado', {
+                // Registrar clique do afiliado
+                fetch('/registrar_clique_afiliado', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codigo: ref })
+                    body: JSON.stringify({ codigo: refCode })
                 }).catch(error => console.error('Erro ao registrar clique:', error));
             }
         }
 
-        // Verificar login de afiliado no localStorage
+        // Verificar login de afiliado salvo
         function verificarLoginAfiliado() {
             const cpfSalvo = localStorage.getItem('affiliate_cpf');
             if (cpfSalvo) {
@@ -5397,7 +5406,7 @@ async function verificarConectividade() {
                         currentAffiliate = resultado.afiliado;
                     }
                 })
-                .catch(error => console.error('Erro ao verificar login de afiliado:', error));
+                .catch(error => console.error('Erro ao verificar login afiliado:', error));
             }
         }
 
@@ -5405,28 +5414,20 @@ async function verificarConectividade() {
         document.addEventListener('DOMContentLoaded', function() {
             initBannerSlider();
             gerarGanhadoresSlider();
+            initWinnerAlerts();
             verificarReferencia();
             verificarLogin();
             verificarLoginAfiliado();
-            
-            // Atualizar displays iniciais
             atualizarDisplayRB();
             atualizarDisplayML();
             
-            // Iniciar alerts de ganhadores
-            initWinnerAlerts();
-            
-            // Atualizar slider de ganhadores periodicamente
-            setInterval(gerarGanhadoresSlider, 300000); // 5 minutos
-        });
-
-        // Limpeza ao sair da página
-        window.addEventListener('beforeunload', function() {
-            if (paymentCheckInterval) {
-                clearInterval(paymentCheckInterval);
-            }
+            // Limpar intervalos ao sair da página
+            window.addEventListener('beforeunload', function() {
+                if (paymentCheckInterval) {
+                    clearInterval(paymentCheckInterval);
+                }
+            });
         });
     </script>
 </body>
 </html>
-
