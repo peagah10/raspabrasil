@@ -69,38 +69,8 @@
             50% { transform: translateY(-15px) rotate(2deg); }
         }
 
-        @keyframes winnerPulse {
-            0% { 
-                transform: scale(1);
-                box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
-            }
-            50% { 
-                transform: scale(1.02);
-                box-shadow: 0 0 30px rgba(40, 167, 69, 0.9);
-            }
-            100% { 
-                transform: scale(1);
-                box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
-            }
-        }
-
-        @keyframes pulseGlow {
-            0% { 
-                box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
-                transform: scale(1);
-            }
-            50% { 
-                box-shadow: 0 0 30px rgba(40, 167, 69, 0.9);
-                transform: scale(1.03);
-            }
-            100% { 
-                box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
-                transform: scale(1);
-            }
-        }
-
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             background: rgba(255, 255, 255, 0.98);
@@ -111,80 +81,76 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        /* Botão Indique e Ganhe - CORRIGIDO E CENTRALIZADO */
-        .indique-ganhe-btn {
+        /* Barra Superior com Login e Botão Indique */
+        .top-bar {
             position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-light);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .top-bar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .login-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .login-info span {
+            font-weight: 600;
+            color: var(--primary-green);
+        }
+
+        .btn-login-top {
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-login-top:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        /* Botão Indique e Ganhe - Fixo no topo */
+        .indique-ganhe-btn {
             background: linear-gradient(135deg, #ff6b35, #ffd93d);
             border: none;
             border-radius: 50px;
-            padding: 18px 35px;
+            padding: 12px 25px;
             color: #fff;
-            font-size: clamp(14px, 3vw, 18px);
+            font-size: 16px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
-            overflow: hidden;
-            position: relative;
-            animation: pulse-glow 2s infinite;
-            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
             white-space: nowrap;
         }
 
         .indique-ganhe-btn:hover {
-            transform: translateX(-50%) translateY(-3px);
-            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
-        }
-
-        @keyframes pulse-glow {
-            0% {
-                box-shadow: 0 8px 25px rgba(252, 199, 85, 0.507);
-            }
-            50% {
-                box-shadow: 0 12px 35px rgba(245, 255, 107, 0.664), 0 0 0 10px rgba(255, 107, 107, 0.1);
-                transform: translateX(-50%) scale(1.05);
-            }
-            100% {
-                box-shadow: 0 8px 25px rgba(255, 240, 107, 0.4);
-            }
-        }
-
-        /* Responsive para mobile */
-        @media (max-width: 768px) {
-            .container {
-                margin-top: 120px;
-                padding: 15px;
-            }
-            
-            .indique-ganhe-btn {
-                position: fixed;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                font-size: 14px;
-                padding: 15px 25px;
-            }
-            
-            .indique-ganhe-btn:hover {
-                transform: translateX(-50%) translateY(-3px);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                margin-top: 100px;
-                padding: 10px;
-            }
-            
-            .indique-ganhe-btn {
-                font-size: 12px;
-                padding: 12px 20px;
-            }
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
         }
 
         /* Header Moderno */
@@ -269,10 +235,73 @@
             50% { transform: scale(1.08) rotate(5deg); }
         }
 
-        /* Seleção de Jogos */
+        /* Banner Slider */
+        .banner-slider {
+            position: relative;
+            height: clamp(250px, 40vw, 350px);
+            margin-bottom: 40px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-heavy);
+            background-image: url('https://pfst.cf2.poecdn.net/base/image/f5e5ea7363d8a169389771ca089524300491c180be4956341b918e8d3d1c474c?w=626&h=417');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.8), rgba(255, 215, 0, 0.6));
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+        .slide-content {
+            background: linear-gradient(135deg, rgba(0, 179, 65, 0.95), rgba(255, 215, 0, 0.9));
+            color: white;
+            padding: clamp(20px, 6vw, 40px);
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            max-width: 90%;
+            animation: slideContentFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes slideContentFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .slide-content h1 {
+            font-size: clamp(2em, 7vw, 4em);
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-content p {
+            font-size: clamp(1em, 4vw, 1.4em);
+            font-weight: 600;
+            opacity: 0.95;
+        }
+
+        /* Seleção de Jogos - Lado a Lado */
         .game-selection {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 30px;
             margin: 40px 0;
         }
@@ -323,14 +352,14 @@
         }
 
         .game-title {
-            font-size: clamp(2em, 6vw, 2.8em);
+            font-size: clamp(1.8em, 5vw, 2.5em);
             font-weight: 800;
             margin-bottom: 15px;
             color: var(--primary-green);
         }
 
         .game-description {
-            font-size: clamp(1.1em, 4vw, 1.3em);
+            font-size: clamp(1em, 3.5vw, 1.2em);
             color: #555;
             margin-bottom: 25px;
             font-weight: 600;
@@ -421,17 +450,6 @@
             box-shadow: var(--shadow-heavy);
         }
 
-        .btn-affiliate {
-            background: linear-gradient(135deg, var(--affiliate-orange), #f7931e);
-            color: white;
-            box-shadow: var(--shadow-medium);
-        }
-
-        .btn-affiliate:hover:not(:disabled) {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-heavy);
-        }
-
         .btn-cta {
             background: linear-gradient(135deg, var(--success-green), #1e7e34);
             color: white;
@@ -454,12 +472,6 @@
                 transform: scale(1);
                 box-shadow: 0 0 30px rgba(40, 167, 69, 0.6);
             }
-        }
-
-        .btn-cta:hover {
-            animation-play-state: paused;
-            transform: scale(1.08);
-            box-shadow: 0 0 60px rgba(40, 167, 69, 1);
         }
 
         /* WhatsApp Flutuante */
@@ -496,69 +508,6 @@
             100% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
         }
 
-        /* Banner Slider */
-        .banner-slider {
-            position: relative;
-            height: clamp(300px, 50vw, 450px);
-            margin-bottom: 40px;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            box-shadow: var(--shadow-heavy);
-            background-image: url('https://pfst.cf2.poecdn.net/base/image/f5e5ea7363d8a169389771ca089524300491c180be4956341b918e8d3d1c474c?w=626&h=417');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-
-        .slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(0, 179, 65, 0.8), rgba(255, 215, 0, 0.6));
-            opacity: 0;
-            transition: opacity 0.8s ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .slide.active {
-            opacity: 1;
-        }
-
-        .slide-content {
-            background: linear-gradient(135deg, rgba(0, 179, 65, 0.95), rgba(255, 215, 0, 0.9));
-            color: white;
-            padding: clamp(20px, 6vw, 40px);
-            border-radius: 20px;
-            text-align: center;
-            backdrop-filter: blur(15px);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            max-width: 90%;
-            animation: slideContentFloat 6s ease-in-out infinite;
-        }
-
-        @keyframes slideContentFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .slide-content h1 {
-            font-size: clamp(2em, 7vw, 4em);
-            font-weight: 800;
-            margin-bottom: 15px;
-            text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);
-        }
-
-        .slide-content p {
-            font-size: clamp(1em, 4vw, 1.4em);
-            font-weight: 600;
-            opacity: 0.95;
-        }
-
         /* Seção Principal */
         .main-section {
             text-align: center;
@@ -583,101 +532,7 @@
             font-weight: 600;
         }
 
-        /* Quantidade Selector */
-        .quantidade-selector {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: clamp(20px, 6vw, 30px);
-            margin: 40px auto;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
-            padding: clamp(25px, 6vw, 35px);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-medium);
-            backdrop-filter: blur(10px);
-            max-width: 90%;
-        }
-
-        .quantidade-btn {
-            width: clamp(50px, 14vw, 70px);
-            height: clamp(50px, 14vw, 70px);
-            border: none;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-green), #00a538);
-            color: white;
-            font-size: clamp(24px, 6vw, 32px);
-            font-weight: bold;
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: var(--shadow-light);
-        }
-
-        .quantidade-btn:hover {
-            transform: scale(1.15);
-            box-shadow: var(--shadow-heavy);
-        }
-
-        .quantidade-display {
-            font-size: clamp(3em, 10vw, 5em);
-            font-weight: 900;
-            color: var(--primary-green);
-            min-width: clamp(80px, 20vw, 120px);
-            text-align: center;
-            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .total-display {
-            text-align: center;
-            font-size: clamp(1.8em, 7vw, 2.8em);
-            font-weight: 800;
-            color: var(--primary-blue);
-            margin: 30px auto;
-            padding: clamp(20px, 5vw, 30px);
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-medium);
-            backdrop-filter: blur(10px);
-            max-width: 90%;
-        }
-
-        /* Informações de segurança */
-        .security-info {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            align-items: center;
-            justify-content: center;
-            max-width: 900px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .security-item {
-            font-size: clamp(0.9em, 3.5vw, 1.1em);
-            color: #666;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border: 2px solid rgba(40, 167, 69, 0.2);
-            text-align: center;
-        }
-
-        .security-item i {
-            color: var(--success-green);
-            font-size: 1.2em;
-        }
-
-        /* CTA Messages */
+        /* CTA Message */
         .cta-message {
             background: linear-gradient(135deg, var(--primary-red), #ef4444);
             color: white;
@@ -696,11 +551,6 @@
 
         .cta-message.warning {
             background: linear-gradient(135deg, #ff9800, #f57c00);
-        }
-
-        .cta-message.affiliate {
-            background: linear-gradient(135deg, var(--primary-yellow), #ffcc00);
-            color: #1a1a1a;
         }
 
         .cta-message::before {
@@ -817,6 +667,115 @@
             animation: pulseGlow 1.5s ease-in-out infinite;
         }
 
+        @keyframes pulseGlow {
+            0% { 
+                box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(255, 107, 53, 0.9);
+                transform: scale(1.02);
+            }
+            100% { 
+                box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
+                transform: scale(1);
+            }
+        }
+
+        /* Quantidade Selector */
+        .quantidade-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(20px, 6vw, 30px);
+            margin: 40px auto;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            padding: clamp(25px, 6vw, 35px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+            backdrop-filter: blur(10px);
+            max-width: 90%;
+        }
+
+        .quantidade-btn {
+            width: clamp(50px, 14vw, 70px);
+            height: clamp(50px, 14vw, 70px);
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-green), #00a538);
+            color: white;
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-light);
+        }
+
+        .quantidade-btn:hover {
+            transform: scale(1.15);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .quantidade-display {
+            font-size: clamp(3em, 10vw, 5em);
+            font-weight: 900;
+            color: var(--primary-green);
+            min-width: clamp(80px, 20vw, 120px);
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .total-display {
+            text-align: center;
+            font-size: clamp(1.8em, 7vw, 2.8em);
+            font-weight: 800;
+            color: var(--primary-blue);
+            margin: 30px auto;
+            padding: clamp(20px, 5vw, 30px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+            backdrop-filter: blur(10px);
+            max-width: 90%;
+        }
+
+        /* Informações de segurança */
+        .security-info {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .security-item {
+            font-size: clamp(0.9em, 3.5vw, 1.1em);
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(40, 167, 69, 0.2);
+            text-align: center;
+        }
+
+        .security-item i {
+            color: var(--success-green);
+            font-size: 1.2em;
+        }
+
         /* Raspadinha Page */
         .raspadinha-container {
             display: flex;
@@ -861,6 +820,7 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.6);
             margin: 0 auto;
             border: 2px solid #ffd700;
+            cursor: pointer;
         }
 
         .premio {
@@ -902,6 +862,117 @@
             justify-items: center;
         }
 
+        /* Área de Login/Cadastro */
+        .login-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .login-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .login-tab {
+            flex: 1;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .login-tab.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        /* Área do Cliente */
+        .cliente-info {
+            background: linear-gradient(135deg, #f8f9fa, white);
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-light);
+            border: 2px solid var(--primary-green);
+        }
+
+        .cliente-info h3 {
+            color: var(--primary-green);
+            margin-bottom: 15px;
+            font-size: clamp(1.5em, 4vw, 2em);
+        }
+
+        .cliente-info p {
+            font-size: clamp(1em, 3.5vw, 1.2em);
+            color: #333;
+            margin: 5px 0;
+        }
+
+        /* Minhas Raspadinhas */
+        .minhas-raspadinhas-container {
+            margin: 30px 0;
+        }
+
+        .raspadinha-item {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-light);
+            border: 2px solid #28a745;
+        }
+
+        .raspadinha-item.disponivel {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #f0f9f0, white);
+        }
+
+        .raspadinha-item.raspada {
+            border-color: #6c757d;
+            background: #f8f9fa;
+        }
+
+        .raspadinha-item.premiada {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, #fff9e6, white);
+            animation: pulseGlow 2s infinite;
+        }
+
+        /* Meus Bilhetes */
+        .meus-bilhetes-container {
+            margin: 30px 0;
+        }
+
+        .bilhete-item {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-light);
+            border: 2px solid #007bff;
+        }
+
+        .bilhete-numero {
+            text-align: center;
+            font-size: clamp(2em, 8vw, 3em);
+            font-weight: 900;
+            color: var(--primary-blue);
+            margin: 10px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #e6f2ff, #f0f8ff);
+            border-radius: 10px;
+        }
+
         /* Bilhete Digital */
         .bilhete-container {
             background: linear-gradient(135deg, #f8f9fa, white);
@@ -919,17 +990,6 @@
             padding: 25px;
             margin: 20px 0;
             box-shadow: var(--shadow-light);
-        }
-
-        .bilhete-numero {
-            text-align: center;
-            font-size: clamp(3em, 10vw, 5em);
-            font-weight: 900;
-            color: var(--primary-green);
-            margin: 20px 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #f0f9f0, #e8f5e8);
-            border-radius: 15px;
         }
 
         .milhar-sorteada {
@@ -1030,73 +1090,6 @@
             font-weight: 600;
         }
 
-        .affiliate-buttons-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            margin-top: 25px;
-        }
-
-        .affiliate-buttons-container .btn {
-            width: 100%;
-            margin: 0;
-            text-align: center;
-        }
-
-        /* Status Bar */
-        .status-bar {
-            background: linear-gradient(90deg, var(--primary-green), var(--primary-yellow));
-            padding: clamp(15px, 4vw, 20px);
-            border-radius: var(--border-radius);
-            margin-bottom: 30px;
-            color: white;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-        }
-
-        .status-item {
-            text-align: center;
-            padding: 10px;
-        }
-
-        .status-item .number {
-            font-size: clamp(1.5em, 5vw, 2em);
-            font-weight: 800;
-            display: block;
-        }
-
-        .status-item .label {
-            font-size: clamp(0.8em, 3vw, 1em);
-            opacity: 0.9;
-        }
-
-        /* Modal Admin */
-        .admin-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(8px);
-        }
-
-        .admin-modal-content {
-            background: white;
-            padding: clamp(25px, 6vw, 40px);
-            border-radius: var(--border-radius);
-            max-width: 1200px;
-            width: 95%;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: var(--shadow-heavy);
-        }
-
         /* Payment Page */
         .payment-container {
             max-width: 600px;
@@ -1173,6 +1166,32 @@
             box-shadow: 0 0 0 4px rgba(0, 179, 65, 0.15);
         }
 
+        /* Admin Modal */
+        .admin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(8px);
+        }
+
+        .admin-modal-content {
+            background: white;
+            padding: clamp(25px, 6vw, 40px);
+            border-radius: var(--border-radius);
+            max-width: 1200px;
+            width: 95%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-heavy);
+        }
+
         /* Admin Tabs */
         .admin-tabs {
             display: flex;
@@ -1204,6 +1223,34 @@
 
         .admin-tab-content.active {
             display: block;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: linear-gradient(90deg, var(--primary-green), var(--primary-yellow));
+            padding: clamp(15px, 4vw, 20px);
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            color: white;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .status-item .number {
+            font-size: clamp(1.5em, 5vw, 2em);
+            font-weight: 800;
+            display: block;
+        }
+
+        .status-item .label {
+            font-size: clamp(0.8em, 3vw, 1em);
+            opacity: 0.9;
         }
 
         /* Loading Animation */
@@ -1257,6 +1304,20 @@
             animation: winnerPulse 1s ease-in-out;
         }
 
+        @keyframes winnerPulse {
+            0% { 
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            50% { 
+                transform: scale(1.05);
+            }
+            100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
         .winner-alert h2 {
             font-size: clamp(1.8em, 6vw, 2.5em);
             margin: 30px 0 20px 0;
@@ -1302,7 +1363,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 10000;
             backdrop-filter: blur(8px);
         }
 
@@ -1354,6 +1415,21 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .container {
+                margin-top: 120px;
+                padding: 15px;
+            }
+
+            .top-bar-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .indique-ganhe-btn {
+                font-size: 14px;
+                padding: 10px 20px;
+            }
+
             .winners-slider {
                 padding: 20px 15px;
             }
@@ -1370,58 +1446,15 @@
                 gap: 10px;
             }
 
-            .status-item {
-                padding: 8px;
-            }
-
             .security-info {
                 grid-template-columns: 1fr;
                 gap: 12px;
                 margin-top: 15px;
             }
 
-            .security-item {
-                padding: 12px 15px;
-                font-size: 0.9em;
-            }
-
-            .qr-code img {
-                max-width: min(180px, 75vw);
-                max-height: min(180px, 75vw);
-            }
-
-            .pix-code {
-                font-size: clamp(10px, 2.8vw, 12px);
-                padding: clamp(12px, 3vw, 15px);
-                line-height: 1.3;
-            }
-            
-            .affiliate-stats {
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                gap: 15px;
-            }
-
-            .raspadinha {
-                width: min(280px, 90vw);
-                height: min(168px, 54vw);
-            }
-
-            .affiliate-buttons-container {
-                gap: 15px;
-            }
-            
-            .affiliate-buttons-container .btn {
-                padding: 16px 20px;
-                font-size: 14px;
-            }
-
             .game-selection {
                 grid-template-columns: 1fr;
                 gap: 20px;
-            }
-
-            .game-features {
-                grid-template-columns: 1fr;
             }
 
             .admin-tabs {
@@ -1436,8 +1469,13 @@
         }
 
         @media (max-width: 480px) {
+            .container {
+                margin-top: 100px;
+                padding: 10px;
+            }
+
             .banner-slider {
-                height: clamp(250px, 60vw, 350px);
+                height: clamp(200px, 50vw, 300px);
             }
 
             .slide-content {
@@ -1445,20 +1483,9 @@
                 max-width: 95%;
             }
 
-            .qr-code img {
-                max-width: min(150px, 80vw);
-                max-height: min(150px, 80vw);
-            }
-
-            .pix-code {
-                font-size: 10px;
-                padding: 10px;
-                line-height: 1.2;
-            }
-
-            .raspadinha {
-                width: min(260px, 92vw);
-                height: min(156px, 55vw);
+            .indique-ganhe-btn {
+                font-size: 12px;
+                padding: 8px 15px;
             }
 
             .quantidade-selector {
@@ -1470,19 +1497,27 @@
                 font-size: clamp(1.5em, 6vw, 2.2em);
                 padding: 15px;
             }
-
-            .admin-modal-content {
-                padding: 20px 15px;
-                max-height: 90vh;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- Botão Indique e Ganhe -->
-    <button class="indique-ganhe-btn" onclick="abrirAfiliados()">
-        INDIQUE E GANHE
-    </button>
+    <!-- Barra Superior com Login e Botão Indique -->
+    <div class="top-bar">
+        <div class="top-bar-content">
+            <div class="login-info" id="login-info">
+                <span id="cliente-nome-display" style="display: none;">Olá, <strong></strong>!</span>
+                <button class="btn-login-top" id="btn-login-top" onclick="mostrarLogin()">
+                    <i class="fas fa-user"></i> Entrar
+                </button>
+                <button class="btn-login-top" id="btn-logout-top" onclick="logoutCliente()" style="display: none;">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+            <button class="indique-ganhe-btn" onclick="abrirAfiliados()">
+                INDIQUE E GANHE
+            </button>
+        </div>
+    </div>
 
     <!-- Botão WhatsApp Flutuante -->
     <a href="https://wa.me/5582996092684?text=Olá!%20Preciso%20de%20suporte." target="_blank" class="whatsapp-float" title="Suporte WhatsApp">
@@ -1490,6 +1525,60 @@
     </a>
 
     <div class="container">
+        <!-- Página de Login/Cadastro -->
+        <div id="login-page" class="page">
+            <div class="login-container">
+                <div class="login-tabs">
+                    <div class="login-tab active" onclick="trocarAbaLogin('login')">Entrar</div>
+                    <div class="login-tab" onclick="trocarAbaLogin('cadastro')">Cadastrar</div>
+                </div>
+
+                <!-- Login -->
+                <div id="login-form" class="login-form-content active">
+                    <h3 style="margin-bottom: 25px; color: var(--primary-green);">Faça seu Login</h3>
+                    <div class="form-group">
+                        <label>CPF:</label>
+                        <input type="text" id="login-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
+                    </div>
+                    <button class="btn btn-primary" onclick="fazerLogin()">
+                        Entrar
+                    </button>
+                    <div id="login-message" style="margin-top: 20px;"></div>
+                </div>
+
+                <!-- Cadastro -->
+                <div id="cadastro-form" class="login-form-content" style="display: none;">
+                    <h3 style="margin-bottom: 25px; color: var(--primary-green);">Crie sua Conta</h3>
+                    <div class="form-group">
+                        <label>Nome Completo:</label>
+                        <input type="text" id="cadastro-nome" placeholder="Digite seu nome completo">
+                    </div>
+                    <div class="form-group">
+                        <label>CPF:</label>
+                        <input type="text" id="cadastro-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone (opcional):</label>
+                        <input type="tel" id="cadastro-telefone" placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail (opcional):</label>
+                        <input type="email" id="cadastro-email" placeholder="seu@email.com">
+                    </div>
+                    <button class="btn btn-primary" onclick="fazerCadastro()">
+                        Criar Conta
+                    </button>
+                    <div id="cadastro-message" style="margin-top: 20px;"></div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-secondary" onclick="voltarSelecaoJogos()">
+                        Voltar aos Jogos
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Página de Seleção de Jogos -->
         <div id="game-selection-page" class="page active">
             <!-- Banner Slider -->
@@ -1530,9 +1619,6 @@
             <div class="cta-message">
                 <h3>DOIS JOGOS EM UM SÓ LUGAR!</h3>
                 <p>Escolha entre <strong>Raspadinhas Virtuais</strong> ou <strong>Bilhetes da Milhar</strong> e ganhe até R$ 1.000!</p>
-                <div class="urgency-indicator">
-                    Pagamento 100% seguro via PIX!
-                </div>
             </div>
 
             <div class="main-section">
@@ -1642,6 +1728,13 @@
                 <p>A Melhor Raspadinha Virtual do Brasil!</p>
             </div>
 
+            <!-- Botão Minhas Raspadinhas -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button class="btn btn-secondary" onclick="mostrarMinhasRaspadinhas()">
+                    <i class="fas fa-list"></i> MINHAS RASPADINHAS
+                </button>
+            </div>
+
             <!-- CTA Message -->
             <div class="cta-message">
                 <h3>RASPADINHAS LIMITADAS!</h3>
@@ -1705,6 +1798,34 @@
                 <div class="winners-container" id="winners-container-rb">
                     <!-- Será preenchido dinamicamente -->
                 </div>
+            </div>
+        </div>
+
+        <!-- Página Minhas Raspadinhas -->
+        <div id="minhas-raspadinhas-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira"></div>
+                </div>
+                <h1>MINHAS RASPADINHAS</h1>
+                <p>Gerencie suas raspadinhas</p>
+            </div>
+
+            <div class="cliente-info" id="cliente-info-raspadinhas">
+                <h3>Bem-vindo(a)!</h3>
+                <p>Faça login para ver suas raspadinhas</p>
+            </div>
+
+            <div class="minhas-raspadinhas-container" id="minhas-raspadinhas-container">
+                <div class="loading">
+                    <p>Carregando suas raspadinhas...</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-secondary" onclick="voltarRaspaBrasil()">
+                    Voltar
+                </button>
             </div>
         </div>
 
@@ -1776,14 +1897,14 @@
 
             <div style="text-align: center; margin-bottom: 50px;">
                 <h2 style="font-size: clamp(2em, 7vw, 3em); color: #00b341; font-weight: 800;">
-                    Deslize nas bandeiras para raspar!
+                    Raspe suas raspadinhas!
                 </h2>
                 <p style="font-size: clamp(1.2em, 5vw, 1.5em); margin: 20px 0; font-weight: 600;">
-                    Você tem <strong><span id="quantidade-raspadinhas-rb">1</span></strong> raspadinha(s) para jogar
+                    Clique na raspadinha para começar
                 </p>
                 <div class="cta-message success" style="margin: 25px auto; max-width: 600px;">
                     <h3>Boa sorte!</h3>
-                    <p>Raspe as bandeiras do Brasil e descubra se você ganhou!</p>
+                    <p>Raspe e descubra se você ganhou!</p>
                 </div>
             </div>
 
@@ -1810,6 +1931,13 @@
                 </div>
                 <h1>2 PARA 1000</h1>
                 <p>Milhar da Sorte - Sorteio Diário!</p>
+            </div>
+
+            <!-- Botão Meus Bilhetes -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button class="btn btn-secondary" onclick="mostrarMeusBilhetes()">
+                    <i class="fas fa-list"></i> MEUS BILHETES
+                </button>
             </div>
 
             <!-- Resultado do Sorteio -->
@@ -1895,6 +2023,34 @@
             <div id="ultimos-ganhadores-ml" style="margin-top: 40px;"></div>
         </div>
 
+        <!-- Página Meus Bilhetes -->
+        <div id="meus-bilhetes-page" class="page">
+            <div class="header">
+                <div class="logo-brasil">
+                    <div class="logo-bandeira"></div>
+                </div>
+                <h1>MEUS BILHETES</h1>
+                <p>Gerencie seus bilhetes</p>
+            </div>
+
+            <div class="cliente-info" id="cliente-info-bilhetes">
+                <h3>Bem-vindo(a)!</h3>
+                <p>Faça login para ver seus bilhetes</p>
+            </div>
+
+            <div class="meus-bilhetes-container" id="meus-bilhetes-container">
+                <div class="loading">
+                    <p>Carregando seus bilhetes...</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-secondary" onclick="voltar2Para1000()">
+                    Voltar
+                </button>
+            </div>
+        </div>
+
         <!-- Página de Pagamento 2 para 1000 -->
         <div id="2para1000-payment" class="page">
             <div class="header">
@@ -1978,7 +2134,7 @@
                 <!-- Bilhetes serão gerados dinamicamente -->
             </div>
 
-            <div id="formulario-dados-ml" style="display: none;">
+            <div id="formulario-dados-ml">
                 <div class="bilhete-container">
                     <h3 style="color: #4CAF50; font-size: clamp(1.5em, 5vw, 2.2em); margin-bottom: 25px; text-align: center; font-weight: 800;">
                         Complete seus dados para participar!
@@ -2031,7 +2187,7 @@
 
             <!-- Formulário de Cadastro ou Área do Afiliado -->
             <div id="affiliate-signup">
-                <div class="cta-message affiliate">
+                <div class="cta-message affiliate" style="background: linear-gradient(135deg, var(--primary-yellow), #ffcc00); color: #1a1a1a;">
                     <h3>SEJA UM AFILIADO!</h3>
                     <p>Ganhe <strong>50% de comissão</strong> em cada venda que você indicar!</p>
                     <div class="urgency-indicator">
@@ -2064,8 +2220,8 @@
                         <input type="text" id="affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
                     </div>
                     
-                    <div class="affiliate-buttons-container">
-                        <button class="btn btn-affiliate" onclick="cadastrarAfiliado()">
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+                        <button class="btn btn-affiliate" onclick="cadastrarAfiliado()" style="background: linear-gradient(135deg, var(--affiliate-orange), #f7931e);">
                             CRIAR MINHA CONTA DE AFILIADO
                         </button>
                         
@@ -2088,8 +2244,8 @@
                         <input type="text" id="login-affiliate-cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)">
                     </div>
                     
-                    <div class="affiliate-buttons-container">
-                        <button class="btn btn-affiliate" onclick="loginAfiliado()">
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+                        <button class="btn btn-affiliate" onclick="loginAfiliado()" style="background: linear-gradient(135deg, var(--affiliate-orange), #f7931e);">
                             ENTRAR NA MINHA ÁREA
                         </button>
                         
@@ -2159,12 +2315,12 @@
                             <input type="text" id="affiliate-pix-key" placeholder="Digite sua chave PIX">
                         </div>
                         
-                        <div class="affiliate-buttons-container">
+                        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
                             <button class="btn btn-primary" onclick="salvarChavePix()">
                                 Salvar Chave PIX
                             </button>
                             
-                            <button class="btn btn-affiliate" onclick="solicitarSaque()" id="btn-saque" disabled>
+                            <button class="btn btn-affiliate" onclick="solicitarSaque()" id="btn-saque" disabled style="background: linear-gradient(135deg, var(--affiliate-orange), #f7931e);">
                                 Solicitar Saque (Min. R$ 10,00)
                             </button>
                         </div>
@@ -2247,6 +2403,10 @@
                         <div class="status-item">
                             <span class="number" id="admin-afiliados">0</span>
                             <span class="label">Afiliados</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="number" id="admin-clientes">0</span>
+                            <span class="label">Clientes</span>
                         </div>
                     </div>
                     
@@ -2348,6 +2508,19 @@
                                         <div style="color: #6c757d;">Prêmio Acumulado</div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="color: #495057; margin-bottom: 15px;">Editar Prêmio Acumulado</h4>
+                            <div style="display: flex; gap: 15px; align-items: end;">
+                                <div class="form-group" style="flex: 1; margin: 0;">
+                                    <label>Novo valor:</label>
+                                    <input type="text" id="admin-novo-premio-ml" placeholder="1000.00" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                                </div>
+                                <button class="btn btn-secondary" onclick="editarPremioML()" style="width: 150px;">
+                                    Atualizar
+                                </button>
                             </div>
                         </div>
                         
@@ -2481,7 +2654,7 @@
                             </div>
                         </div>
                         
-                        <div id="admin-lista-bilhetes" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px; max-height: 500px; overflow-y: auto;">
+                       <div id="admin-lista-bilhetes" style="background: #f8f9fa; border-radius: 10px; min-height: 300px; padding: 20px; max-height: 500px; overflow-y: auto;">
                             <div style="text-align: center; color: #6c757d; padding: 100px 0;">
                                 Clique em "Bilhetes de Hoje" ou selecione uma data para visualizar
                             </div>
@@ -2529,7 +2702,7 @@
                     </div>
                 </div>
 
-                <!-- Ganhadores CORRIGIDO -->
+                <!-- Ganhadores -->
                 <div id="admin-ganhadores" class="admin-tab-content">
                     <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                         <h3 style="color: #28a745; margin-bottom: 25px; text-align: center;">Gerenciamento de Ganhadores</h3>
@@ -2620,7 +2793,7 @@
         </div>
     </div>
 
-    <!-- Modal para adicionar ganhador CORRIGIDO -->
+    <!-- Modal para adicionar ganhador -->
     <div id="modal-adicionar-ganhador" class="modal">
         <div class="modal-content">
             <h3 style="margin-bottom: 25px; text-align: center; color: #28a745;">Adicionar Ganhador Manual</h3>
@@ -2692,7 +2865,8 @@
         let currentSlide = 0;
         let currentAffiliate = null;
         let currentAdminTab = 'dashboard';
-        let gameMode = null; // 'rb' para Raspa Brasil, 'ml' para 2 para 1000
+        let gameMode = null;
+        let clienteLogado = null;
         const WHATSAPP_NUMERO = "5582996092684";
 
         // Sistema de nomes aleatórios para alertas de ganhadores
@@ -2863,21 +3037,487 @@
             document.getElementById(pageId).classList.add('active');
         }
 
+        // Sistema de Login/Cadastro de Clientes
+        function verificarLogin() {
+            fetch('/cliente/verificar_login')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.logado) {
+                        clienteLogado = data.cliente;
+                        atualizarInterfaceLogin();
+                    } else {
+                        clienteLogado = null;
+                        atualizarInterfaceLogin();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao verificar login:', error);
+                });
+        }
+
+        function atualizarInterfaceLogin() {
+            const btnLogin = document.getElementById('btn-login-top');
+            const btnLogout = document.getElementById('btn-logout-top');
+            const nomeDisplay = document.getElementById('cliente-nome-display');
+            
+            if (clienteLogado) {
+                btnLogin.style.display = 'none';
+                btnLogout.style.display = 'inline-block';
+                nomeDisplay.style.display = 'inline';
+                nomeDisplay.querySelector('strong').textContent = clienteLogado.nome.split(' ')[0];
+            } else {
+                btnLogin.style.display = 'inline-block';
+                btnLogout.style.display = 'none';
+                nomeDisplay.style.display = 'none';
+            }
+        }
+
+        function mostrarLogin() {
+            mostrarPagina('login-page');
+        }
+
+        function trocarAbaLogin(aba) {
+            const tabs = document.querySelectorAll('.login-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            if (aba === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('cadastro-form').style.display = 'none';
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('cadastro-form').style.display = 'block';
+            }
+        }
+
+        async function fazerLogin() {
+            const cpf = document.getElementById('login-cpf').value.replace(/\D/g, '');
+            const messageDiv = document.getElementById('login-message');
+            
+            if (!cpf || cpf.length !== 11) {
+                messageDiv.innerHTML = '<div style="color: #dc2626;">Digite um CPF válido</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/cliente/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cpf })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    clienteLogado = resultado.cliente;
+                    atualizarInterfaceLogin();
+                    mostrarPagina('game-selection-page');
+                    mostrarModal('<h3>Login realizado!</h3><p>Bem-vindo(a) de volta!</p>');
+                } else {
+                    messageDiv.innerHTML = `<div style="color: #dc2626;">${resultado.erro}</div>`;
+                }
+            } catch (error) {
+                console.error('Erro ao fazer login:', error);
+                messageDiv.innerHTML = '<div style="color: #dc2626;">Erro ao fazer login. Tente novamente.</div>';
+            }
+        }
+
+        async function fazerCadastro() {
+            const nome = document.getElementById('cadastro-nome').value.trim();
+            const cpf = document.getElementById('cadastro-cpf').value.replace(/\D/g, '');
+            const telefone = document.getElementById('cadastro-telefone').value.trim();
+            const email = document.getElementById('cadastro-email').value.trim();
+            const messageDiv = document.getElementById('cadastro-message');
+            
+            if (!nome || nome.length < 3) {
+                messageDiv.innerHTML = '<div style="color: #dc2626;">Nome deve ter pelo menos 3 caracteres</div>';
+                return;
+            }
+            
+            if (!cpf || cpf.length !== 11) {
+                messageDiv.innerHTML = '<div style="color: #dc2626;">Digite um CPF válido</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/cliente/cadastrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, cpf, telefone, email })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    clienteLogado = resultado.cliente;
+                    atualizarInterfaceLogin();
+                    mostrarPagina('game-selection-page');
+                    mostrarModal('<h3>Cadastro realizado!</h3><p>Bem-vindo(a) ao Ganha Brasil!</p>');
+                } else {
+                    messageDiv.innerHTML = `<div style="color: #dc2626;">${resultado.erro}</div>`;
+                }
+            } catch (error) {
+                console.error('Erro ao fazer cadastro:', error);
+                messageDiv.innerHTML = '<div style="color: #dc2626;">Erro ao fazer cadastro. Tente novamente.</div>';
+            }
+        }
+
+        async function logoutCliente() {
+            try {
+                const response = await fetch('/cliente/logout');
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    clienteLogado = null;
+                    atualizarInterfaceLogin();
+                    mostrarPagina('game-selection-page');
+                    mostrarModal('<h3>Logout realizado!</h3><p>Até logo!</p>');
+                }
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+            }
+        }
+
         // Navegação principal
         function voltarSelecaoJogos() {
             mostrarPagina('game-selection-page');
         }
 
         function irParaRaspaBrasil() {
+            if (!clienteLogado) {
+                mostrarModal('<h3>Login necessário</h3><p>Faça login para jogar Raspa Brasil!</p>');
+                mostrarLogin();
+                return;
+            }
             gameMode = 'rb';
             mostrarPagina('raspa-brasil-home');
         }
 
         function irPara2Para1000() {
+            if (!clienteLogado) {
+                mostrarModal('<h3>Login necessário</h3><p>Faça login para jogar 2 para 1000!</p>');
+                mostrarLogin();
+                return;
+            }
             gameMode = 'ml';
             mostrarPagina('2para1000-home');
             carregarResultadoSorteioML();
             carregarUltimosGanhadoresML();
+        }
+
+        // Funções Minhas Raspadinhas
+        async function mostrarMinhasRaspadinhas() {
+            if (!clienteLogado) {
+                mostrarModal('<h3>Login necessário</h3><p>Faça login para ver suas raspadinhas!</p>');
+                mostrarLogin();
+                return;
+            }
+            
+            mostrarPagina('minhas-raspadinhas-page');
+            
+            // Atualizar info do cliente
+            document.getElementById('cliente-info-raspadinhas').innerHTML = `
+                <h3>Olá, ${clienteLogado.nome}!</h3>
+                <p>CPF: ${clienteLogado.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.xxx.xxx-$4')}</p>
+            `;
+            
+            // Carregar raspadinhas
+            try {
+                const response = await fetch('/cliente/minhas_raspadinhas');
+                const data = await response.json();
+                
+                const container = document.getElementById('minhas-raspadinhas-container');
+                
+                if (data.raspadinhas && data.raspadinhas.length > 0) {
+                    let html = '';
+                    
+                    data.raspadinhas.forEach(venda => {
+                        html += `
+                            <div class="raspadinha-item">
+                                <h4>Compra: ${new Date(venda.data_compra).toLocaleDateString('pt-BR')}</h4>
+                                <p>Payment ID: ${venda.payment_id}</p>
+                                <p>Quantidade: ${venda.quantidade} raspadinhas</p>
+                                <div style="margin-top: 20px;">
+                        `;
+                        
+                        venda.raspadinhas.forEach(rasp => {
+                            const statusClass = rasp.status === 'disponivel' ? 'disponivel' : 
+                                               rasp.status === 'premiada' ? 'premiada' : 'raspada';
+                            const statusText = rasp.status === 'disponivel' ? 'Disponível para raspar' :
+                                              rasp.status === 'premiada' ? `GANHOU ${rasp.premio}!` : 'Já raspada';
+                            
+                            html += `
+                                <div class="raspadinha-item ${statusClass}" style="margin-bottom: 15px;">
+                                    <p><strong>Raspadinha #${rasp.numero}</strong></p>
+                                    <p>Status: ${statusText}</p>
+                                    ${rasp.status === 'disponivel' ? 
+                                        `<button class="btn btn-primary" onclick="rasparMinhaRaspadinha(${rasp.id})" style="margin-top: 10px;">
+                                            RASPAR AGORA
+                                        </button>` : ''}
+                                    ${rasp.codigo ? `<p>Código: ${rasp.codigo}</p>` : ''}
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div></div>';
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <p>Você ainda não tem raspadinhas.</p>
+                            <button class="btn btn-primary" onclick="irParaRaspaBrasil()" style="margin-top: 20px;">
+                                COMPRAR RASPADINHAS
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar raspadinhas:', error);
+                document.getElementById('minhas-raspadinhas-container').innerHTML = 
+                    '<div style="text-align: center; color: #dc2626;">Erro ao carregar suas raspadinhas</div>';
+            }
+        }
+
+        async function rasparMinhaRaspadinha(raspadinhaId) {
+            mostrarPagina('raspa-brasil-game');
+            
+            // Criar apenas uma raspadinha
+            const grid = document.getElementById('raspadinha-grid-rb');
+            grid.innerHTML = '';
+            
+            const raspadinhaContainer = document.createElement('div');
+            raspadinhaContainer.className = 'raspadinha-container';
+            raspadinhaContainer.innerHTML = `
+                <div class="raspadinha-content">
+                    <h2 class="raspadinha-titulo">Raspe a bandeira do Brasil</h2>
+                    <div class="raspadinha" id="raspadinha-rb-${raspadinhaId}">
+                        <div class="premio" id="premio-rb-${raspadinhaId}"></div>
+                        <canvas id="scratch-rb-${raspadinhaId}"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            grid.appendChild(raspadinhaContainer);
+            
+            setTimeout(() => inicializarRaspadinhaEspecifica(raspadinhaId), 100);
+        }
+
+        function inicializarRaspadinhaEspecifica(raspadinhaId) {
+            const canvas = document.getElementById(`scratch-rb-${raspadinhaId}`);
+            const ctx = canvas.getContext("2d");
+            const premioDiv = document.getElementById(`premio-rb-${raspadinhaId}`);
+
+            const container = canvas.parentElement;
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+
+            let raspando = false;
+            let premioDefinido = false;
+
+            function desenharCapa() {
+                const bandeira = new Image();
+                bandeira.crossOrigin = "anonymous";
+                bandeira.src = "https://pfst.cf2.poecdn.net/base/image/47394d310726277070a2b09d1da897b2a89268953e13587f3fcb468d55ca442b?w=299&h=185";
+                
+                bandeira.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    const scaleX = canvas.width / bandeira.width;
+                    const scaleY = canvas.height / bandeira.height;
+                    const scale = Math.max(scaleX, scaleY);
+                    
+                    const scaledWidth = bandeira.width * scale;
+                    const scaledHeight = bandeira.height * scale;
+                    
+                    const x = (canvas.width - scaledWidth) / 2;
+                    const y = (canvas.height - scaledHeight) / 2;
+                    
+                    ctx.drawImage(bandeira, x, y, scaledWidth, scaledHeight);
+                };
+                
+                bandeira.onerror = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.fillStyle = "#00b341";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.fillStyle = "#ffd700";
+                    ctx.beginPath();
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const size = Math.min(canvas.width, canvas.height) * 0.6;
+                    ctx.moveTo(centerX, centerY - size/2);
+                    ctx.lineTo(centerX + size/2, centerY);
+                    ctx.lineTo(centerX, centerY + size/2);
+                    ctx.lineTo(centerX - size/2, centerY);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.fillStyle = "#003087";
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, size/4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = `bold ${Math.max(12, size/8)}px Arial`;
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText("BRASIL", centerX, centerY);
+                };
+            }
+
+            function raspar(e) {
+                if (!raspando) return;
+                
+                if (!premioDefinido) {
+                    definirPremio();
+                    premioDefinido = true;
+                }
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.beginPath();
+                ctx.arc(x * scaleX, y * scaleY, 20, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            async function definirPremio() {
+                try {
+                    const response = await fetch('/raspar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ raspadinha_id: raspadinhaId })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.erro || 'Erro ao processar raspagem');
+                    }
+                    
+                    const resultado = await response.json();
+                    
+                    if (resultado.ganhou) {
+                        premioDiv.innerHTML = `GANHOU<br>${resultado.valor}`;
+                        premioDiv.style.background = "linear-gradient(135deg, #4CAF50, #28a745)";
+                        
+                        setTimeout(() => {
+                            mostrarFormularioPremioRB(resultado.valor, resultado.codigo);
+                        }, 2000);
+                    } else {
+                        premioDiv.innerHTML = "Tente<br>NOVAMENTE";
+                        premioDiv.style.background = "linear-gradient(135deg, #f44336, #d32f2f)";
+                    }
+                } catch (error) {
+                    console.error('Erro ao processar prêmio:', error);
+                    premioDiv.innerHTML = "Erro<br>" + error.message;
+                    premioDiv.style.background = "linear-gradient(135deg, #f44336, #d32f2f)";
+                }
+            }
+
+            canvas.addEventListener("mousedown", () => raspando = true);
+            canvas.addEventListener("mouseup", () => raspando = false);
+            canvas.addEventListener("mousemove", raspar);
+
+            canvas.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                raspando = true;
+            });
+            canvas.addEventListener("touchend", (e) => {
+                e.preventDefault();
+                raspando = false;
+            });
+            canvas.addEventListener("touchmove", (e) => {
+                e.preventDefault();
+                raspar(e);
+            });
+
+            desenharCapa();
+            
+            const resizeObserver = new ResizeObserver(() => {
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
+                desenharCapa();
+            });
+            resizeObserver.observe(container);
+        }
+
+        // Funções Meus Bilhetes
+        async function mostrarMeusBilhetes() {
+            if (!clienteLogado) {
+                mostrarModal('<h3>Login necessário</h3><p>Faça login para ver seus bilhetes!</p>');
+                mostrarLogin();
+                return;
+            }
+            
+            mostrarPagina('meus-bilhetes-page');
+            
+            // Atualizar info do cliente
+            document.getElementById('cliente-info-bilhetes').innerHTML = `
+                <h3>Olá, ${clienteLogado.nome}!</h3>
+                <p>CPF: ${clienteLogado.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.xxx.xxx-$4')}</p>
+            `;
+            
+            // Carregar bilhetes
+            try {
+                const response = await fetch('/cliente/meus_bilhetes');
+                const data = await response.json();
+                
+                const container = document.getElementById('meus-bilhetes-container');
+                
+                if (data.bilhetes && data.bilhetes.length > 0) {
+                    let html = '';
+                    
+                    data.bilhetes.forEach(venda => {
+                        html += `
+                            <div class="bilhete-item">
+                                <h4>Compra: ${new Date(venda.data_compra).toLocaleDateString('pt-BR')}</h4>
+                                <p>Payment ID: ${venda.payment_id}</p>
+                                <p>Quantidade: ${venda.quantidade} bilhete(s)</p>
+                                <div style="margin-top: 20px;">
+                        `;
+                        
+                        venda.bilhetes.forEach(bilhete => {
+                            const statusText = bilhete.status === 'ativo' ? 'Aguardando sorteio' :
+                                              bilhete.status === 'premiado' ? `GANHOU R$ ${bilhete.premio_ganho}!` : 'Expirado';
+                            const statusClass = bilhete.status === 'premiado' ? 'premiada' : '';
+                            
+                            html += `
+                                <div class="bilhete-item ${statusClass}" style="margin-bottom: 15px;">
+                                    <div class="bilhete-numero">${bilhete.numero}</div>
+                                    <p>Sorteio: ${new Date(bilhete.data_sorteio).toLocaleDateString('pt-BR')}</p>
+                                    <p>Status: ${statusText}</p>
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div></div>';
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <p>Você ainda não tem bilhetes.</p>
+                            <button class="btn btn-primary" onclick="irPara2Para1000()" style="margin-top: 20px;">
+                                COMPRAR BILHETES
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar bilhetes:', error);
+                document.getElementById('meus-bilhetes-container').innerHTML = 
+                    '<div style="text-align: center; color: #dc2626;">Erro ao carregar seus bilhetes</div>';
+            }
         }
 
         // Funções Raspa Brasil
@@ -2939,10 +3579,8 @@
                 quantidadeReal = 12;
             }
             
-            document.getElementById('quantidade-raspadinhas-rb').textContent = quantidadeReal;
-            quantidadeRB = quantidadeReal;
-            gerarRaspadinhasRB();
-            mostrarPagina('raspa-brasil-game');
+            // Mostrar Minhas Raspadinhas ao invés de gerar novas
+            mostrarMinhasRaspadinhas();
         }
 
         async function criarPagamentoRealRB(refCode) {
@@ -3093,174 +3731,6 @@
             });
         }
 
-        function gerarRaspadinhasRB() {
-            const grid = document.getElementById('raspadinha-grid-rb');
-            grid.innerHTML = '';
-            
-            for (let i = 0; i < quantidadeRB; i++) {
-                const raspadinhaContainer = document.createElement('div');
-                raspadinhaContainer.className = 'raspadinha-container';
-                raspadinhaContainer.innerHTML = `
-                    <div class="raspadinha-content">
-                        <h2 class="raspadinha-titulo">Raspe a bandeira do Brasil</h2>
-                        <div class="raspadinha" id="raspadinha-rb-${i}">
-                            <div class="premio" id="premio-rb-${i}"></div>
-                            <canvas id="scratch-rb-${i}"></canvas>
-                        </div>
-                    </div>
-                `;
-                
-                grid.appendChild(raspadinhaContainer);
-                
-                setTimeout(() => inicializarRaspadinhaRB(i), 100);
-            }
-        }
-
-        function inicializarRaspadinhaRB(index) {
-            const canvas = document.getElementById(`scratch-rb-${index}`);
-            const ctx = canvas.getContext("2d");
-            const premioDiv = document.getElementById(`premio-rb-${index}`);
-
-            const container = canvas.parentElement;
-            canvas.width = container.offsetWidth;
-            canvas.height = container.offsetHeight;
-
-            let raspando = false;
-            let premioDefinido = false;
-
-            function desenharCapa() {
-                const bandeira = new Image();
-                bandeira.crossOrigin = "anonymous";
-                bandeira.src = "https://pfst.cf2.poecdn.net/base/image/47394d310726277070a2b09d1da897b2a89268953e13587f3fcb468d55ca442b?w=299&h=185";
-                
-                bandeira.onload = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    const scaleX = canvas.width / bandeira.width;
-                    const scaleY = canvas.height / bandeira.height;
-                    const scale = Math.max(scaleX, scaleY);
-                    
-                    const scaledWidth = bandeira.width * scale;
-                    const scaledHeight = bandeira.height * scale;
-                    
-                    const x = (canvas.width - scaledWidth) / 2;
-                    const y = (canvas.height - scaledHeight) / 2;
-                    
-                    ctx.drawImage(bandeira, x, y, scaledWidth, scaledHeight);
-                };
-                
-                bandeira.onerror = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    ctx.fillStyle = "#00b341";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    ctx.fillStyle = "#ffd700";
-                    ctx.beginPath();
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 2;
-                    const size = Math.min(canvas.width, canvas.height) * 0.6;
-                    ctx.moveTo(centerX, centerY - size/2);
-                    ctx.lineTo(centerX + size/2, centerY);
-                    ctx.lineTo(centerX, centerY + size/2);
-                    ctx.lineTo(centerX - size/2, centerY);
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    ctx.fillStyle = "#003087";
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, size/4, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.fillStyle = "#ffffff";
-                    ctx.font = `bold ${Math.max(12, size/8)}px Arial`;
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.fillText("BRASIL", centerX, centerY);
-                };
-            }
-
-            function raspar(e) {
-                if (!raspando) return;
-                
-                if (!premioDefinido) {
-                    definirPremio();
-                    premioDefinido = true;
-                }
-                
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX || e.touches[0].clientX) - rect.left;
-                const y = (e.clientY || e.touches[0].clientY) - rect.top;
-                
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.beginPath();
-                ctx.arc(x * scaleX, y * scaleY, 20, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            async function definirPremio() {
-                try {
-                    const response = await fetch('/raspar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ game_type: 'raspa_brasil' })
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.erro || 'Erro ao processar raspagem');
-                    }
-                    
-                    const resultado = await response.json();
-                    
-                    if (resultado.ganhou) {
-                        premioDiv.innerHTML = `GANHOU<br>${resultado.valor}`;
-                        premioDiv.style.background = "linear-gradient(135deg, #4CAF50, #28a745)";
-                        
-                        setTimeout(() => {
-                            mostrarFormularioPremioRB(resultado.valor, resultado.codigo);
-                        }, 2000);
-                    } else {
-                        premioDiv.innerHTML = "Tente<br>NOVAMENTE";
-                        premioDiv.style.background = "linear-gradient(135deg, #f44336, #d32f2f)";
-                    }
-                } catch (error) {
-                    console.error('Erro ao processar prêmio:', error);
-                    premioDiv.innerHTML = "Erro<br>" + error.message;
-                    premioDiv.style.background = "linear-gradient(135deg, #f44336, #d32f2f)";
-                }
-            }
-
-            canvas.addEventListener("mousedown", () => raspando = true);
-            canvas.addEventListener("mouseup", () => raspando = false);
-            canvas.addEventListener("mousemove", raspar);
-
-            canvas.addEventListener("touchstart", (e) => {
-                e.preventDefault();
-                raspando = true;
-            });
-            canvas.addEventListener("touchend", (e) => {
-                e.preventDefault();
-                raspando = false;
-            });
-            canvas.addEventListener("touchmove", (e) => {
-                e.preventDefault();
-                raspar(e);
-            });
-
-            desenharCapa();
-            
-            const resizeObserver = new ResizeObserver(() => {
-                canvas.width = container.offsetWidth;
-                canvas.height = container.offsetHeight;
-                desenharCapa();
-            });
-            resizeObserver.observe(container);
-        }
-
         function mostrarFormularioPremioRB(valor, codigo) {
             const container = document.getElementById('premio-container-rb');
             container.innerHTML = `
@@ -3324,7 +3794,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        nome, valor, chave_pix: chavePix, tipo_chave: tipoChave, codigo, game_type: 'raspa_brasil'
+                        nome, valor, chave_pix: chavePix, tipo_chave: tipoChave, codigo
                     })
                 });
 
@@ -3392,8 +3862,8 @@ Solicito o pagamento do meu prêmio!`;
 
         function irParaBilhetesML() {
             document.getElementById('quantidade-bilhetes-ml').textContent = quantidadeML;
-            gerarBilhetesML();
             mostrarPagina('2para1000-bilhetes');
+            gerarBilhetesML();
         }
 
         async function criarPagamentoRealML() {
@@ -3538,51 +4008,57 @@ Solicito o pagamento do meu prêmio!`;
             });
         }
 
-        function gerarMilhar() {
-            return Math.floor(Math.random() * (9999 - 1111 + 1)) + 1111;
-        }
-
-        function gerarBilhetesML() {
-            const container = document.getElementById('bilhetes-container-ml');
-            container.innerHTML = '';
-            
-            for (let i = 0; i < quantidadeML; i++) {
-                const milhar = gerarMilhar();
+        async function gerarBilhetesML() {
+            try {
+                const response = await fetch('/gerar_bilhetes_ml', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
                 
-                const bilheteDiv = document.createElement('div');
-                bilheteDiv.className = 'bilhete-container';
-                bilheteDiv.innerHTML = `
-                    <h3 style="color: #4CAF50; font-size: clamp(1.5em, 5vw, 2em); margin-bottom: 20px; text-align: center; font-weight: 800;">
-                        Bilhete ${i + 1}
-                    </h3>
-                    <div class="bilhete-digital">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <h4 style="color: #666; margin-bottom: 10px;">SEU NÚMERO DA SORTE</h4>
-                            <div class="bilhete-numero">${milhar}</div>
-                            <p style="color: #666; font-weight: 600; margin-top: 10px;">
-                                Sorteio diário às 18h baseado na Lotep/PB
-                            </p>
-                        </div>
-                        
-                        <div style="border-top: 2px dashed #ccc; padding-top: 20px;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: center;">
-                                <div>
-                                    <strong>Data:</strong><br>
-                                    ${obterDataHoraBrasilia().toLocaleDateString('pt-BR')}
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    const container = document.getElementById('bilhetes-container-ml');
+                    container.innerHTML = '';
+                    
+                    resultado.bilhetes.forEach((numero, index) => {
+                        const bilheteDiv = document.createElement('div');
+                        bilheteDiv.className = 'bilhete-container';
+                        bilheteDiv.innerHTML = `
+                            <h3 style="color: #4CAF50; font-size: clamp(1.5em, 5vw, 2em); margin-bottom: 20px; text-align: center; font-weight: 800;">
+                                Bilhete ${index + 1}
+                            </h3>
+                            <div class="bilhete-digital">
+                                <div style="text-align: center; margin-bottom: 20px;">
+                                    <h4 style="color: #666; margin-bottom: 10px;">SEU NÚMERO DA SORTE</h4>
+                                    <div class="bilhete-numero">${numero}</div>
+                                    <p style="color: #666; font-weight: 600; margin-top: 10px;">
+                                        Sorteio diário às 18h baseado na Lotep/PB
+                                    </p>
                                 </div>
-                                <div>
-                                    <strong>Valor:</strong><br>
-                                    R$ 2,00
+                                
+                                <div style="border-top: 2px dashed #ccc; padding-top: 20px;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: center;">
+                                        <div>
+                                            <strong>Data:</strong><br>
+                                            ${obterDataHoraBrasilia().toLocaleDateString('pt-BR')}
+                                        </div>
+                                        <div>
+                                            <strong>Valor:</strong><br>
+                                            R$ 2,00
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                `;
-                
-                container.appendChild(bilheteDiv);
+                        `;
+                        
+                        container.appendChild(bilheteDiv);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao gerar bilhetes:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao gerar bilhetes. Tente novamente.</p>');
             }
-            
-            document.getElementById('formulario-dados-ml').style.display = 'block';
         }
 
         async function enviarBilheteML() {
@@ -3601,17 +4077,11 @@ Solicito o pagamento do meu prêmio!`;
             }
 
             try {
-                const bilhetes = [];
-                const bilhetesElements = document.querySelectorAll('.bilhete-numero');
-                bilhetesElements.forEach(element => {
-                    bilhetes.push(element.textContent);
-                });
-
                 const response = await fetch('/enviar_bilhete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        nome, telefone, chave_pix: chavePix, bilhetes, payment_id: currentPaymentId, game_type: '2para1000'
+                        nome, telefone, chave_pix: chavePix, payment_id: currentPaymentId
                     })
                 });
 
@@ -3620,7 +4090,7 @@ Solicito o pagamento do meu prêmio!`;
                 if (resultado.sucesso) {
                     mostrarModal(`
                         <h3>Bilhete Enviado!</h3>
-                        <p>Números: ${bilhetes.join(', ')}</p>
+                        <p>Seus bilhetes foram registrados!</p>
                         <p>Sorteio: Hoje às 18h</p>
                         <p>Boa sorte!</p>
                     `);
@@ -3649,7 +4119,7 @@ Solicito o pagamento do meu prêmio!`;
                             <div style="background: #d4edda; color: #155724; padding: 20px; border-radius: 15px; text-align: center; margin: 20px 0; border: 3px solid #c3e6cb;">
                                 <h3>TIVEMOS UM GANHADOR!</h3>
                                 <p style="font-size: 1.2em; margin: 10px 0;">
-                                    O bilhete com a milhar <strong>${resultado.milhar_sorteada}</strong> ganhou <strong>R$ ${resultado.valor_premio}</strong>!
+                                    O bilhete com a milhar <strong>${resultado.milhar_sorteada}</strong> ganhou <strong>${resultado.valor_premio}</strong>!
                                 </p>
                                 <p>Próximo sorteio hoje às 18h!</p>
                             </div>
@@ -4034,6 +4504,7 @@ Solicito o pagamento do meu prêmio!`;
                 document.getElementById('admin-vendidos-ml').textContent = stats.bilhetes_vendidos || 0;
                 document.getElementById('admin-ganhadores-total').textContent = (stats.ganhadores || 0) + (stats.total_ganhadores || 0);
                 document.getElementById('admin-afiliados').textContent = stats.afiliados || 0;
+                document.getElementById('admin-clientes').textContent = stats.total_clientes || 0;
                 
                 // Dashboard extras
                 if (document.getElementById('admin-sistema-status')) {
@@ -4200,6 +4671,36 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
+        async function editarPremioML() {
+            const novoValor = document.getElementById('admin-novo-premio-ml').value.trim();
+            
+            if (!novoValor) {
+                mostrarModal('<h3>Atenção</h3><p>Digite o novo valor do prêmio!</p>');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/editar_premio_ml', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ valor: novoValor })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    document.getElementById('admin-premio-atual').textContent = resultado.novo_valor;
+                    document.getElementById('admin-novo-premio-ml').value = '';
+                    mostrarModal(`<h3>Sucesso!</h3><p>Prêmio atualizado para ${resultado.novo_valor}</p>`);
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+            } catch (error) {
+                console.error('Erro ao editar prêmio:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao atualizar prêmio</p>');
+            }
+        }
+
         async function realizarSorteio() {
             const milhar = document.getElementById('admin-milhar-sorteada').value.trim();
             const messageDiv = document.getElementById('admin-sorteio-message');
@@ -4261,7 +4762,7 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // FUNÇÕES ADMIN CORRIGIDAS
+        // FUNÇÕES ADMIN PARA AFILIADOS, SAQUES, BILHETES, ETC.
         async function carregarDadosAfiliados() {
             try {
                 const response = await fetch('/admin/afiliados');
@@ -4277,6 +4778,8 @@ Solicito o pagamento do meu prêmio!`;
                 
                 let totalVendas = 0;
                 let totalComissoes = 0;
+                let saquesPendentes = 0;
+                
                 resultado.afiliados?.forEach(afiliado => {
                     totalVendas += afiliado.total_vendas || 0;
                     totalComissoes += afiliado.total_comissao || 0;
@@ -4298,6 +4801,7 @@ Solicito o pagamento do meu prêmio!`;
                                         <small style="color: #666;">Código: ${afiliado.codigo}</small><br>
                                         <small style="color: #666;">Email: ${afiliado.email}</small><br>
                                         <small style="color: #666;">Data: ${new Date(afiliado.data_cadastro).toLocaleDateString('pt-BR')}</small>
+                                        ${afiliado.chave_pix ? `<br><small style="color: #666;">PIX: ${afiliado.tipo_chave_pix || 'cpf'} - ${afiliado.chave_pix}</small>` : ''}
                                     </div>
                                     <div style="text-align: center;">
                                         <div style="color: #007bff; font-weight: 800; font-size: 1.2em;">${afiliado.total_clicks || 0}</div>
@@ -4595,18 +5099,14 @@ Solicito o pagamento do meu prêmio!`;
                                         <small style="color: #666;">Prêmio</small>
                                     </div>
                                     <div style="text-align: center;">
-                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data).toLocaleDateString('pt-BR')}</div>
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data_premio).toLocaleDateString('pt-BR')}</div>
                                         <small style="color: #666;">Data</small>
                                     </div>
                                     <div style="text-align: right;">
-                                        <select onchange="alterarStatusGanhador(${ganhador.id}, '${ganhador.jogo}', this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em;">
-                                            <option value="pendente" ${ganhador.status === 'pendente' ? 'selected' : ''}>Pendente</option>
-                                            <option value="pago" ${ganhador.status === 'pago' ? 'selected' : ''}>Pago</option>
-                                        </select>
-                                        <div style="margin-top: 8px;">
-                                            <button onclick="editarGanhador(${ganhador.id}, '${ganhador.jogo}')" style="padding: 4px 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin-right: 4px;">Editar</button>
-                                            <button onclick="removerGanhador(${ganhador.id}, '${ganhador.jogo}')" style="padding: 4px 8px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Remover</button>
+                                        <div style="color: ${statusColor}; font-weight: 600; font-size: 0.9em; padding: 6px 12px; background: ${statusColor}20; border-radius: 20px;">
+                                            ${ganhador.status === 'pago' ? 'PAGO' : 'PENDENTE'}
                                         </div>
+                                        ${ganhador.status === 'pendente' ? `<button onclick="marcarGanhadorPago(${ganhador.id})" style="margin-top: 8px; padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Marcar Pago</button>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -4617,6 +5117,7 @@ Solicito o pagamento do meu prêmio!`;
                 } else {
                     container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum ganhador encontrado</div>';
                 }
+                
             } catch (error) {
                 console.error('Erro ao carregar ganhadores:', error);
                 const container = document.getElementById('admin-lista-ganhadores');
@@ -4624,7 +5125,42 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // Função para mostrar/ocultar campo bilhete
+        async function marcarGanhadorPago(ganhadorId) {
+            try {
+                const response = await fetch('/admin/marcar_ganhador_pago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ganhador_id: ganhadorId })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    carregarGanhadores('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Ganhador marcado como pago!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao marcar ganhador como pago:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao marcar ganhador como pago</p>');
+            }
+        }
+
+        function adicionarGanhador() {
+            document.getElementById('modal-adicionar-ganhador').style.display = 'flex';
+        }
+
+        function fecharModalAdicionarGanhador() {
+            document.getElementById('modal-adicionar-ganhador').style.display = 'none';
+            // Limpar campos
+            document.getElementById('novo-ganhador-nome').value = '';
+            document.getElementById('novo-ganhador-valor').value = '';
+            document.getElementById('novo-ganhador-pix').value = '';
+            document.getElementById('novo-ganhador-bilhete').value = '';
+        }
+
         function toggleBilheteField() {
             const jogo = document.getElementById('novo-ganhador-jogo').value;
             const grupoBilhete = document.getElementById('grupo-bilhete-ml');
@@ -4636,21 +5172,6 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        function adicionarGanhador() {
-            document.getElementById('modal-adicionar-ganhador').style.display = 'flex';
-            // Limpar campos
-            document.getElementById('novo-ganhador-nome').value = '';
-            document.getElementById('novo-ganhador-valor').value = '';
-            document.getElementById('novo-ganhador-pix').value = '';
-            document.getElementById('novo-ganhador-bilhete').value = '';
-            document.getElementById('novo-ganhador-jogo').value = 'raspa_brasil';
-            toggleBilheteField();
-        }
-
-        function fecharModalAdicionarGanhador() {
-            document.getElementById('modal-adicionar-ganhador').style.display = 'none';
-        }
-
         async function salvarNovoGanhador() {
             const jogo = document.getElementById('novo-ganhador-jogo').value;
             const nome = document.getElementById('novo-ganhador-nome').value.trim();
@@ -4659,33 +5180,31 @@ Solicito o pagamento do meu prêmio!`;
             const bilhete = document.getElementById('novo-ganhador-bilhete').value.trim();
             
             if (!nome || !valor || !pix) {
-                mostrarModal('<h3>Atenção</h3><p>Por favor, preencha todos os campos obrigatórios!</p>');
+                mostrarModal('<h3>Atenção</h3><p>Preencha todos os campos obrigatórios!</p>');
                 return;
             }
             
             if (jogo === '2para1000' && (!bilhete || bilhete.length !== 4)) {
-                mostrarModal('<h3>Atenção</h3><p>Digite um bilhete de 4 dígitos para o 2 para 1000!</p>');
+                mostrarModal('<h3>Atenção</h3><p>Digite o bilhete ganhador (4 dígitos)!</p>');
                 return;
             }
             
             try {
-                const dados = {
+                const data = {
                     jogo,
                     nome,
                     valor,
-                    chave_pix: pix,
-                    status: 'pendente'
+                    chave_pix: pix
                 };
                 
                 if (jogo === '2para1000') {
-                    dados.bilhete_premiado = bilhete;
-                    dados.milhar_sorteada = bilhete;
+                    data.milhar = bilhete;
                 }
                 
                 const response = await fetch('/admin/adicionar_ganhador', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
+                    body: JSON.stringify(data)
                 });
                 
                 const resultado = await response.json();
@@ -4700,216 +5219,61 @@ Solicito o pagamento do meu prêmio!`;
                 
             } catch (error) {
                 console.error('Erro ao adicionar ganhador:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao adicionar ganhador. Tente novamente.</p>');
+                mostrarModal('<h3>Erro</h3><p>Erro ao adicionar ganhador</p>');
             }
         }
 
-        async function alterarStatusGanhador(id, jogo, novoStatus) {
-            try {
-                const response = await fetch('/admin/alterar_status_ganhador', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, jogo, status: novoStatus })
-                });
-                
-                const resultado = await response.json();
-                
-                if (resultado.sucesso) {
-                    mostrarModal('<h3>Sucesso!</h3><p>Status atualizado com sucesso!</p>');
-                } else {
-                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                    carregarGanhadores('todos'); // Recarregar para mostrar o status correto
-                }
-                
-            } catch (error) {
-                console.error('Erro ao alterar status:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao alterar status</p>');
-                carregarGanhadores('todos'); // Recarregar para mostrar o status correto
-            }
+        function gerarListaGanhadoresDia() {
+            const data = document.getElementById('filtro-data-ganhadores').value || obterDataHoraBrasilia().toISOString().split('T')[0];
+            carregarGanhadores('todos');
         }
 
-        async function editarGanhador(id, jogo) {
-            mostrarModal('<h3>Funcionalidade de Edição</h3><p>A edição de ganhadores será implementada na próxima versão.</p>');
-        }
-
-        async function removerGanhador(id, jogo) {
-            showConfirmDialog('Tem certeza que deseja remover este ganhador?', async function() {
-                try {
-                    const response = await fetch('/admin/remover_ganhador', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id, jogo })
-                    });
-                    
-                    const resultado = await response.json();
-                    
-                    if (resultado.sucesso) {
-                        carregarGanhadores('todos');
-                        mostrarModal('<h3>Sucesso!</h3><p>Ganhador removido com sucesso!</p>');
-                    } else {
-                        mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                    }
-                    
-                } catch (error) {
-                    console.error('Erro ao remover ganhador:', error);
-                    mostrarModal('<h3>Erro</h3><p>Erro ao remover ganhador</p>');
-                }
-            });
-        }
-
-        async function gerarListaGanhadoresDia() {
-            const dataFiltro = document.getElementById('filtro-data-ganhadores').value || obterDataHoraBrasilia().toISOString().split('T')[0];
-            
-            try {
-                const response = await fetch(`/admin/lista_ganhadores_dia/${dataFiltro}`);
-                const resultado = await response.json();
-                
-                if (resultado.ganhadores && resultado.ganhadores.length > 0) {
-                    let lista = `LISTA DE GANHADORES - ${new Date(dataFiltro).toLocaleDateString('pt-BR')}\n\n`;
-                    
-                    resultado.ganhadores.forEach((ganhador, index) => {
-                        lista += `${index + 1}. ${ganhador.nome} - ${ganhador.valor} (${ganhador.jogo})\n`;
-                        if (ganhador.codigo) lista += `   Código: ${ganhador.codigo}\n`;
-                        if (ganhador.milhar) lista += `   Milhar: ${ganhador.milhar}\n`;
-                        lista += `   Status: ${ganhador.status.toUpperCase()}\n\n`;
-                    });
-                    
-                    // Criar e baixar arquivo
-                    const blob = new Blob([lista], { type: 'text/plain' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `ganhadores_${dataFiltro}.txt`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    
-                    mostrarModal('<h3>Lista Gerada!</h3><p>A lista de ganhadores foi baixada com sucesso!</p>');
-                } else {
-                    mostrarModal('<h3>Sem Ganhadores</h3><p>Nenhum ganhador encontrado para esta data.</p>');
-                }
-                
-            } catch (error) {
-                console.error('Erro ao gerar lista:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao gerar lista de ganhadores</p>');
-            }
-        }
-
-        // FUNÇÃO PDF CORRIGIDA
         async function gerarListaGanhadoresPDF() {
-            const dataFiltro = document.getElementById('filtro-data-ganhadores').value || obterDataHoraBrasilia().toISOString().split('T')[0];
-            
             try {
-                const response = await fetch(`/admin/lista_ganhadores_dia/${dataFiltro}`);
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const response = await fetch('/admin/ganhadores/todos');
                 const resultado = await response.json();
                 
+                doc.setFontSize(20);
+                doc.text('Lista de Ganhadores - Ganha Brasil', 20, 30);
+                
+                doc.setFontSize(12);
+                let y = 50;
+                
                 if (resultado.ganhadores && resultado.ganhadores.length > 0) {
-                    // Verificar se jsPDF está disponível
-                    if (typeof window.jsPDF === 'undefined') {
-                        mostrarModal('<h3>Erro</h3><p>Biblioteca PDF não carregada. Tente recarregar a página.</p>');
-                        return;
-                    }
-                    
-                    const { jsPDF } = window.jsPDF;
-                    const doc = new jsPDF();
-                    
-                    // Configuração da página
-                    const pageWidth = doc.internal.pageSize.width;
-                    const pageHeight = doc.internal.pageSize.height;
-                    let currentY = 20;
-                    
-                    // Função para adicionar nova página se necessário
-                    function checkPageBreak(neededHeight) {
-                        if (currentY + neededHeight > pageHeight - 20) {
-                            doc.addPage();
-                            currentY = 20;
-                        }
-                    }
-                    
-                    // Cabeçalho
-                    doc.setFontSize(20);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('GANHA BRASIL', pageWidth/2, currentY, { align: 'center' });
-                    currentY += 10;
-                    
-                    doc.setFontSize(16);
-                    doc.text('Raspou, Achou, Ganhou!', pageWidth/2, currentY, { align: 'center' });
-                    currentY += 15;
-                    
-                    doc.setFontSize(14);
-                    doc.text(`Relatório do dia: ${new Date(dataFiltro).toLocaleDateString('pt-BR')}`, pageWidth/2, currentY, { align: 'center' });
-                    currentY += 20;
-                    
-                    // Cabeçalho da tabela
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'bold');
-                    
-                    // Cabeçalho com fundo verde
-                    doc.setFillColor(0, 179, 65);
-                    doc.rect(10, currentY - 5, pageWidth - 20, 10, 'F');
-                    
-                    doc.setTextColor(255, 255, 255);
-                    doc.text('Nome Completo', 15, currentY);
-                    doc.text('Valor Ganho', pageWidth/2 - 20, currentY);
-                    doc.text('Data do Prêmio', pageWidth - 50, currentY);
-                    currentY += 15;
-                    
-                    // Dados dos ganhadores
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(0, 0, 0);
-                    
                     resultado.ganhadores.forEach((ganhador, index) => {
-                        checkPageBreak(15);
-                        
-                        // Alternar cor de fundo das linhas
-                        if (index % 2 === 0) {
-                            doc.setFillColor(248, 249, 250);
-                            doc.rect(10, currentY - 5, pageWidth - 20, 10, 'F');
+                        if (y > 270) {
+                            doc.addPage();
+                            y = 30;
                         }
                         
-                        // Nome (truncar se muito longo)
-                        let nome = ganhador.nome;
-                        if (nome.length > 25) {
-                            nome = nome.substring(0, 22) + '...';
-                        }
-                        doc.text(nome, 15, currentY);
+                        doc.text(`${index + 1}. ${ganhador.nome}`, 20, y);
+                        doc.text(`Jogo: ${ganhador.jogo}`, 20, y + 10);
+                        doc.text(`Prêmio: ${ganhador.valor}`, 20, y + 20);
+                        doc.text(`Data: ${new Date(ganhador.data_premio).toLocaleDateString('pt-BR')}`, 20, y + 30);
+                        if (ganhador.codigo) doc.text(`Código: ${ganhador.codigo}`, 20, y + 40);
+                        if (ganhador.milhar) doc.text(`Milhar: ${ganhador.milhar}`, 20, y + 40);
                         
-                        // Valor
-                        doc.text(ganhador.valor, pageWidth/2 - 20, currentY);
-                        
-                        // Data
-                        doc.text(new Date(ganhador.data).toLocaleDateString('pt-BR'), pageWidth - 50, currentY);
-                        
-                        currentY += 10;
+                        y += 60;
                     });
-                    
-                    // Rodapé
-                    currentY += 20;
-                    checkPageBreak(30);
-                    
-                    doc.setFontSize(10);
-                    doc.setTextColor(100, 100, 100);
-                    doc.text(`O próximo ganhador pode ser você!`, pageWidth/2, currentY, { align: 'center' });
-                    currentY += 10;
-                    doc.text(`Ganha Brasil`, pageWidth/2, currentY, { align: 'center' });
-                    
-                    // Salvar o PDF
-                    const nomeArquivo = `ganhadores_${dataFiltro}.pdf`;
-                    doc.save(nomeArquivo);
-                    
-                    mostrarModal('<h3>PDF Gerado!</h3><p>O relatório em PDF foi baixado com sucesso!</p>');
                 } else {
-                    mostrarModal('<h3>Sem Ganhadores</h3><p>Nenhum ganhador encontrado para esta data.</p>');
+                    doc.text('Nenhum ganhador encontrado', 20, y);
                 }
+                
+                const dataAtual = obterDataHoraBrasilia().toLocaleDateString('pt-BR').replace(/\//g, '-');
+                doc.save(`Ganhadores-${dataAtual}.pdf`);
                 
             } catch (error) {
                 console.error('Erro ao gerar PDF:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF dos ganhadores. Verifique se a biblioteca está carregada.</p>');
+                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF. Verifique se a biblioteca jsPDF está carregada.</p>');
             }
         }
 
         async function carregarRelatorioVendas() {
             try {
-                const response = await fetch('/admin/vendas');
+                const response = await fetch('/admin/relatorio_vendas');
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -4918,40 +5282,25 @@ Solicito o pagamento do meu prêmio!`;
                 const resultado = await response.json();
                 
                 // Atualizar contadores
-                const vendasRB = resultado.vendas.filter(v => v.jogo === 'Raspa Brasil');
-                const vendasML = resultado.vendas.filter(v => v.jogo === '2 para 1000');
-                const receitaTotal = resultado.vendas.reduce((sum, v) => sum + v.valor, 0);
-                const vendasHoje = resultado.vendas.filter(v => {
-                    const hoje = obterDataHoraBrasilia().toDateString();
-                    const dataVenda = new Date(v.data).toDateString();
-                    return hoje === dataVenda;
-                });
+                document.getElementById('admin-vendas-rb-total').textContent = resultado.vendas_rb || 0;
+                document.getElementById('admin-vendas-ml-total').textContent = resultado.vendas_ml || 0;
+                document.getElementById('admin-receita-total').textContent = `R$ ${(resultado.receita_total || 0).toFixed(2).replace('.', ',')}`;
+                document.getElementById('admin-vendas-hoje-total').textContent = (resultado.vendas_hoje || 0);
                 
-                document.getElementById('admin-vendas-rb-total').textContent = vendasRB.reduce((sum, v) => sum + v.quantidade, 0);
-                document.getElementById('admin-vendas-ml-total').textContent = vendasML.reduce((sum, v) => sum + v.quantidade, 0);
-                document.getElementById('admin-receita-total').textContent = `R$ ${receitaTotal.toFixed(2).replace('.', ',')}`;
-                document.getElementById('admin-vendas-hoje-total').textContent = vendasHoje.reduce((sum, v) => sum + v.quantidade, 0);
-                
+                // Gráfico simples
                 const container = document.getElementById('admin-grafico-vendas');
-                if (resultado.vendas && resultado.vendas.length > 0) {
-                    let html = '<div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">';
+                if (resultado.vendas_7_dias && resultado.vendas_7_dias.length > 0) {
+                    let html = '<div style="display: flex; justify-content: space-between; align-items: end; height: 150px; gap: 10px;">';
                     
-                    resultado.vendas.forEach(venda => {
-                        const gameColor = venda.jogo === 'Raspa Brasil' ? '#00b341' : '#007bff';
+                    const maxVendas = Math.max(...resultado.vendas_7_dias.map(v => v.total));
+                    
+                    resultado.vendas_7_dias.forEach(dia => {
+                        const altura = maxVendas > 0 ? (dia.total / maxVendas) * 120 : 0;
                         html += `
-                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${gameColor};">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <strong>${venda.jogo}</strong><br>
-                                        <span>Qtd: ${venda.quantidade}</span><br>
-                                        <small style="color: #666;">ID: ${venda.payment_id}</small>
-                                        ${venda.afiliado ? '<br><small style="color: #ff6b35;">Via Afiliado</small>' : ''}
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: #28a745; font-weight: 800;">R$ ${venda.valor.toFixed(2).replace('.', ',')}</div>
-                                        <small style="color: #666;">${new Date(venda.data).toLocaleDateString('pt-BR')}</small>
-                                    </div>
-                                </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+                                <div style="background: linear-gradient(135deg, #007bff, #0056b3); width: 100%; height: ${altura}px; border-radius: 4px 4px 0 0; min-height: 2px;"></div>
+                                <div style="margin-top: 5px; font-size: 0.8em; font-weight: 600; color: #666;">${dia.total}</div>
+                                <div style="font-size: 0.7em; color: #999;">${new Date(dia.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                             </div>
                         `;
                     });
@@ -4959,69 +5308,78 @@ Solicito o pagamento do meu prêmio!`;
                     html += '</div>';
                     container.innerHTML = html;
                 } else {
-                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhuma venda encontrada</div>';
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Sem dados de vendas para exibir</div>';
                 }
+                
             } catch (error) {
-                console.error('Erro ao carregar vendas:', error);
+                console.error('Erro ao carregar relatório:', error);
                 const container = document.getElementById('admin-grafico-vendas');
-                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados de vendas</div>';
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados do relatório</div>';
+            }
+        }
+
+        // Verificar referência de afiliado na URL
+        function verificarReferencia() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+            
+            if (ref) {
+                localStorage.setItem('raspa_ref', ref);
+                sessionStorage.setItem('raspa_ref', ref);
+                
+                // Registrar clique
+                fetch('/click_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo: ref })
+                }).catch(error => console.error('Erro ao registrar clique:', error));
+            }
+        }
+
+        // Verificar login de afiliado no localStorage
+        function verificarLoginAfiliado() {
+            const cpfSalvo = localStorage.getItem('affiliate_cpf');
+            if (cpfSalvo) {
+                fetch('/login_afiliado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cpf: cpfSalvo })
+                })
+                .then(response => response.json())
+                .then(resultado => {
+                    if (resultado.sucesso) {
+                        currentAffiliate = resultado.afiliado;
+                    }
+                })
+                .catch(error => console.error('Erro ao verificar login de afiliado:', error));
             }
         }
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
+            initBannerSlider();
+            gerarGanhadoresSlider();
+            verificarReferencia();
+            verificarLogin();
+            verificarLoginAfiliado();
+            
+            // Atualizar displays iniciais
             atualizarDisplayRB();
             atualizarDisplayML();
-            initBannerSlider();
-            initWinnerAlerts();
-            gerarGanhadoresSlider();
             
-           // Verificar código de afiliado na URL
-           const urlParams = new URLSearchParams(window.location.search);
-           const refCode = urlParams.get('ref');
-           if (refCode && refCode.trim() !== '' && refCode.length > 2) {
-               localStorage.setItem('raspa_ref', refCode.trim());
-               sessionStorage.setItem('raspa_ref', refCode.trim());
-               console.log('Código de afiliado detectado:', refCode.trim());
-           } else {
-               localStorage.removeItem('raspa_ref');
-               sessionStorage.removeItem('raspa_ref');
-           }
-           
-           // Auto-login do afiliado se houver
-           const savedCpf = localStorage.getItem('affiliate_cpf');
-           if (savedCpf) {
-               setTimeout(async () => {
-                   try {
-                       const response = await fetch('/login_afiliado', {
-                           method: 'POST',
-                           headers: { 'Content-Type': 'application/json' },
-                           body: JSON.stringify({ cpf: savedCpf })
-                       });
-                       
-                       const resultado = await response.json();
-                       if (resultado.sucesso) {
-                           currentAffiliate = resultado.afiliado;
-                       }
-                   } catch (error) {
-                       console.log('Erro no auto-login do afiliado:', error);
-                       localStorage.removeItem('affiliate_cpf');
-                   }
-               }, 1000);
-           }
-           
-           // Verificar resultado do sorteio a cada 5 minutos
-           setInterval(carregarResultadoSorteioML, 300000);
-           
-           // Limpar intervalos ao fechar a página
-           window.addEventListener('beforeunload', function() {
-               if (paymentCheckInterval) {
-                   clearInterval(paymentCheckInterval);
-               }
-           });
-           
-           console.log('🎉 GANHA BRASIL carregado com sucesso! 🇧🇷');
-       });
+            // Iniciar alerts de ganhadores
+            initWinnerAlerts();
+            
+            // Atualizar slider de ganhadores periodicamente
+            setInterval(gerarGanhadoresSlider, 300000); // 5 minutos
+        });
+
+        // Limpeza ao sair da página
+        window.addEventListener('beforeunload', function() {
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+            }
+        });
     </script>
 </body>
 </html>
