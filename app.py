@@ -166,8 +166,10 @@ def gerar_codigo_antifraude():
 
 def gerar_codigo_afiliado():
     """Gera código único para afiliado no formato AF-XXXXX"""
+    import time
     numero = random.randint(100000, 999999)
-    return f"AF{numero}"
+    timestamp = int(time.time()) % 1000  # últimos 3 dígitos do timestamp
+    return f"AF{numero}{timestamp}"
 
 def gerar_milhar():
     """Gera número aleatório de 4 dígitos entre 1111 e 9999"""
@@ -1772,18 +1774,27 @@ def cadastrar_afiliado():
         
         nome = data.get('nome', '').strip()
         telefone = data.get('telefone', '').strip()
-        email = data.get('email', '').strip()
+        email = data.get('email', '').strip().lower()
         cpf = data.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
 
-        # Validações
-        if not nome or len(nome) < 3:
-            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
+        log_info("cadastrar_afiliado", f"Tentativa de cadastro: {nome}, {email}, CPF: {cpf[:3]}***")
+
+        # Validações mais flexíveis
+        if not nome or len(nome) < 2:
+            log_error("cadastrar_afiliado", "Nome inválido", {"nome": nome})
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 2 caracteres'})
         
-        if not email or '@' not in email:
+        if not email or '@' not in email or len(email) < 5:
+            log_error("cadastrar_afiliado", "Email inválido", {"email": email})
             return jsonify({'sucesso': False, 'erro': 'Email inválido'})
         
         if not cpf or len(cpf) != 11 or not cpf.isdigit():
-            return jsonify({'sucesso': False, 'erro': 'CPF inválido'})
+            log_error("cadastrar_afiliado", "CPF inválido", {"cpf_length": len(cpf), "cpf": cpf[:3] + "***"})
+            return jsonify({'sucesso': False, 'erro': 'CPF deve ter exatamente 11 números'})
+
+        if not telefone or len(telefone) < 10:
+            log_error("cadastrar_afiliado", "Telefone inválido", {"telefone": telefone})
+            return jsonify({'sucesso': False, 'erro': 'Telefone deve ter pelo menos 10 dígitos'})
 
         codigo = gerar_codigo_afiliado()
         
@@ -1803,15 +1814,24 @@ def cadastrar_afiliado():
 
         if supabase:
             try:
-                # Verificar duplicatas
-                existing_email = supabase.table('gb_afiliados').select('gb_id').eq('gb_email', email).execute()
-                if existing_email.data:
-                    return jsonify({'sucesso': False, 'erro': 'Email já cadastrado'})
+                # Verificar duplicatas com tratamento de erro melhorado
+                try:
+                    existing_email = supabase.table('gb_afiliados').select('gb_id').eq('gb_email', email).execute()
+                    if existing_email.data and len(existing_email.data) > 0:
+                        log_error("cadastrar_afiliado", "Email duplicado", {"email": email})
+                        return jsonify({'sucesso': False, 'erro': 'Este email já está cadastrado'})
+                except Exception as e:
+                    log_error("cadastrar_afiliado", f"Erro ao verificar email: {str(e)}")
 
-                existing_cpf = supabase.table('gb_afiliados').select('gb_id').eq('gb_cpf', cpf).execute()
-                if existing_cpf.data:
-                    return jsonify({'sucesso': False, 'erro': 'CPF já cadastrado'})
+                try:
+                    existing_cpf = supabase.table('gb_afiliados').select('gb_id').eq('gb_cpf', cpf).execute()
+                    if existing_cpf.data and len(existing_cpf.data) > 0:
+                        log_error("cadastrar_afiliado", "CPF duplicado", {"cpf": cpf[:3] + "***"})
+                        return jsonify({'sucesso': False, 'erro': 'Este CPF já está cadastrado'})
+                except Exception as e:
+                    log_error("cadastrar_afiliado", f"Erro ao verificar CPF: {str(e)}")
 
+                # Inserir novo afiliado
                 response = supabase.table('gb_afiliados').insert({
                     'gb_codigo': codigo,
                     'gb_nome': nome[:255],
@@ -1825,9 +1845,9 @@ def cadastrar_afiliado():
                     'gb_saldo_disponivel': 0.0
                 }).execute()
 
-                if response.data:
+                if response.data and len(response.data) > 0:
                     afiliado = response.data[0]
-                    log_info("cadastrar_afiliado", f"Afiliado cadastrado: {nome} - Código: {codigo}")
+                    log_info("cadastrar_afiliado", f"Afiliado cadastrado com sucesso: {nome} - Código: {codigo}")
                     
                     return jsonify({
                         'sucesso': True,
@@ -1836,22 +1856,27 @@ def cadastrar_afiliado():
                             'codigo': codigo,
                             'nome': nome,
                             'email': email,
+                            'telefone': telefone,
                             'total_clicks': 0,
                             'total_vendas': 0,
                             'total_comissao': 0,
                             'saldo_disponivel': 0
                         }
                     })
+                else:
+                    log_error("cadastrar_afiliado", "Erro na inserção - resposta vazia")
+                    return jsonify({'sucesso': False, 'erro': 'Erro ao salvar dados no banco'})
+                    
             except Exception as e:
-                log_error("cadastrar_afiliado", e)
-                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+                log_error("cadastrar_afiliado", f"Erro no Supabase: {str(e)}")
+                return jsonify({'sucesso': False, 'erro': 'Erro interno do banco de dados'})
         else:
             # Verificar duplicatas em memória
             for afiliado in memory_storage['afiliados']:
                 if afiliado.get('email') == email:
-                    return jsonify({'sucesso': False, 'erro': 'Email já cadastrado'})
+                    return jsonify({'sucesso': False, 'erro': 'Este email já está cadastrado'})
                 if afiliado.get('cpf') == cpf:
-                    return jsonify({'sucesso': False, 'erro': 'CPF já cadastrado'})
+                    return jsonify({'sucesso': False, 'erro': 'Este CPF já está cadastrado'})
             
             afiliado_data['id'] = len(memory_storage['afiliados']) + 1
             memory_storage['afiliados'].append(afiliado_data)
@@ -1865,6 +1890,7 @@ def cadastrar_afiliado():
                     'codigo': codigo,
                     'nome': nome,
                     'email': email,
+                    'telefone': telefone,
                     'total_clicks': 0,
                     'total_vendas': 0,
                     'total_comissao': 0,
@@ -1873,7 +1899,7 @@ def cadastrar_afiliado():
             })
 
     except Exception as e:
-        log_error("cadastrar_afiliado", e)
+        log_error("cadastrar_afiliado", f"Erro geral: {str(e)}")
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 @app.route('/login_afiliado', methods=['POST'])
@@ -3177,3 +3203,4 @@ if __name__ == '__main__':
     print(f"✅ SISTEMA 100% FUNCIONAL E TESTADO!")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
+
