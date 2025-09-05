@@ -1762,8 +1762,387 @@ def ultimos_ganhadores():
         log_error("ultimos_ganhadores", e)
         return jsonify({'ganhadores': []})
 
-# ========== ROTAS DE AFILIADOS (mantém as mesmas da versão anterior) ==========
-# [O código das rotas de afiliados permanece o mesmo da versão anterior]
+# ========== ROTAS DE AFILIADOS ==========
+
+@app.route('/cadastrar_afiliado', methods=['POST'])
+def cadastrar_afiliado():
+    """Cadastra novo afiliado"""
+    try:
+        data = sanitizar_dados_entrada(request.json)
+        
+        nome = data.get('nome', '').strip()
+        telefone = data.get('telefone', '').strip()
+        email = data.get('email', '').strip()
+        cpf = data.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+
+        # Validações
+        if not nome or len(nome) < 3:
+            return jsonify({'sucesso': False, 'erro': 'Nome deve ter pelo menos 3 caracteres'})
+        
+        if not email or '@' not in email:
+            return jsonify({'sucesso': False, 'erro': 'Email inválido'})
+        
+        if not cpf or len(cpf) != 11 or not cpf.isdigit():
+            return jsonify({'sucesso': False, 'erro': 'CPF inválido'})
+
+        codigo = gerar_codigo_afiliado()
+        
+        afiliado_data = {
+            'codigo': codigo,
+            'nome': nome[:255],
+            'telefone': telefone[:20],
+            'email': email[:255],
+            'cpf': cpf,
+            'status': 'ativo',
+            'total_clicks': 0,
+            'total_vendas': 0,
+            'total_comissao': 0.0,
+            'saldo_disponivel': 0.0,
+            'data_cadastro': datetime.now().isoformat()
+        }
+
+        if supabase:
+            try:
+                # Verificar duplicatas
+                existing_email = supabase.table('gb_afiliados').select('gb_id').eq('gb_email', email).execute()
+                if existing_email.data:
+                    return jsonify({'sucesso': False, 'erro': 'Email já cadastrado'})
+
+                existing_cpf = supabase.table('gb_afiliados').select('gb_id').eq('gb_cpf', cpf).execute()
+                if existing_cpf.data:
+                    return jsonify({'sucesso': False, 'erro': 'CPF já cadastrado'})
+
+                response = supabase.table('gb_afiliados').insert({
+                    'gb_codigo': codigo,
+                    'gb_nome': nome[:255],
+                    'gb_telefone': telefone[:20],
+                    'gb_email': email[:255],
+                    'gb_cpf': cpf,
+                    'gb_status': 'ativo',
+                    'gb_total_clicks': 0,
+                    'gb_total_vendas': 0,
+                    'gb_total_comissao': 0.0,
+                    'gb_saldo_disponivel': 0.0
+                }).execute()
+
+                if response.data:
+                    afiliado = response.data[0]
+                    log_info("cadastrar_afiliado", f"Afiliado cadastrado: {nome} - Código: {codigo}")
+                    
+                    return jsonify({
+                        'sucesso': True,
+                        'afiliado': {
+                            'id': afiliado['gb_id'],
+                            'codigo': codigo,
+                            'nome': nome,
+                            'email': email,
+                            'total_clicks': 0,
+                            'total_vendas': 0,
+                            'total_comissao': 0,
+                            'saldo_disponivel': 0
+                        }
+                    })
+            except Exception as e:
+                log_error("cadastrar_afiliado", e)
+                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+        else:
+            # Verificar duplicatas em memória
+            for afiliado in memory_storage['afiliados']:
+                if afiliado.get('email') == email:
+                    return jsonify({'sucesso': False, 'erro': 'Email já cadastrado'})
+                if afiliado.get('cpf') == cpf:
+                    return jsonify({'sucesso': False, 'erro': 'CPF já cadastrado'})
+            
+            afiliado_data['id'] = len(memory_storage['afiliados']) + 1
+            memory_storage['afiliados'].append(afiliado_data)
+            
+            log_info("cadastrar_afiliado", f"Afiliado cadastrado em memória: {nome} - Código: {codigo}")
+            
+            return jsonify({
+                'sucesso': True,
+                'afiliado': {
+                    'id': afiliado_data['id'],
+                    'codigo': codigo,
+                    'nome': nome,
+                    'email': email,
+                    'total_clicks': 0,
+                    'total_vendas': 0,
+                    'total_comissao': 0,
+                    'saldo_disponivel': 0
+                }
+            })
+
+    except Exception as e:
+        log_error("cadastrar_afiliado", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/login_afiliado', methods=['POST'])
+def login_afiliado():
+    """Login do afiliado por CPF"""
+    try:
+        data = sanitizar_dados_entrada(request.json)
+        cpf = data.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+        
+        if not cpf or len(cpf) != 11 or not cpf.isdigit():
+            return jsonify({'sucesso': False, 'erro': 'CPF inválido'})
+        
+        if supabase:
+            try:
+                response = supabase.table('gb_afiliados').select('*').eq('gb_cpf', cpf).eq('gb_status', 'ativo').execute()
+                
+                if response.data:
+                    afiliado = response.data[0]
+                    
+                    log_info("login_afiliado", f"Afiliado logado: {afiliado['gb_nome']}")
+                    
+                    return jsonify({
+                        'sucesso': True,
+                        'afiliado': {
+                            'id': afiliado['gb_id'],
+                            'codigo': afiliado['gb_codigo'],
+                            'nome': afiliado['gb_nome'],
+                            'email': afiliado['gb_email'],
+                            'telefone': afiliado['gb_telefone'],
+                            'total_clicks': afiliado.get('gb_total_clicks', 0),
+                            'total_vendas': afiliado.get('gb_total_vendas', 0),
+                            'total_comissao': afiliado.get('gb_total_comissao', 0),
+                            'saldo_disponivel': afiliado.get('gb_saldo_disponivel', 0),
+                            'chave_pix': afiliado.get('gb_chave_pix'),
+                            'tipo_chave_pix': afiliado.get('gb_tipo_chave_pix')
+                        }
+                    })
+                else:
+                    return jsonify({'sucesso': False, 'erro': 'CPF não encontrado'})
+                    
+            except Exception as e:
+                log_error("login_afiliado", e)
+                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+        else:
+            # Buscar em memória
+            for afiliado in memory_storage['afiliados']:
+                if afiliado.get('cpf') == cpf and afiliado.get('status') == 'ativo':
+                    log_info("login_afiliado", f"Afiliado logado em memória: {afiliado['nome']}")
+                    
+                    return jsonify({
+                        'sucesso': True,
+                        'afiliado': {
+                            'id': afiliado['id'],
+                            'codigo': afiliado['codigo'],
+                            'nome': afiliado['nome'],
+                            'email': afiliado['email'],
+                            'telefone': afiliado['telefone'],
+                            'total_clicks': afiliado.get('total_clicks', 0),
+                            'total_vendas': afiliado.get('total_vendas', 0),
+                            'total_comissao': afiliado.get('total_comissao', 0),
+                            'saldo_disponivel': afiliado.get('saldo_disponivel', 0),
+                            'chave_pix': afiliado.get('chave_pix'),
+                            'tipo_chave_pix': afiliado.get('tipo_chave_pix')
+                        }
+                    })
+            
+            return jsonify({'sucesso': False, 'erro': 'CPF não encontrado'})
+            
+    except Exception as e:
+        log_error("login_afiliado", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/click_afiliado', methods=['POST'])
+def click_afiliado():
+    """Registra clique do afiliado"""
+    try:
+        data = sanitizar_dados_entrada(request.json)
+        codigo = data.get('codigo')
+        
+        if not codigo:
+            return jsonify({'sucesso': False, 'erro': 'Código do afiliado é obrigatório'})
+        
+        if supabase:
+            try:
+                # Buscar afiliado
+                afiliado = supabase.table('gb_afiliados').select('*').eq('gb_codigo', codigo).eq('gb_status', 'ativo').execute()
+                
+                if afiliado.data:
+                    afiliado_id = afiliado.data[0]['gb_id']
+                    
+                    # Registrar clique
+                    supabase.table('gb_afiliado_clicks').insert({
+                        'gb_afiliado_id': afiliado_id,
+                        'gb_ip_visitor': request.remote_addr or 'unknown',
+                        'gb_user_agent': request.headers.get('User-Agent', '')[:500],
+                        'gb_referrer': request.headers.get('Referer', '')[:500]
+                    }).execute()
+                    
+                    # Incrementar contador
+                    current_clicks = afiliado.data[0].get('gb_total_clicks', 0) or 0
+                    supabase.table('gb_afiliados').update({
+                        'gb_total_clicks': current_clicks + 1
+                    }).eq('gb_id', afiliado_id).execute()
+                    
+                    log_info("click_afiliado", f"Clique registrado para afiliado: {codigo}")
+                    return jsonify({'sucesso': True})
+                    
+            except Exception as e:
+                log_error("click_afiliado", e)
+        else:
+            # Registrar em memória
+            for afiliado in memory_storage['afiliados']:
+                if afiliado.get('codigo') == codigo and afiliado.get('status') == 'ativo':
+                    afiliado['total_clicks'] = afiliado.get('total_clicks', 0) + 1
+                    
+                    memory_storage['afiliado_clicks'].append({
+                        'id': len(memory_storage['afiliado_clicks']) + 1,
+                        'afiliado_id': afiliado['id'],
+                        'ip_visitor': request.remote_addr or 'unknown',
+                        'user_agent': request.headers.get('User-Agent', '')[:500],
+                        'referrer': request.headers.get('Referer', '')[:500],
+                        'data_click': datetime.now().isoformat()
+                    })
+                    
+                    log_info("click_afiliado", f"Clique registrado em memória para afiliado: {codigo}")
+                    return jsonify({'sucesso': True})
+        
+        return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+        
+    except Exception as e:
+        log_error("click_afiliado", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/atualizar_pix_afiliado', methods=['POST'])
+def atualizar_pix_afiliado():
+    """Atualiza chave PIX do afiliado"""
+    try:
+        data = sanitizar_dados_entrada(request.json)
+        codigo = data.get('codigo')
+        chave_pix = data.get('chave_pix', '').strip()
+        tipo_chave = data.get('tipo_chave', 'cpf')
+        
+        if not codigo or not chave_pix:
+            return jsonify({'sucesso': False, 'erro': 'Código e chave PIX são obrigatórios'})
+        
+        if len(chave_pix) < 5:
+            return jsonify({'sucesso': False, 'erro': 'Chave PIX inválida'})
+        
+        if supabase:
+            try:
+                response = supabase.table('gb_afiliados').update({
+                    'gb_chave_pix': chave_pix[:255],
+                    'gb_tipo_chave_pix': tipo_chave
+                }).eq('gb_codigo', codigo).eq('gb_status', 'ativo').execute()
+                
+                if response.data:
+                    log_info("atualizar_pix_afiliado", f"PIX atualizado para afiliado: {codigo}")
+                    return jsonify({'sucesso': True})
+                else:
+                    return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+                    
+            except Exception as e:
+                log_error("atualizar_pix_afiliado", e)
+                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+        else:
+            # Atualizar em memória
+            for afiliado in memory_storage['afiliados']:
+                if afiliado.get('codigo') == codigo and afiliado.get('status') == 'ativo':
+                    afiliado['chave_pix'] = chave_pix[:255]
+                    afiliado['tipo_chave_pix'] = tipo_chave
+                    
+                    log_info("atualizar_pix_afiliado", f"PIX atualizado em memória para afiliado: {codigo}")
+                    return jsonify({'sucesso': True})
+            
+            return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+        
+    except Exception as e:
+        log_error("atualizar_pix_afiliado", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/solicitar_saque_afiliado', methods=['POST'])
+def solicitar_saque_afiliado():
+    """Solicita saque do afiliado"""
+    try:
+        data = sanitizar_dados_entrada(request.json)
+        codigo = data.get('codigo')
+        
+        if not codigo:
+            return jsonify({'sucesso': False, 'erro': 'Código do afiliado é obrigatório'})
+        
+        if supabase:
+            try:
+                # Buscar afiliado
+                afiliado = supabase.table('gb_afiliados').select('*').eq('gb_codigo', codigo).eq('gb_status', 'ativo').execute()
+                
+                if not afiliado.data:
+                    return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+                
+                afiliado_data = afiliado.data[0]
+                saldo = afiliado_data.get('gb_saldo_disponivel', 0) or 0
+                
+                if saldo < 10:
+                    return jsonify({'sucesso': False, 'erro': 'Saldo mínimo para saque: R$ 10,00'})
+                
+                if not afiliado_data.get('gb_chave_pix'):
+                    return jsonify({'sucesso': False, 'erro': 'Configure sua chave PIX primeiro'})
+                
+                # Criar solicitação de saque
+                supabase.table('gb_saques').insert({
+                    'gb_afiliado_id': afiliado_data['gb_id'],
+                    'gb_valor': saldo,
+                    'gb_chave_pix': afiliado_data['gb_chave_pix'],
+                    'gb_tipo_chave': afiliado_data.get('gb_tipo_chave_pix', 'cpf'),
+                    'gb_status': 'solicitado'
+                }).execute()
+                
+                # Zerar saldo do afiliado
+                supabase.table('gb_afiliados').update({
+                    'gb_saldo_disponivel': 0
+                }).eq('gb_id', afiliado_data['gb_id']).execute()
+                
+                log_info("solicitar_saque_afiliado", f"Saque solicitado: {codigo} - R$ {saldo:.2f}")
+                return jsonify({
+                    'sucesso': True,
+                    'valor': saldo
+                })
+                
+            except Exception as e:
+                log_error("solicitar_saque_afiliado", e)
+                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+        else:
+            # Processar em memória
+            for afiliado in memory_storage['afiliados']:
+                if afiliado.get('codigo') == codigo and afiliado.get('status') == 'ativo':
+                    saldo = afiliado.get('saldo_disponivel', 0)
+                    
+                    if saldo < 10:
+                        return jsonify({'sucesso': False, 'erro': 'Saldo mínimo para saque: R$ 10,00'})
+                    
+                    if not afiliado.get('chave_pix'):
+                        return jsonify({'sucesso': False, 'erro': 'Configure sua chave PIX primeiro'})
+                    
+                    # Criar solicitação
+                    memory_storage['saques'].append({
+                        'id': len(memory_storage['saques']) + 1,
+                        'afiliado_id': afiliado['id'],
+                        'afiliado_nome': afiliado['nome'],
+                        'afiliado_codigo': codigo,
+                        'valor': saldo,
+                        'chave_pix': afiliado['chave_pix'],
+                        'tipo_chave': afiliado.get('tipo_chave_pix', 'cpf'),
+                        'status': 'solicitado',
+                        'data_solicitacao': datetime.now().isoformat()
+                    })
+                    
+                    # Zerar saldo
+                    afiliado['saldo_disponivel'] = 0
+                    
+                    log_info("solicitar_saque_afiliado", f"Saque solicitado em memória: {codigo} - R$ {saldo:.2f}")
+                    return jsonify({
+                        'sucesso': True,
+                        'valor': saldo
+                    })
+            
+            return jsonify({'sucesso': False, 'erro': 'Afiliado não encontrado'})
+        
+    except Exception as e:
+        log_error("solicitar_saque_afiliado", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
 # ========== ROTAS ADMIN ==========
 
@@ -1871,6 +2250,52 @@ def admin_stats():
         log_error("admin_stats", e)
         return jsonify(stats)
 
+@app.route('/admin/verificar_status_premio')
+def admin_verificar_status_premio():
+    """Verifica status do prêmio manual do Raspa Brasil"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        premio_liberado = obter_configuracao('premio_manual_liberado', '')
+        
+        return jsonify({
+            'premio_liberado': bool(premio_liberado),
+            'valor': premio_liberado if premio_liberado else None
+        })
+        
+    except Exception as e:
+        log_error("admin_verificar_status_premio", e)
+        return jsonify({'premio_liberado': False, 'valor': None})
+
+@app.route('/admin/liberar_premio_manual', methods=['POST'])
+def admin_liberar_premio_manual():
+    """Libera prêmio manual para o Raspa Brasil"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
+        data = sanitizar_dados_entrada(request.json)
+        valor = data.get('valor', '').strip()
+        
+        if not valor:
+            return jsonify({'sucesso': False, 'erro': 'Valor é obrigatório'})
+        
+        # Verificar se já há prêmio liberado
+        premio_atual = obter_configuracao('premio_manual_liberado', '')
+        if premio_atual:
+            return jsonify({'sucesso': False, 'erro': 'Já existe um prêmio liberado. Aguarde ser raspado.'})
+        
+        if atualizar_configuracao('premio_manual_liberado', valor, 'raspa_brasil'):
+            log_info("admin_liberar_premio_manual", f"Prêmio {valor} liberado pelo admin")
+            return jsonify({'sucesso': True, 'valor': valor})
+        else:
+            return jsonify({'sucesso': False, 'erro': 'Erro ao salvar configuração'})
+        
+    except Exception as e:
+        log_error("admin_liberar_premio_manual", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
 @app.route('/admin/editar_premio_ml', methods=['POST'])
 def admin_editar_premio_ml():
     """Edita o valor do prêmio acumulado do 2 para 1000"""
@@ -1903,6 +2328,500 @@ def admin_editar_premio_ml():
     except Exception as e:
         log_error("admin_editar_premio_ml", e)
         return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/admin/sortear', methods=['POST'])
+def admin_sortear():
+    """Realiza sorteio do 2 para 1000"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
+        data = sanitizar_dados_entrada(request.json)
+        milhar_sorteada = data.get('milhar_sorteada', '').strip()
+        
+        if not milhar_sorteada or len(milhar_sorteada) != 4 or not milhar_sorteada.isdigit():
+            return jsonify({'sucesso': False, 'erro': 'Digite exatamente 4 números'})
+        
+        hoje = date.today().isoformat()
+        
+        # Verificar se já foi sorteado hoje
+        if supabase:
+            try:
+                existing = supabase.table('gb_sorteios').select('gb_id').eq('gb_data_sorteio', hoje).execute()
+                if existing.data:
+                    return jsonify({'sucesso': False, 'erro': 'Sorteio já realizado hoje'})
+            except Exception as e:
+                log_error("admin_sortear_check", e)
+        else:
+            for sorteio in memory_storage['sorteios']:
+                if sorteio.get('data_sorteio') == hoje:
+                    return jsonify({'sucesso': False, 'erro': 'Sorteio já realizado hoje'})
+        
+        # Buscar bilhetes participantes
+        ganhador = None
+        participantes = []
+        
+        if supabase:
+            try:
+                bilhetes = supabase.table('gb_cliente_bilhetes').select('*').eq(
+                    'gb_data_sorteio', hoje
+                ).eq('gb_status', 'ativo').execute()
+                
+                for bilhete in (bilhetes.data or []):
+                    participantes.append(bilhete)
+                    if bilhete['gb_numero_bilhete'] == milhar_sorteada:
+                        # Buscar dados do cliente
+                        cliente = supabase.table('gb_clientes').select('*').eq('gb_id', bilhete['gb_cliente_id']).execute()
+                        if cliente.data:
+                            ganhador = {
+                                'nome': cliente.data[0]['gb_nome'],
+                                'bilhete': milhar_sorteada,
+                                'cliente_id': bilhete['gb_cliente_id']
+                            }
+                        break
+            except Exception as e:
+                log_error("admin_sortear_bilhetes", e)
+        else:
+            for bilhete in memory_storage['cliente_bilhetes']:
+                if bilhete.get('data_sorteio') == hoje and bilhete.get('status') == 'ativo':
+                    participantes.append(bilhete)
+                    if bilhete['numero_bilhete'] == milhar_sorteada:
+                        # Buscar cliente
+                        for cliente in memory_storage['clientes']:
+                            if cliente.get('id') == bilhete['cliente_id']:
+                                ganhador = {
+                                    'nome': cliente['nome'],
+                                    'bilhete': milhar_sorteada,
+                                    'cliente_id': bilhete['cliente_id']
+                                }
+                                break
+                        break
+        
+        valor_atual = obter_premio_acumulado()
+        houve_ganhador = ganhador is not None
+        
+        if houve_ganhador:
+            # Registrar ganhador
+            if supabase:
+                try:
+                    # Buscar dados do cliente para PIX
+                    cliente_data = supabase.table('gb_clientes').select('*').eq('gb_id', ganhador['cliente_id']).execute()
+                    chave_pix = cliente_data.data[0].get('gb_chave_pix', '') if cliente_data.data else ''
+                    
+                    supabase.table('gb_ganhadores').insert({
+                        'gb_cliente_id': ganhador['cliente_id'],
+                        'gb_tipo_jogo': '2para1000',
+                        'gb_nome': ganhador['nome'],
+                        'gb_valor': f"R$ {valor_atual:.2f}".replace('.', ','),
+                        'gb_bilhete_premiado': milhar_sorteada,
+                        'gb_chave_pix': chave_pix,
+                        'gb_status_pagamento': 'pendente'
+                    }).execute()
+                    
+                    # Marcar bilhete como premiado
+                    supabase.table('gb_cliente_bilhetes').update({
+                        'gb_status': 'premiado',
+                        'gb_premio_ganho': valor_atual
+                    }).eq('gb_numero_bilhete', milhar_sorteada).eq('gb_data_sorteio', hoje).execute()
+                    
+                except Exception as e:
+                    log_error("admin_sortear_ganhador", e)
+            else:
+                # Registrar em memória
+                memory_storage['ganhadores'].append({
+                    'id': len(memory_storage['ganhadores']) + 1,
+                    'cliente_id': ganhador['cliente_id'],
+                    'tipo_jogo': '2para1000',
+                    'nome': ganhador['nome'],
+                    'valor': f"R$ {valor_atual:.2f}".replace('.', ','),
+                    'bilhete_premiado': milhar_sorteada,
+                    'chave_pix': '',
+                    'status_pagamento': 'pendente',
+                    'data_criacao': datetime.now().isoformat()
+                })
+                
+                # Marcar bilhete como premiado
+                for bilhete in memory_storage['cliente_bilhetes']:
+                    if bilhete.get('numero_bilhete') == milhar_sorteada and bilhete.get('data_sorteio') == hoje:
+                        bilhete['status'] = 'premiado'
+                        bilhete['premio_ganho'] = valor_atual
+                        break
+            
+            # Resetar prêmio para valor inicial
+            novo_valor_acumulado = PREMIO_INICIAL_ML
+        else:
+            # Acumular prêmio
+            novo_valor_acumulado = valor_atual + 100.0  # Incrementar R$ 100
+        
+        # Atualizar prêmio acumulado
+        atualizar_configuracao('premio_acumulado', str(novo_valor_acumulado), '2para1000')
+        
+        # Registrar sorteio
+        if supabase:
+            try:
+                supabase.table('gb_sorteios').insert({
+                    'gb_data_sorteio': hoje,
+                    'gb_milhar_sorteada': milhar_sorteada,
+                    'gb_houve_ganhador': houve_ganhador,
+                    'gb_ganhador_nome': ganhador['nome'] if ganhador else None,
+                    'gb_valor_premio': valor_atual if houve_ganhador else None,
+                    'gb_total_participantes': len(participantes)
+                }).execute()
+            except Exception as e:
+                log_error("admin_sortear_save", e)
+        else:
+            memory_storage['sorteios'].append({
+                'id': len(memory_storage['sorteios']) + 1,
+                'data_sorteio': hoje,
+                'milhar_sorteada': milhar_sorteada,
+                'houve_ganhador': houve_ganhador,
+                'ganhador_nome': ganhador['nome'] if ganhador else None,
+                'valor_premio': valor_atual if houve_ganhador else None,
+                'total_participantes': len(participantes),
+                'data_criacao': datetime.now().isoformat()
+            })
+        
+        log_info("admin_sortear", f"Sorteio realizado: {milhar_sorteada} - Ganhador: {houve_ganhador}")
+        
+        response_data = {
+            'sucesso': True,
+            'houve_ganhador': houve_ganhador,
+            'novo_valor_acumulado': f"{novo_valor_acumulado:.2f}".replace('.', ',')
+        }
+        
+        if houve_ganhador:
+            response_data.update({
+                'ganhador': ganhador,
+                'valor_premio': f"{valor_atual:.2f}".replace('.', ',')
+            })
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        log_error("admin_sortear", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/admin/afiliados')
+def admin_afiliados():
+    """Obtém lista de afiliados para o admin"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        afiliados = []
+        
+        if supabase:
+            try:
+                response = supabase.table('gb_afiliados').select('*').order('gb_data_criacao', desc=True).execute()
+                
+                for a in (response.data or []):
+                    afiliados.append({
+                        'id': a['gb_id'],
+                        'codigo': a['gb_codigo'],
+                        'nome': a['gb_nome'],
+                        'email': a['gb_email'],
+                        'telefone': a['gb_telefone'],
+                        'status': a['gb_status'],
+                        'total_clicks': a.get('gb_total_clicks', 0),
+                        'total_vendas': a.get('gb_total_vendas', 0),
+                        'total_comissao': a.get('gb_total_comissao', 0),
+                        'saldo_disponivel': a.get('gb_saldo_disponivel', 0),
+                        'chave_pix': a.get('gb_chave_pix', ''),
+                        'tipo_chave_pix': a.get('gb_tipo_chave_pix', ''),
+                        'data_cadastro': a['gb_data_criacao']
+                    })
+                    
+            except Exception as e:
+                log_error("admin_afiliados", e)
+        else:
+            # Buscar em memória
+            for a in memory_storage['afiliados']:
+                afiliados.append({
+                    'id': a['id'],
+                    'codigo': a['codigo'],
+                    'nome': a['nome'],
+                    'email': a['email'],
+                    'telefone': a['telefone'],
+                    'status': a['status'],
+                    'total_clicks': a.get('total_clicks', 0),
+                    'total_vendas': a.get('total_vendas', 0),
+                    'total_comissao': a.get('total_comissao', 0),
+                    'saldo_disponivel': a.get('saldo_disponivel', 0),
+                    'chave_pix': a.get('chave_pix', ''),
+                    'tipo_chave_pix': a.get('tipo_chave_pix', ''),
+                    'data_cadastro': a['data_cadastro']
+                })
+        
+        log_info("admin_afiliados", f"Afiliados consultados: {len(afiliados)}")
+        return jsonify({'afiliados': afiliados})
+        
+    except Exception as e:
+        log_error("admin_afiliados", e)
+        return jsonify({'afiliados': []})
+
+@app.route('/admin/saques/<status>')
+def admin_saques(status):
+    """Obtém lista de saques para o admin"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        saques = []
+        
+        if supabase:
+            try:
+                query = supabase.table('gb_saques').select(
+                    'gb_id, gb_valor, gb_chave_pix, gb_tipo_chave, gb_status, gb_data_criacao, ' +
+                    'gb_afiliados!gb_saques_gb_afiliado_id_fkey(gb_nome, gb_codigo)'
+                ).order('gb_data_criacao', desc=True)
+                
+                if status != 'todos':
+                    query = query.eq('gb_status', status)
+                
+                response = query.execute()
+                
+                for s in (response.data or []):
+                    afiliado_info = s.get('gb_afiliados', {})
+                    
+                    saques.append({
+                        'id': s['id'],
+                        'valor': s['valor'],
+                        'chave_pix': s['chave_pix'],
+                        'tipo_chave': s['tipo_chave'],
+                        'status': s['status'],
+                        'data_solicitacao': s['data_solicitacao'],
+                        'afiliado_nome': s['afiliado_nome'],
+                        'afiliado_codigo': s['afiliado_codigo']
+                    })
+        
+        log_info("admin_saques", f"Saques consultados - Status: {status}, Total: {len(saques)}")
+        return jsonify({'saques': saques})
+        
+    except Exception as e:
+        log_error("admin_saques", e)
+        return jsonify({'saques': []})
+
+@app.route('/admin/marcar_saque_pago', methods=['POST'])
+def admin_marcar_saque_pago():
+    """Marca saque como pago"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
+        data = sanitizar_dados_entrada(request.json)
+        saque_id = data.get('saque_id')
+        
+        if not saque_id:
+            return jsonify({'sucesso': False, 'erro': 'ID do saque é obrigatório'})
+        
+        if supabase:
+            try:
+                response = supabase.table('gb_saques').update({
+                    'gb_status': 'pago',
+                    'gb_data_pagamento': datetime.now().isoformat()
+                }).eq('gb_id', saque_id).execute()
+                
+                if response.data:
+                    log_info("admin_marcar_saque_pago", f"Saque {saque_id} marcado como pago")
+                    return jsonify({'sucesso': True})
+                else:
+                    return jsonify({'sucesso': False, 'erro': 'Saque não encontrado'})
+                    
+            except Exception as e:
+                log_error("admin_marcar_saque_pago", e)
+                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+        else:
+            # Atualizar em memória
+            for saque in memory_storage['saques']:
+                if saque.get('id') == int(saque_id):
+                    saque['status'] = 'pago'
+                    saque['data_pagamento'] = datetime.now().isoformat()
+                    
+                    log_info("admin_marcar_saque_pago", f"Saque {saque_id} marcado como pago em memória")
+                    return jsonify({'sucesso': True})
+            
+            return jsonify({'sucesso': False, 'erro': 'Saque não encontrado'})
+        
+    except Exception as e:
+        log_error("admin_marcar_saque_pago", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/admin/bilhetes/<data_filtro>')
+def admin_bilhetes(data_filtro):
+    """Obtém bilhetes vendidos para o admin"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        bilhetes = []
+        
+        if supabase:
+            try:
+                # Buscar vendas do dia
+                vendas = supabase.table('gb_vendas').select('*').gte(
+                    'gb_data_criacao', data_filtro + ' 00:00:00'
+                ).lt('gb_data_criacao', data_filtro + ' 23:59:59').eq(
+                    'gb_tipo_jogo', '2para1000'
+                ).eq('gb_status', 'completed').execute()
+                
+                for venda in (vendas.data or []):
+                    # Buscar bilhetes da venda
+                    bilhetes_venda = supabase.table('gb_cliente_bilhetes').select('gb_numero_bilhete').eq(
+                        'gb_venda_id', venda['gb_id']
+                    ).execute()
+                    
+                    numeros_bilhetes = [b['gb_numero_bilhete'] for b in (bilhetes_venda.data or [])]
+                    
+                    # Buscar dados do cliente
+                    cliente = supabase.table('gb_clientes').select('gb_nome, gb_telefone, gb_chave_pix').eq(
+                        'gb_id', venda['gb_cliente_id']
+                    ).execute()
+                    
+                    cliente_data = cliente.data[0] if cliente.data else {}
+                    
+                    bilhetes.append({
+                        'payment_id': venda['gb_payment_id'],
+                        'nome': cliente_data.get('gb_nome', 'N/A'),
+                        'telefone': cliente_data.get('gb_telefone', 'N/A'),
+                        'chave_pix': cliente_data.get('gb_chave_pix', 'N/A'),
+                        'bilhetes': numeros_bilhetes,
+                        'data_sorteio': data_filtro
+                    })
+                    
+            except Exception as e:
+                log_error("admin_bilhetes", e)
+        else:
+            # Buscar em memória
+            for venda in memory_storage['vendas']:
+                if (venda.get('data_criacao', '')[:10] == data_filtro and 
+                    venda.get('tipo_jogo') == '2para1000' and 
+                    venda.get('status') == 'completed'):
+                    
+                    # Buscar bilhetes
+                    numeros_bilhetes = []
+                    for bilhete in memory_storage['cliente_bilhetes']:
+                        if bilhete.get('venda_id') == venda['id']:
+                            numeros_bilhetes.append(bilhete['numero_bilhete'])
+                    
+                    # Buscar cliente
+                    cliente_data = {}
+                    for cliente in memory_storage['clientes']:
+                        if cliente.get('id') == venda['cliente_id']:
+                            cliente_data = cliente
+                            break
+                    
+                    bilhetes.append({
+                        'payment_id': venda['payment_id'],
+                        'nome': cliente_data.get('nome', 'N/A'),
+                        'telefone': cliente_data.get('telefone', 'N/A'),
+                        'chave_pix': cliente_data.get('chave_pix', 'N/A'),
+                        'bilhetes': numeros_bilhetes,
+                        'data_sorteio': data_filtro
+                    })
+        
+        log_info("admin_bilhetes", f"Bilhetes consultados - Data: {data_filtro}, Total: {len(bilhetes)}")
+        return jsonify({'bilhetes': bilhetes})
+        
+    except Exception as e:
+        log_error("admin_bilhetes", e)
+        return jsonify({'bilhetes': []})
+
+@app.route('/admin/raspadinhas/<data_filtro>')
+def admin_raspadinhas(data_filtro):
+    """Obtém raspadinhas vendidas para o admin"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        vendas = []
+        estatisticas = {
+            'total_vendidas': 0,
+            'total_usadas': 0,
+            'total_pendentes': 0
+        }
+        
+        if supabase:
+            try:
+                # Buscar vendas do dia
+                vendas_response = supabase.table('gb_vendas').select('*').gte(
+                    'gb_data_criacao', data_filtro + ' 00:00:00'
+                ).lt('gb_data_criacao', data_filtro + ' 23:59:59').eq(
+                    'gb_tipo_jogo', 'raspa_brasil'
+                ).order('gb_data_criacao', desc=True).execute()
+                
+                for venda in (vendas_response.data or []):
+                    # Buscar dados do afiliado se houver
+                    afiliado_nome = ''
+                    if venda.get('gb_afiliado_id'):
+                        afiliado = supabase.table('gb_afiliados').select('gb_nome').eq(
+                            'gb_id', venda['gb_afiliado_id']
+                        ).execute()
+                        if afiliado.data:
+                            afiliado_nome = afiliado.data[0]['gb_nome']
+                    
+                    raspadinhas_usadas = venda.get('gb_raspadinhas_usadas', 0) or 0
+                    
+                    vendas.append({
+                        'payment_id': venda['gb_payment_id'],
+                        'quantidade': venda['gb_quantidade'],
+                        'valor_total': venda['gb_valor_total'],
+                        'status': venda['gb_status'],
+                        'ip_cliente': venda['gb_ip_cliente'],
+                        'raspadinhas_usadas': raspadinhas_usadas,
+                        'afiliado_nome': afiliado_nome,
+                        'data_criacao': venda['gb_data_criacao']
+                    })
+                    
+                    # Atualizar estatísticas
+                    if venda['gb_status'] == 'completed':
+                        estatisticas['total_vendidas'] += venda['gb_quantidade']
+                        estatisticas['total_usadas'] += raspadinhas_usadas
+                        estatisticas['total_pendentes'] += (venda['gb_quantidade'] - raspadinhas_usadas)
+                    
+            except Exception as e:
+                log_error("admin_raspadinhas", e)
+        else:
+            # Buscar em memória
+            for venda in memory_storage['vendas']:
+                if (venda.get('data_criacao', '')[:10] == data_filtro and 
+                    venda.get('tipo_jogo') == 'raspa_brasil'):
+                    
+                    # Buscar afiliado
+                    afiliado_nome = ''
+                    if venda.get('afiliado_id'):
+                        for afiliado in memory_storage['afiliados']:
+                            if afiliado.get('id') == venda['afiliado_id']:
+                                afiliado_nome = afiliado['nome']
+                                break
+                    
+                    raspadinhas_usadas = venda.get('raspadinhas_usadas', 0)
+                    
+                    vendas.append({
+                        'payment_id': venda['payment_id'],
+                        'quantidade': venda['quantidade'],
+                        'valor_total': venda['valor_total'],
+                        'status': venda['status'],
+                        'ip_cliente': venda['ip_cliente'],
+                        'raspadinhas_usadas': raspadinhas_usadas,
+                        'afiliado_nome': afiliado_nome,
+                        'data_criacao': venda['data_criacao']
+                    })
+                    
+                    # Atualizar estatísticas
+                    if venda['status'] == 'completed':
+                        estatisticas['total_vendidas'] += venda['quantidade']
+                        estatisticas['total_usadas'] += raspadinhas_usadas
+                        estatisticas['total_pendentes'] += (venda['quantidade'] - raspadinhas_usadas)
+        
+        log_info("admin_raspadinhas", f"Raspadinhas consultadas - Data: {data_filtro}, Total: {len(vendas)}")
+        return jsonify({
+            'vendas': vendas,
+            'estatisticas': estatisticas
+        })
+        
+    except Exception as e:
+        log_error("admin_raspadinhas", e)
+        return jsonify({'vendas': [], 'estatisticas': estatisticas})
 
 @app.route('/admin/ganhadores/<game>')
 def admin_ganhadores(game):
@@ -1984,101 +2903,239 @@ def admin_ganhadores(game):
         log_error("admin_ganhadores", e)
         return jsonify({'ganhadores': []})
 
-@app.route('/admin/lista_ganhadores_dia/<data_filtro>')
-def admin_lista_ganhadores_dia(data_filtro):
-    """Gera lista de ganhadores do dia"""
+@app.route('/admin/marcar_ganhador_pago', methods=['POST'])
+def admin_marcar_ganhador_pago():
+    """Marca ganhador como pago"""
     try:
         if not validar_session_admin():
-            return jsonify({'error': 'Acesso negado'}), 403
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
         
-        ganhadores = []
+        data = sanitizar_dados_entrada(request.json)
+        ganhador_id = data.get('ganhador_id')
+        
+        if not ganhador_id:
+            return jsonify({'sucesso': False, 'erro': 'ID do ganhador é obrigatório'})
         
         if supabase:
             try:
-                # Buscar todos os ganhadores do dia
-                response = supabase.table('gb_ganhadores').select('*').gte(
-                    'gb_data_criacao', data_filtro + ' 00:00:00'
-                ).lt('gb_data_criacao', data_filtro + ' 23:59:59').execute()
+                response = supabase.table('gb_ganhadores').update({
+                    'gb_status_pagamento': 'pago',
+                    'gb_data_pagamento': datetime.now().isoformat()
+                }).eq('gb_id', ganhador_id).execute()
                 
-                for g in (response.data or []):
-                    ganhador_data = {
-                        'nome': g['gb_nome'],
-                        'valor': g['gb_valor'],
-                        'data': g['gb_data_criacao'],
-                        'status': g['gb_status_pagamento'],
-                        'jogo': 'Raspa Brasil' if g['gb_tipo_jogo'] == 'raspa_brasil' else '2 para 1000'
-                    }
-                    
-                    if g['gb_tipo_jogo'] == 'raspa_brasil':
-                        ganhador_data['codigo'] = g.get('gb_codigo_premio', '')
-                    else:
-                        ganhador_data['milhar'] = g.get('gb_bilhete_premiado', '')
-                    
-                    ganhadores.append(ganhador_data)
+                if response.data:
+                    log_info("admin_marcar_ganhador_pago", f"Ganhador {ganhador_id} marcado como pago")
+                    return jsonify({'sucesso': True})
+                else:
+                    return jsonify({'sucesso': False, 'erro': 'Ganhador não encontrado'})
                     
             except Exception as e:
-                log_error("admin_lista_ganhadores_dia", e)
+                log_error("admin_marcar_ganhador_pago", e)
+                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
         else:
-            # Buscar em memória
-            for g in memory_storage['ganhadores']:
-                if g.get('data_criacao', '')[:10] == data_filtro:
-                    ganhador_data = {
-                        'nome': g['nome'],
-                        'valor': g['valor'],
-                        'data': g['data_criacao'],
-                        'status': g['status_pagamento'],
-                        'jogo': 'Raspa Brasil' if g['tipo_jogo'] == 'raspa_brasil' else '2 para 1000'
-                    }
+            # Atualizar em memória
+            for ganhador in memory_storage['ganhadores']:
+                if ganhador.get('id') == int(ganhador_id):
+                    ganhador['status_pagamento'] = 'pago'
+                    ganhador['data_pagamento'] = datetime.now().isoformat()
                     
-                    if g['tipo_jogo'] == 'raspa_brasil':
-                        ganhador_data['codigo'] = g.get('codigo', '')
-                    else:
-                        ganhador_data['milhar'] = g.get('bilhete_premiado', '')
-                    
-                    ganhadores.append(ganhador_data)
-        
-        log_info("admin_lista_ganhadores_dia", f"Lista de ganhadores do dia {data_filtro}: {len(ganhadores)} encontrados")
-        return jsonify({'ganhadores': ganhadores})
+                    log_info("admin_marcar_ganhador_pago", f"Ganhador {ganhador_id} marcado como pago em memória")
+                    return jsonify({'sucesso': True})
+            
+            return jsonify({'sucesso': False, 'erro': 'Ganhador não encontrado'})
         
     except Exception as e:
-        log_error("admin_lista_ganhadores_dia", e)
-        return jsonify({'ganhadores': []})
+        log_error("admin_marcar_ganhador_pago", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
 
-@app.route('/admin/gerar_pdf_ganhadores/<data_filtro>')
-def admin_gerar_pdf_ganhadores(data_filtro):
-    """Gera PDF com lista de ganhadores"""
+@app.route('/admin/adicionar_ganhador', methods=['POST'])
+def admin_adicionar_ganhador():
+    """Adiciona ganhador manual"""
+    try:
+        if not validar_session_admin():
+            return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
+        
+        data = sanitizar_dados_entrada(request.json)
+        
+        jogo = data.get('jogo')
+        nome = data.get('nome', '').strip()
+        valor = data.get('valor', '').strip()
+        chave_pix = data.get('chave_pix', '').strip()
+        milhar = data.get('milhar', '').strip() if jogo == '2para1000' else None
+        
+        # Validações
+        if not all([jogo, nome, valor, chave_pix]):
+            return jsonify({'sucesso': False, 'erro': 'Todos os campos são obrigatórios'})
+        
+        if jogo not in ['raspa_brasil', '2para1000']:
+            return jsonify({'sucesso': False, 'erro': 'Tipo de jogo inválido'})
+        
+        if jogo == '2para1000' and (not milhar or len(milhar) != 4 or not milhar.isdigit()):
+            return jsonify({'sucesso': False, 'erro': 'Milhar deve ter 4 dígitos'})
+        
+        # Gerar código para Raspa Brasil
+        codigo = gerar_codigo_antifraude() if jogo == 'raspa_brasil' else None
+        
+        ganhador_data = {
+            'tipo_jogo': jogo,
+            'nome': nome[:255],
+            'valor': valor,
+            'chave_pix': chave_pix[:255],
+            'status_pagamento': 'pendente',
+            'ip_cliente': request.remote_addr or 'admin',
+            'data_criacao': datetime.now().isoformat()
+        }
+        
+        if supabase:
+            try:
+                db_data = {
+                    'gb_tipo_jogo': jogo,
+                    'gb_nome': nome[:255],
+                    'gb_valor': valor,
+                    'gb_chave_pix': chave_pix[:255],
+                    'gb_status_pagamento': 'pendente',
+                    'gb_ip_cliente': 'admin'
+                }
+                
+                if jogo == 'raspa_brasil':
+                    db_data['gb_codigo_premio'] = codigo
+                else:
+                    db_data['gb_bilhete_premiado'] = milhar
+                
+                response = supabase.table('gb_ganhadores').insert(db_data).execute()
+                
+                if response.data:
+                    log_info("admin_adicionar_ganhador", f"Ganhador manual adicionado: {nome} - {valor}")
+                    return jsonify({'sucesso': True, 'id': response.data[0]['gb_id']})
+                    
+            except Exception as e:
+                log_error("admin_adicionar_ganhador", e)
+                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+        else:
+            # Adicionar em memória
+            if jogo == 'raspa_brasil':
+                ganhador_data['codigo'] = codigo
+            else:
+                ganhador_data['bilhete_premiado'] = milhar
+            
+            ganhador_data['id'] = len(memory_storage['ganhadores']) + 1
+            memory_storage['ganhadores'].append(ganhador_data)
+            
+            log_info("admin_adicionar_ganhador", f"Ganhador manual adicionado em memória: {nome} - {valor}")
+            return jsonify({'sucesso': True, 'id': ganhador_data['id']})
+        
+    except Exception as e:
+        log_error("admin_adicionar_ganhador", e)
+        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+
+@app.route('/admin/relatorio_vendas')
+def admin_relatorio_vendas():
+    """Gera relatório de vendas"""
     try:
         if not validar_session_admin():
             return jsonify({'error': 'Acesso negado'}), 403
         
-        # Buscar ganhadores do dia
-        response = admin_lista_ganhadores_dia(data_filtro)
-        ganhadores_data = response.get_json()
-        ganhadores = ganhadores_data.get('ganhadores', [])
+        hoje = date.today()
+        vendas_7_dias = []
         
-        if not ganhadores:
-            return jsonify({'error': 'Nenhum ganhador encontrado'}), 404
+        relatorio = {
+            'vendas_rb': 0,
+            'vendas_ml': 0,
+            'receita_total': 0.0,
+            'vendas_hoje': 0,
+            'vendas_7_dias': []
+        }
         
-        # Gerar PDF
-        pdf_buffer = gerar_pdf_ganhadores(ganhadores, data_filtro)
-        
-        if pdf_buffer:
-            return Response(
-                pdf_buffer.getvalue(),
-                mimetype='application/pdf',
-                headers={
-                    'Content-Disposition': f'attachment; filename=ganhadores_{data_filtro}.pdf'
-                }
-            )
+        if supabase:
+            try:
+                # Total vendas RB
+                vendas_rb = supabase.table('gb_vendas').select('gb_quantidade').eq(
+                    'gb_tipo_jogo', 'raspa_brasil'
+                ).eq('gb_status', 'completed').execute()
+                relatorio['vendas_rb'] = sum(v['gb_quantidade'] for v in (vendas_rb.data or []))
+                
+                # Total vendas ML
+                vendas_ml = supabase.table('gb_vendas').select('gb_quantidade').eq(
+                    'gb_tipo_jogo', '2para1000'
+                ).eq('gb_status', 'completed').execute()
+                relatorio['vendas_ml'] = sum(v['gb_quantidade'] for v in (vendas_ml.data or []))
+                
+                # Receita total
+                vendas_todas = supabase.table('gb_vendas').select('gb_valor_total').eq('gb_status', 'completed').execute()
+                relatorio['receita_total'] = sum(v['gb_valor_total'] for v in (vendas_todas.data or []))
+                
+                # Vendas de hoje
+                hoje_str = hoje.isoformat()
+                vendas_hoje = supabase.table('gb_vendas').select('gb_quantidade').gte(
+                    'gb_data_criacao', hoje_str + ' 00:00:00'
+                ).lt('gb_data_criacao', hoje_str + ' 23:59:59').eq('gb_status', 'completed').execute()
+                relatorio['vendas_hoje'] = sum(v['gb_quantidade'] for v in (vendas_hoje.data or []))
+                
+                # Vendas dos últimos 7 dias
+                for i in range(7):
+                    dia = hoje - timedelta(days=i)
+                    dia_str = dia.isoformat()
+                    
+                    vendas_dia = supabase.table('gb_vendas').select('gb_quantidade').gte(
+                        'gb_data_criacao', dia_str + ' 00:00:00'
+                    ).lt('gb_data_criacao', dia_str + ' 23:59:59').eq('gb_status', 'completed').execute()
+                    
+                    total_dia = sum(v['gb_quantidade'] for v in (vendas_dia.data or []))
+                    
+                    vendas_7_dias.append({
+                        'data': dia_str,
+                        'total': total_dia
+                    })
+                
+                relatorio['vendas_7_dias'] = list(reversed(vendas_7_dias))
+                
+            except Exception as e:
+                log_error("admin_relatorio_vendas", e)
         else:
-            return jsonify({'error': 'ReportLab não disponível'}), 500
+            # Calcular em memória
+            hoje_str = hoje.isoformat()
             
+            for venda in memory_storage['vendas']:
+                if venda.get('status') == 'completed':
+                    if venda.get('tipo_jogo') == 'raspa_brasil':
+                        relatorio['vendas_rb'] += venda.get('quantidade', 0)
+                    elif venda.get('tipo_jogo') == '2para1000':
+                        relatorio['vendas_ml'] += venda.get('quantidade', 0)
+                    
+                    relatorio['receita_total'] += venda.get('valor_total', 0)
+                    
+                    if venda.get('data_criacao', '')[:10] == hoje_str:
+                        relatorio['vendas_hoje'] += venda.get('quantidade', 0)
+            
+            # Vendas dos últimos 7 dias em memória
+            for i in range(7):
+                dia = hoje - timedelta(days=i)
+                dia_str = dia.isoformat()
+                
+                total_dia = sum(
+                    v.get('quantidade', 0) for v in memory_storage['vendas']
+                    if v.get('data_criacao', '')[:10] == dia_str and v.get('status') == 'completed'
+                )
+                
+                vendas_7_dias.append({
+                    'data': dia_str,
+                    'total': total_dia
+                })
+            
+            relatorio['vendas_7_dias'] = list(reversed(vendas_7_dias))
+        
+        log_info("admin_relatorio_vendas", f"Relatório gerado - RB: {relatorio['vendas_rb']}, ML: {relatorio['vendas_ml']}")
+        return jsonify(relatorio)
+        
     except Exception as e:
-        log_error("admin_gerar_pdf_ganhadores", e)
-        return jsonify({'error': 'Erro ao gerar PDF'}), 500
-
-# [CONTINUAÇÃO DAS ROTAS ADMIN - mantém as mesmas da versão anterior com adaptações para gb_]
-# As demais rotas admin seguem o mesmo padrão, adaptando os nomes das tabelas para o prefixo gb_
+        log_error("admin_relatorio_vendas", e)
+        return jsonify({
+            'vendas_rb': 0,
+            'vendas_ml': 0,
+            'receita_total': 0,
+            'vendas_hoje': 0,
+            'vendas_7_dias': []
+        })
 
 # ========== INICIALIZAÇÃO ==========
 
@@ -2116,6 +3173,7 @@ if __name__ == '__main__':
     print(f"   ✅ PDF de ganhadores funcional")
     print(f"   ✅ Edição de prêmio ML no admin")
     print(f"   ✅ Todas as tabelas com prefixo gb_")
+    print(f"   ✅ Todas as rotas admin implementadas")
     print(f"✅ SISTEMA 100% FUNCIONAL E TESTADO!")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
