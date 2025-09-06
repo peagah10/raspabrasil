@@ -39,8 +39,6 @@ try:
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.lib.enums import TA_CENTER
-    from reportlab.graphics.shapes import Drawing, Circle
-    from reportlab.graphics import renderPDF
     reportlab_available = True
 except ImportError:
     reportlab_available = False
@@ -70,7 +68,7 @@ PREMIO_INICIAL_ML = 1000.00
 PRECO_BILHETE_ML = 2.00
 PRECO_RASPADINHA_RB = 1.00
 ADMIN_PASSWORD = "paulo10@admin"
-APP_VERSION = "3.0.2"
+APP_VERSION = "3.0.1"
 
 # Sistema de armazenamento em memória (fallback quando Supabase não estiver disponível)
 memory_storage = {
@@ -403,142 +401,6 @@ def processar_comissao_afiliado(afiliado_id, valor_venda, venda_id):
                     
     except Exception as e:
         log_error("processar_comissao_afiliado", e)
-
-def gerar_pdf_ganhadores(data_filtro):
-    """Gera PDF dos ganhadores no estilo do documento anexado"""
-    if not reportlab_available:
-        return None
-    
-    try:
-        # Buscar ganhadores do dia
-        ganhadores_data = []
-        
-        if supabase:
-            try:
-                response = supabase.table('gb_ganhadores').select('*').gte(
-                    'gb_data_criacao', data_filtro + ' 00:00:00'
-                ).lt('gb_data_criacao', data_filtro + ' 23:59:59').execute()
-                
-                for g in (response.data or []):
-                    ganhadores_data.append({
-                        'nome': g['gb_nome'],
-                        'valor': g['gb_valor'],
-                        'data': g['gb_data_criacao']
-                    })
-            except Exception as e:
-                log_error("gerar_pdf_ganhadores_supabase", e)
-        else:
-            # Buscar em memória
-            for g in memory_storage['ganhadores']:
-                if g.get('data_criacao', '')[:10] == data_filtro:
-                    ganhadores_data.append({
-                        'nome': g['nome'],
-                        'valor': g['valor'],
-                        'data': g['data_criacao']
-                    })
-        
-        if not ganhadores_data:
-            return None
-        
-        # Criar PDF
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
-        
-        # Container para os elementos
-        elementos = []
-        
-        # Estilos
-        styles = getSampleStyleSheet()
-        
-        # Estilo do título
-        titulo_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=24,
-            spaceAfter=12,
-            alignment=TA_CENTER,
-            textColor=colors.green
-        )
-        
-        # Estilo do subtítulo
-        subtitulo_style = ParagraphStyle(
-            'CustomSubtitle',
-            parent=styles['Heading2'],
-            fontSize=16,
-            spaceAfter=20,
-            alignment=TA_CENTER,
-            textColor=colors.blue
-        )
-        
-        # Logo (simulado - círculo verde com texto)
-        logo_drawing = Drawing(60, 60)
-        logo_drawing.add(Circle(30, 30, 25, fillColor=colors.green, strokeColor=colors.darkgreen))
-        elementos.append(logo_drawing)
-        elementos.append(Spacer(1, 12))
-        
-        # Título
-        elementos.append(Paragraph("RASPA BRASIL", titulo_style))
-        elementos.append(Spacer(1, 6))
-        
-        # Subtítulo
-        elementos.append(Paragraph("Raspou, Achou, Ganhou!", subtitulo_style))
-        elementos.append(Spacer(1, 12))
-        
-        # Data do relatório
-        data_formatada = datetime.strptime(data_filtro, '%Y-%m-%d').strftime('%d/%m/%Y')
-        elementos.append(Paragraph(f"Relatório do dia: {data_formatada}", styles['Normal']))
-        elementos.append(Spacer(1, 20))
-        
-        # Tabela de ganhadores
-        dados_tabela = [['Nome Completo', 'Valor Ganho', 'Data do Prêmio']]
-        
-        for ganhador in ganhadores_data:
-            data_premio = datetime.fromisoformat(ganhador['data']).strftime('%d/%m/%Y')
-            dados_tabela.append([
-                ganhador['nome'],
-                ganhador['valor'],
-                data_premio
-            ])
-        
-        # Criar tabela
-        tabela = Table(dados_tabela)
-        tabela.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.green),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        
-        elementos.append(tabela)
-        elementos.append(Spacer(1, 30))
-        
-        # Mensagem final
-        mensagem_final = ParagraphStyle(
-            'MensagemFinal',
-            parent=styles['Normal'],
-            fontSize=16,
-            alignment=TA_CENTER,
-            textColor=colors.green,
-            spaceAfter=12
-        )
-        
-        elementos.append(Paragraph("O próximo ganhador pode ser você!", mensagem_final))
-        elementos.append(Paragraph("Raspa Brasil", mensagem_final))
-        
-        # Construir PDF
-        doc.build(elementos)
-        
-        # Retornar buffer
-        buffer.seek(0)
-        return buffer
-        
-    except Exception as e:
-        log_error("gerar_pdf_ganhadores", e)
-        return None
 
 # ========== ROTAS PRINCIPAIS ==========
 
@@ -3235,41 +3097,13 @@ def admin_relatorio_vendas():
             'vendas_7_dias': []
         })
 
-@app.route('/admin/gerar_pdf_ganhadores/<data_filtro>')
-def admin_gerar_pdf_ganhadores(data_filtro):
-    """Gera PDF dos ganhadores do dia especificado"""
-    try:
-        if not validar_session_admin():
-            return jsonify({'error': 'Acesso negado'}), 403
-        
-        # Gerar PDF
-        pdf_buffer = gerar_pdf_ganhadores(data_filtro)
-        
-        if not pdf_buffer:
-            return jsonify({'error': 'Nenhum ganhador encontrado para esta data'}), 404
-        
-        # Retornar PDF
-        response = Response(
-            pdf_buffer.getvalue(),
-            mimetype='application/pdf',
-            headers={
-                'Content-Disposition': f'attachment; filename=ganhadores_{data_filtro}.pdf'
-            }
-        )
-        
-        return response
-        
-    except Exception as e:
-        log_error("admin_gerar_pdf_ganhadores", e)
-        return jsonify({'error': 'Erro ao gerar PDF'}), 500
-
 # ========== INICIALIZAÇÃO ==========
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    print("🚀 Iniciando GANHA BRASIL - Sistema Integrado v3.0.2...")
+    print("🚀 Iniciando GANHA BRASIL - Sistema Integrado v3.0.1...")
     print(f"🌐 Porta: {port}")
     print(f"💳 Mercado Pago: {'✅ Real' if sdk else '🔄 Simulado'}")
     print(f"🔗 Supabase: {'✅ Conectado' if supabase else '🔄 Memória'}")
@@ -3288,13 +3122,16 @@ if __name__ == '__main__':
     print(f"🔐 Senha Admin: {ADMIN_PASSWORD}")
     print(f"🎨 Frontend: Integração total com index.html")
     print(f"💾 Storage: Supabase com fallback em memória")
-    print(f"🆕 CORREÇÕES V3.0.2:")
-    print(f"   ✅ Correção da data - mostra exatamente o dia escolhido")
-    print(f"   ✅ Cabeçalho agora acompanha o scroll da página")
-    print(f"   ✅ Afiliados cadastrados aparecem corretamente na admin")
-    print(f"   ✅ Saques de afiliados aparecem na sessão Saques")
-    print(f"   ✅ Relatório PDF implementado no estilo solicitado")
-    print(f"   ✅ Layout da bandeira corrigido")
-    print(f"✅ SISTEMA TOTALMENTE FUNCIONAL E CORRIGIDO!")
+    print(f"🆕 CORREÇÕES V3.0.1:")
+    print(f"   ✅ Todas as rotas admin corrigidas")
+    print(f"   ✅ Erros 404 resolvidos")
+    print(f"   ✅ Sistema de login estável")
+    print(f"   ✅ Área do cliente funcional")
+    print(f"   ✅ Minhas Raspadinhas operacional")
+    print(f"   ✅ Meus Bilhetes funcionando")
+    print(f"   ✅ Integração frontend/backend correta")
+    print(f"   ✅ Tratamento de erros aprimorado")
+    print(f"✅ SISTEMA TOTALMENTE FUNCIONAL!")
 
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
+
