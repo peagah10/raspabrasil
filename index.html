@@ -5145,38 +5145,7 @@ Solicito o pagamento do meu prêmio!`;
                                         <small style="color: #666;">Prêmio</small>
                                     </div>
                                     <div style="text-align: center;">
-                                        let dataFormatada = 'Data não disponível';
-
-const possiveisDatatas = [
-    ganhador.data_ganho, 
-    ganhador.data_criacao, 
-    ganhador.gb_data_criacao,
-    ganhador.created_at,
-    ganhador.timestamp
-];
-
-for (const dataCandidata of possiveisDatatas) {
-    if (dataCandidata) {
-        try {
-            const data = new Date(dataCandidata);
-            if (!isNaN(data.getTime())) {
-                dataFormatada = data.toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit', 
-                    year: 'numeric'
-                }) + ' às ' + data.toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                break; // Para no primeiro que funcionar
-            }
-        } catch (error) {
-            console.error('Erro ao formatar data:', dataCandidata, error);
-        }
-    }
-}
-
-<div style="color: #666; font-size: 0.9em; line-height: 1.2;">${dataFormatada}</div>
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data_ganho).toLocaleDateString('pt-BR')}</div>
                                         <small style="color: #666;">Data</small>
                                     </div>
                                     <div style="text-align: right;">
