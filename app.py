@@ -2930,7 +2930,7 @@ def admin_marcar_ganhador_pago():
 
 @app.route('/admin/adicionar_ganhador', methods=['POST'])
 def admin_adicionar_ganhador():
-    """Adiciona ganhador manual - CORRIGIDO para aceitar 2para1000"""
+    """Adiciona ganhador manual - CORRIGIDO para 2para1000"""
     try:
         if not validar_session_admin():
             return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
@@ -2941,7 +2941,10 @@ def admin_adicionar_ganhador():
         nome = data.get('nome', '').strip()
         valor = data.get('valor', '').strip()
         chave_pix = data.get('chave_pix', '').strip()
+        tipo_chave = data.get('tipo_chave', 'cpf')
         milhar = data.get('milhar', '').strip() if jogo == '2para1000' else None
+        
+        log_info("admin_adicionar_ganhador", f"Tentativa: Jogo={jogo}, Nome={nome}, Valor={valor}, Milhar={milhar}")
         
         # Validações
         if not all([jogo, nome, valor, chave_pix]):
@@ -2950,63 +2953,97 @@ def admin_adicionar_ganhador():
         if jogo not in ['raspa_brasil', '2para1000']:
             return jsonify({'sucesso': False, 'erro': 'Tipo de jogo inválido'})
         
-        if jogo == '2para1000' and (not milhar or len(milhar) != 4 or not milhar.isdigit()):
-            return jsonify({'sucesso': False, 'erro': 'Milhar deve ter 4 dígitos'})
+        # VALIDAÇÃO ESPECÍFICA PARA 2PARA1000
+        if jogo == '2para1000':
+            if not milhar or len(milhar) != 4 or not milhar.isdigit():
+                return jsonify({'sucesso': False, 'erro': 'Milhar deve ter exatamente 4 dígitos numéricos'})
+            
+            # Verificar se a milhar não está duplicada
+            if supabase:
+                try:
+                    existing_milhar = supabase.table('gb_ganhadores').select('gb_id').eq('gb_bilhete_premiado', milhar).eq('gb_tipo_jogo', '2para1000').execute()
+                    if existing_milhar.data:
+                        return jsonify({'sucesso': False, 'erro': 'Esta milhar já foi utilizada por outro ganhador'})
+                except Exception as e:
+                    log_error("admin_adicionar_ganhador_check_milhar", e)
         
         # Gerar código para Raspa Brasil
         codigo = gerar_codigo_antifraude() if jogo == 'raspa_brasil' else None
         
-        ganhador_data = {
-            'tipo_jogo': jogo,
-            'nome': nome[:255],
-            'valor': valor,
-            'chave_pix': chave_pix[:255],
-            'status_pagamento': 'pendente',
-            'ip_cliente': request.remote_addr or 'admin',
-            'data_criacao': datetime.now().isoformat()
-        }
-        
         if supabase:
             try:
+                # Preparar dados do banco - ESTRUTURA CORRIGIDA
                 db_data = {
                     'gb_tipo_jogo': jogo,
                     'gb_nome': nome[:255],
                     'gb_valor': valor,
                     'gb_chave_pix': chave_pix[:255],
+                    'gb_tipo_chave_pix': tipo_chave,
                     'gb_status_pagamento': 'pendente',
-                    'gb_ip_cliente': 'admin'
+                    'gb_ip_cliente': 'admin_manual'
                 }
                 
+                # Adicionar campos específicos por jogo
                 if jogo == 'raspa_brasil':
                     db_data['gb_codigo_premio'] = codigo
-                else:
+                    log_info("admin_adicionar_ganhador", f"Adicionando Raspa Brasil - Código: {codigo}")
+                else:  # 2para1000
                     db_data['gb_bilhete_premiado'] = milhar
+                    log_info("admin_adicionar_ganhador", f"Adicionando 2para1000 - Milhar: {milhar}")
                 
+                # INSERIR NO BANCO
                 response = supabase.table('gb_ganhadores').insert(db_data).execute()
                 
-                if response.data:
-                    log_info("admin_adicionar_ganhador", f"Ganhador manual adicionado: {nome} - {valor} - Jogo: {jogo}")
-                    return jsonify({'sucesso': True, 'id': response.data[0]['gb_id']})
+                if response.data and len(response.data) > 0:
+                    ganhador_id = response.data[0]['gb_id']
+                    log_info("admin_adicionar_ganhador", f"✅ SUCESSO: Ganhador {jogo} adicionado - ID: {ganhador_id}, Nome: {nome}, Valor: {valor}")
+                    
+                    # Retornar dados completos
+                    return jsonify({
+                        'sucesso': True, 
+                        'id': ganhador_id,
+                        'dados': {
+                            'jogo': jogo,
+                            'nome': nome,
+                            'valor': valor,
+                            'milhar': milhar if jogo == '2para1000' else None,
+                            'codigo': codigo if jogo == 'raspa_brasil' else None
+                        }
+                    })
+                else:
+                    log_error("admin_adicionar_ganhador", "Resposta vazia do Supabase")
+                    return jsonify({'sucesso': False, 'erro': 'Erro: resposta vazia do banco de dados'})
                     
             except Exception as e:
-                log_error("admin_adicionar_ganhador", e)
-                return jsonify({'sucesso': False, 'erro': 'Erro no banco de dados'})
+                log_error("admin_adicionar_ganhador", f"Erro no Supabase: {str(e)}")
+                return jsonify({'sucesso': False, 'erro': f'Erro no banco de dados: {str(e)}'})
         else:
             # Adicionar em memória
+            ganhador_data = {
+                'id': len(memory_storage['ganhadores']) + 1,
+                'tipo_jogo': jogo,
+                'nome': nome[:255],
+                'valor': valor,
+                'chave_pix': chave_pix[:255],
+                'tipo_chave_pix': tipo_chave,
+                'status_pagamento': 'pendente',
+                'ip_cliente': 'admin_manual',
+                'data_criacao': datetime.now().isoformat()
+            }
+            
             if jogo == 'raspa_brasil':
                 ganhador_data['codigo'] = codigo
             else:
                 ganhador_data['bilhete_premiado'] = milhar
             
-            ganhador_data['id'] = len(memory_storage['ganhadores']) + 1
             memory_storage['ganhadores'].append(ganhador_data)
             
             log_info("admin_adicionar_ganhador", f"Ganhador manual adicionado em memória: {nome} - {valor} - Jogo: {jogo}")
             return jsonify({'sucesso': True, 'id': ganhador_data['id']})
         
     except Exception as e:
-        log_error("admin_adicionar_ganhador", e)
-        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'})
+        log_error("admin_adicionar_ganhador", f"Erro geral: {str(e)}")
+        return jsonify({'sucesso': False, 'erro': f'Erro interno: {str(e)}'})
 
 @app.route('/admin/relatorio_vendas')
 def admin_relatorio_vendas():
