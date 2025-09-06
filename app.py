@@ -2930,49 +2930,98 @@ def admin_marcar_ganhador_pago():
 
 @app.route('/admin/adicionar_ganhador', methods=['POST'])
 def admin_adicionar_ganhador():
-    """Adiciona ganhador manual - CORRIGIDO para 2para1000"""
+    """Adiciona ganhador manual - VERSÃO DEBUG COMPLETA"""
     try:
         if not validar_session_admin():
             return jsonify({'sucesso': False, 'erro': 'Acesso negado'}), 403
         
-        data = sanitizar_dados_entrada(request.json)
+        # DEBUG: Log dos dados RAW recebidos
+        raw_data = request.json
+        log_info("admin_adicionar_ganhador", f"🔍 DADOS RAW RECEBIDOS: {raw_data}")
+        
+        data = sanitizar_dados_entrada(raw_data)
+        log_info("admin_adicionar_ganhador", f"🔍 DADOS APÓS SANITIZAÇÃO: {data}")
         
         jogo = data.get('jogo')
         nome = data.get('nome', '').strip()
         valor = data.get('valor', '').strip()
         chave_pix = data.get('chave_pix', '').strip()
         tipo_chave = data.get('tipo_chave', 'cpf')
-        milhar = data.get('milhar', '').strip() if jogo == '2para1000' else None
+        telefone = data.get('telefone', '').strip()
         
-        log_info("admin_adicionar_ganhador", f"Tentativa: Jogo={jogo}, Nome={nome}, Valor={valor}, Milhar={milhar}")
+        # DEBUG ESPECÍFICO PARA MILHAR
+        milhar_raw = data.get('milhar')
+        log_info("admin_adicionar_ganhador", f"🔍 MILHAR RAW: '{milhar_raw}' (tipo: {type(milhar_raw)})")
         
-        # Validações
+        if jogo == '2para1000':
+            # Tentar diferentes formas de obter a milhar
+            possible_keys = ['milhar', 'numero', 'bilhete', 'numero_bilhete', 'milhar_premiada']
+            milhar = None
+            
+            for key in possible_keys:
+                if key in data and data[key] is not None:
+                    milhar = str(data[key]).strip()
+                    log_info("admin_adicionar_ganhador", f"🔍 MILHAR ENCONTRADA EM '{key}': '{milhar}'")
+                    break
+            
+            if milhar is None:
+                log_error("admin_adicionar_ganhador", f"❌ MILHAR NÃO ENCONTRADA. Chaves disponíveis: {list(data.keys())}")
+                return jsonify({'sucesso': False, 'erro': 'Campo milhar não encontrado nos dados enviados'})
+                
+            log_info("admin_adicionar_ganhador", f"🔍 MILHAR FINAL: '{milhar}' (len: {len(milhar)})")
+        else:
+            milhar = None
+        
+        log_info("admin_adicionar_ganhador", f"📝 DADOS FINAIS - Jogo: '{jogo}', Nome: '{nome}', Valor: '{valor}', Milhar: '{milhar}'")
+        
+        # Validações básicas
         if not all([jogo, nome, valor, chave_pix]):
-            return jsonify({'sucesso': False, 'erro': 'Todos os campos são obrigatórios'})
+            missing = []
+            if not jogo: missing.append('jogo')
+            if not nome: missing.append('nome')
+            if not valor: missing.append('valor')
+            if not chave_pix: missing.append('chave_pix')
+            return jsonify({'sucesso': False, 'erro': f'Campos obrigatórios ausentes: {", ".join(missing)}'})
         
         if jogo not in ['raspa_brasil', '2para1000']:
-            return jsonify({'sucesso': False, 'erro': 'Tipo de jogo inválido'})
+            return jsonify({'sucesso': False, 'erro': f'Tipo de jogo inválido: {jogo}. Deve ser raspa_brasil ou 2para1000'})
         
-        # VALIDAÇÃO ESPECÍFICA PARA 2PARA1000
+        # VALIDAÇÃO ESPECÍFICA PARA 2PARA1000 COM DEBUG
         if jogo == '2para1000':
-            if not milhar or len(milhar) != 4 or not milhar.isdigit():
-                return jsonify({'sucesso': False, 'erro': 'Milhar deve ter exatamente 4 dígitos numéricos'})
+            log_info("admin_adicionar_ganhador", f"🎯 VALIDANDO 2PARA1000 - Milhar: '{milhar}'")
             
-            # Verificar se a milhar não está duplicada
+            if not milhar:
+                return jsonify({'sucesso': False, 'erro': 'Campo milhar é obrigatório para 2para1000'})
+            
+            # Remover todos os espaços e caracteres especiais
+            milhar_clean = ''.join(c for c in milhar if c.isdigit())
+            log_info("admin_adicionar_ganhador", f"🔧 MILHAR LIMPA: '{milhar_clean}' (original: '{milhar}')")
+            
+            if len(milhar_clean) != 4:
+                return jsonify({'sucesso': False, 'erro': f'Milhar deve ter 4 dígitos. Recebido: "{milhar}" (limpo: "{milhar_clean}", {len(milhar_clean)} dígitos)'})
+            
+            if not milhar_clean.isdigit():
+                return jsonify({'sucesso': False, 'erro': f'Milhar deve conter apenas números. Recebido: "{milhar_clean}"'})
+            
+            # Usar a milhar limpa
+            milhar = milhar_clean
+            log_info("admin_adicionar_ganhador", f"✅ MILHAR VALIDADA: '{milhar}'")
+            
+            # Verificar duplicata
             if supabase:
                 try:
-                    existing_milhar = supabase.table('gb_ganhadores').select('gb_id').eq('gb_bilhete_premiado', milhar).eq('gb_tipo_jogo', '2para1000').execute()
-                    if existing_milhar.data:
-                        return jsonify({'sucesso': False, 'erro': 'Esta milhar já foi utilizada por outro ganhador'})
+                    existing = supabase.table('gb_ganhadores').select('gb_id').eq('gb_bilhete_premiado', milhar).eq('gb_tipo_jogo', '2para1000').execute()
+                    if existing.data:
+                        return jsonify({'sucesso': False, 'erro': f'Milhar {milhar} já foi utilizada por outro ganhador'})
                 except Exception as e:
-                    log_error("admin_adicionar_ganhador_check_milhar", e)
+                    log_error("admin_adicionar_ganhador_check", e)
         
         # Gerar código para Raspa Brasil
         codigo = gerar_codigo_antifraude() if jogo == 'raspa_brasil' else None
         
         if supabase:
             try:
-                # Preparar dados do banco - ESTRUTURA CORRIGIDA
+                # Preparar dados - ESTRUTURA EXATA DA TABELA
                 db_data = {
                     'gb_tipo_jogo': jogo,
                     'gb_nome': nome[:255],
@@ -2983,25 +3032,34 @@ def admin_adicionar_ganhador():
                     'gb_ip_cliente': 'admin_manual'
                 }
                 
-                # Adicionar campos específicos por jogo
+                # Adicionar telefone se fornecido
+                if telefone:
+                    db_data['gb_telefone'] = telefone[:20]
+                
+                # CAMPOS ESPECÍFICOS POR JOGO
                 if jogo == 'raspa_brasil':
                     db_data['gb_codigo_premio'] = codigo
-                    log_info("admin_adicionar_ganhador", f"Adicionando Raspa Brasil - Código: {codigo}")
+                    log_info("admin_adicionar_ganhador", f"🎫 Raspa Brasil - Código: {codigo}")
                 else:  # 2para1000
                     db_data['gb_bilhete_premiado'] = milhar
-                    log_info("admin_adicionar_ganhador", f"Adicionando 2para1000 - Milhar: {milhar}")
+                    log_info("admin_adicionar_ganhador", f"🎯 2para1000 - Milhar: {milhar}")
                 
-                # INSERIR NO BANCO
+                log_info("admin_adicionar_ganhador", f"📊 DADOS PARA INSERÇÃO: {db_data}")
+                
+                # INSERIR NO BANCO DE DADOS
                 response = supabase.table('gb_ganhadores').insert(db_data).execute()
+                
+                log_info("admin_adicionar_ganhador", f"📤 RESPOSTA SUPABASE: status={response.status_code if hasattr(response, 'status_code') else 'N/A'}")
+                log_info("admin_adicionar_ganhador", f"📤 DADOS RESPOSTA: {response.data}")
                 
                 if response.data and len(response.data) > 0:
                     ganhador_id = response.data[0]['gb_id']
-                    log_info("admin_adicionar_ganhador", f"✅ SUCESSO: Ganhador {jogo} adicionado - ID: {ganhador_id}, Nome: {nome}, Valor: {valor}")
+                    log_info("admin_adicionar_ganhador", f"✅ SUCESSO! Ganhador {jogo} inserido - ID: {ganhador_id}")
                     
-                    # Retornar dados completos
                     return jsonify({
                         'sucesso': True, 
                         'id': ganhador_id,
+                        'mensagem': f'Ganhador {jogo} adicionado com sucesso!',
                         'dados': {
                             'jogo': jogo,
                             'nome': nome,
@@ -3011,14 +3069,15 @@ def admin_adicionar_ganhador():
                         }
                     })
                 else:
-                    log_error("admin_adicionar_ganhador", "Resposta vazia do Supabase")
+                    log_error("admin_adicionar_ganhador", f"❌ RESPOSTA VAZIA - Response: {response}")
                     return jsonify({'sucesso': False, 'erro': 'Erro: resposta vazia do banco de dados'})
                     
             except Exception as e:
-                log_error("admin_adicionar_ganhador", f"Erro no Supabase: {str(e)}")
-                return jsonify({'sucesso': False, 'erro': f'Erro no banco de dados: {str(e)}'})
+                log_error("admin_adicionar_ganhador", f"❌ ERRO SUPABASE: {str(e)}")
+                log_error("admin_adicionar_ganhador", f"❌ TRACEBACK: {traceback.format_exc()}")
+                return jsonify({'sucesso': False, 'erro': f'Erro no banco: {str(e)}'})
         else:
-            # Adicionar em memória
+            # MODO MEMÓRIA
             ganhador_data = {
                 'id': len(memory_storage['ganhadores']) + 1,
                 'tipo_jogo': jogo,
@@ -3026,6 +3085,7 @@ def admin_adicionar_ganhador():
                 'valor': valor,
                 'chave_pix': chave_pix[:255],
                 'tipo_chave_pix': tipo_chave,
+                'telefone': telefone[:20] if telefone else '',
                 'status_pagamento': 'pendente',
                 'ip_cliente': 'admin_manual',
                 'data_criacao': datetime.now().isoformat()
@@ -3038,11 +3098,12 @@ def admin_adicionar_ganhador():
             
             memory_storage['ganhadores'].append(ganhador_data)
             
-            log_info("admin_adicionar_ganhador", f"Ganhador manual adicionado em memória: {nome} - {valor} - Jogo: {jogo}")
+            log_info("admin_adicionar_ganhador", f"✅ Ganhador {jogo} adicionado em memória - ID: {ganhador_data['id']}")
             return jsonify({'sucesso': True, 'id': ganhador_data['id']})
         
     except Exception as e:
-        log_error("admin_adicionar_ganhador", f"Erro geral: {str(e)}")
+        log_error("admin_adicionar_ganhador", f"❌ ERRO GERAL: {str(e)}")
+        log_error("admin_adicionar_ganhador", f"❌ TRACEBACK COMPLETO: {traceback.format_exc()}")
         return jsonify({'sucesso': False, 'erro': f'Erro interno: {str(e)}'})
 
 @app.route('/admin/relatorio_vendas')
