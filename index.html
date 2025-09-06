@@ -13,6 +13,12 @@
     <meta property="og:type" content="website">
     <meta property="og:locale" content="pt_BR">
     
+     <!-- Para WhatsApp e navegadores que usam Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="GANHA BRASIL - Raspa Brasil & 2 para 1000">
+    <meta name="twitter:description" content="Dois jogos em um só lugar! Raspadinhas virtuais e bilhetes da milhar. Ganhe até R$1.000!">
+    <meta name="twitter:image" content="https://raspabrasil.onrender.com/static/images/logo.jpg">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -76,21 +82,22 @@
             background: rgba(255, 255, 255, 0.98);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-heavy);
-            margin-top: 20px;
+            margin-top: 80px;
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        /* Barra Superior com Login e Botão Indique - CORRIGIDA */
+        /* Barra Superior com Login e Botão Indique */
         .top-bar {
-            position: relative;
+            position: flex;
+            top: 0;
+            left: 0;
             width: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 238, 2, 0.63);
             backdrop-filter: blur(10px);
             box-shadow: var(--shadow-light);
             z-index: 1000;
             padding: 10px 20px;
-            margin-bottom: 20px;
         }
 
         .top-bar-content {
@@ -130,7 +137,7 @@
             box-shadow: var(--shadow-medium);
         }
 
-        /* Botão Indique e Ganhe */
+        /* Botão Indique e Ganhe - Fixo no topo */
         .indique-ganhe-btn {
             background: linear-gradient(135deg, #ff6b35, #ffd93d);
             border: none;
@@ -533,7 +540,7 @@
 
         /* CTA Message */
         .cta-message {
-            background: linear-gradient(135deg, var(--primary-red), #ef4444);
+            background: linear-gradient(135deg, var(--primary-green), #f8f536ff);
             color: white;
             padding: clamp(20px, 5vw, 30px);
             border-radius: var(--border-radius);
@@ -1415,7 +1422,7 @@
         /* Responsive */
         @media (max-width: 768px) {
             .container {
-                margin-top: 20px;
+                margin-top: 120px;
                 padding: 15px;
             }
 
@@ -1469,7 +1476,7 @@
 
         @media (max-width: 480px) {
             .container {
-                margin-top: 20px;
+                margin-top: 100px;
                 padding: 10px;
             }
 
@@ -1500,7 +1507,7 @@
     </style>
 </head>
 <body>
-    <!-- Barra Superior com Login e Botão Indique - CORRIGIDA -->
+    <!-- Barra Superior com Login e Botão Indique -->
     <div class="top-bar">
         <div class="top-bar-content">
             <div class="login-info" id="login-info">
@@ -2848,17 +2855,12 @@
     </div>
 
     <script>
-        // CORREÇÃO: Sistema de data brasileiro simplificado
-        function obterDataAtual() {
-            return new Date();
-        }
-
-        function formatarData(data) {
-            return data.toISOString().split('T')[0];
-        }
-
-        function formatarDataBR(data) {
-            return data.toLocaleDateString('pt-BR');
+        // CONFIGURAÇÃO DO HORÁRIO DE BRASÍLIA (UTC-3)
+        function obterDataHoraBrasilia() {
+            const agora = new Date();
+            const utc = agora.getTime() + (agora.getTimezoneOffset() * 60000);
+            const brasilia = new Date(utc + (-3 * 3600000));
+            return brasilia;
         }
 
         // Variáveis globais
@@ -3139,7 +3141,7 @@
                 return;
             }
             
-            if (!cpf || cpf.length !== 11 || !cpf.isdigit()) {
+            if (!cpf || cpf.length !== 11) {
                 messageDiv.innerHTML = '<div style="color: #dc2626;">Digite um CPF válido</div>';
                 return;
             }
@@ -4051,7 +4053,7 @@ Solicito o pagamento do meu prêmio!`;
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: center;">
                                         <div>
                                             <strong>Data:</strong><br>
-                                            ${formatarDataBR(obterDataAtual())}
+                                            ${obterDataHoraBrasilia().toLocaleDateString('pt-BR')}
                                         </div>
                                         <div>
                                             <strong>Valor:</strong><br>
@@ -4459,7 +4461,7 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // CORREÇÃO: Admin functions corrigidas
+        // Admin functions
         function abrirAdmin() {
             document.getElementById('admin-modal').style.display = 'flex';
         }
@@ -4569,305 +4571,7 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // CORREÇÃO: Função de carregamento de afiliados corrigida
-        async function carregarDadosAfiliados() {
-            try {
-                const response = await fetch('/admin/afiliados');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const resultado = await response.json();
-                
-                // Atualizar contadores
-                document.getElementById('admin-total-afiliados').textContent = resultado.afiliados?.length || 0;
-                
-                let totalVendas = 0;
-                let totalComissoes = 0;
-                
-                resultado.afiliados?.forEach(afiliado => {
-                    totalVendas += afiliado.total_vendas || 0;
-                    totalComissoes += afiliado.total_comissao || 0;
-                });
-                
-                document.getElementById('admin-vendas-afiliados').textContent = totalVendas;
-                document.getElementById('admin-comissoes-pagas').textContent = `R$ ${totalComissoes.toFixed(2).replace('.', ',')}`;
-                
-                const container = document.getElementById('admin-lista-afiliados');
-                if (resultado.afiliados && resultado.afiliados.length > 0) {
-                    let html = '';
-                    
-                    resultado.afiliados.forEach((afiliado, index) => {
-                        html += `
-                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #ff6b35; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center;">
-                                    <div>
-                                        <strong style="color: #333; font-size: 1.1em;">${afiliado.nome}</strong><br>
-                                        <small style="color: #666;">Código: ${afiliado.codigo}</small><br>
-                                        <small style="color: #666;">Email: ${afiliado.email}</small><br>
-                                        <small style="color: #666;">Data: ${new Date(afiliado.data_cadastro).toLocaleDateString('pt-BR')}</small>
-                                        ${afiliado.chave_pix ? `<br><small style="color: #666;">PIX: ${afiliado.tipo_chave_pix || 'cpf'} - ${afiliado.chave_pix}</small>` : ''}
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="color: #007bff; font-weight: 800; font-size: 1.2em;">${afiliado.total_clicks || 0}</div>
-                                        <small style="color: #666;">Cliques</small><br>
-                                        <div style="color: #28a745; font-weight: 800; font-size: 1.2em;">${afiliado.total_vendas || 0}</div>
-                                        <small style="color: #666;">Vendas</small>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: #ff6b35; font-weight: 800; font-size: 1.3em;">R$ ${(afiliado.total_comissao || 0).toFixed(2).replace('.', ',')}</div>
-                                        <small style="color: #666;">Comissão Total</small><br>
-                                        <div style="color: #6c757d; font-weight: 600;">R$ ${(afiliado.saldo_disponivel || 0).toFixed(2).replace('.', ',')}</div>
-                                        <small style="color: #666;">Saldo</small>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum afiliado encontrado</div>';
-                }
-                
-                // Carregar saques pendentes
-                try {
-                    const responseS = await fetch('/admin/saques/pendente');
-                    if (responseS.ok) {
-                        const saques = await responseS.json();
-                        document.getElementById('admin-saques-pendentes').textContent = saques.saques?.length || 0;
-                    }
-                } catch (error) {
-                    console.error('Erro ao carregar saques pendentes:', error);
-                }
-                
-            } catch (error) {
-                console.error('Erro ao carregar afiliados:', error);
-                const container = document.getElementById('admin-lista-afiliados');
-                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados dos afiliados</div>';
-            }
-        }
-
-        // CORREÇÃO: Função de carregamento de saques corrigida
-        async function carregarSaques(status) {
-            try {
-                const response = await fetch(`/admin/saques/${status}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const resultado = await response.json();
-                
-                const container = document.getElementById('admin-lista-saques');
-                if (resultado.saques && resultado.saques.length > 0) {
-                    // Atualizar contadores
-                    const pendentes = resultado.saques.filter(s => s.status === 'solicitado').length;
-                    const pagos = resultado.saques.filter(s => s.status === 'pago').length;
-                    const total = resultado.saques.reduce((sum, s) => sum + s.valor, 0);
-                    
-                    document.getElementById('admin-saques-pendentes-total').textContent = pendentes;
-                    document.getElementById('admin-saques-pagos-total').textContent = pagos;
-                    document.getElementById('admin-valor-total-saques').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
-                    
-                    let html = '';
-                    
-                    resultado.saques.forEach(saque => {
-                        const statusColor = saque.status === 'solicitado' ? '#ffc107' : '#28a745';
-                        const statusText = saque.status === 'solicitado' ? 'PENDENTE' : 'PAGO';
-                        
-                        html += `
-                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid ${statusColor}; margin-bottom: 15px;">
-                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: center;">
-                                    <div>
-                                        <strong style="color: #333;">${saque.afiliado_nome}</strong><br>
-                                        <small style="color: #666;">PIX: ${saque.tipo_chave} - ${saque.chave_pix}</small><br>
-                                        <small style="color: #666;">Código: ${saque.afiliado_codigo}</small>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="color: ${statusColor}; font-weight: 800; font-size: 1.3em;">R$ ${saque.valor.toFixed(2).replace('.', ',')}</div>
-                                        <small style="color: #666;">Valor</small>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="color: #666; font-size: 0.9em;">${new Date(saque.data_solicitacao).toLocaleDateString('pt-BR')}</div>
-                                        <small style="color: #666;">Data</small>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: ${statusColor}; font-weight: 600; font-size: 0.9em; padding: 6px 12px; background: ${statusColor}20; border-radius: 20px;">
-                                            ${statusText}
-                                        </div>
-                                        ${saque.status === 'solicitado' ? `<button onclick="marcarSaquePago(${saque.id})" style="margin-top: 8px; padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Marcar Pago</button>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum saque encontrado</div>';
-                }
-            } catch (error) {
-                console.error('Erro ao carregar saques:', error);
-                const container = document.getElementById('admin-lista-saques');
-                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados dos saques</div>';
-            }
-        }
-
-        async function marcarSaquePago(saqueId) {
-            try {
-                const response = await fetch('/admin/marcar_saque_pago', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ saque_id: saqueId })
-                });
-                
-                const resultado = await response.json();
-                
-                if (resultado.sucesso) {
-                    carregarSaques('todos');
-                    mostrarModal('<h3>Sucesso!</h3><p>Saque marcado como pago!</p>');
-                } else {
-                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                }
-                
-            } catch (error) {
-                console.error('Erro ao marcar saque como pago:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao marcar saque como pago</p>');
-            }
-        }
-
-        // CORREÇÃO: Funções de data para usar a data local corretamente
-        async function carregarBilhetes(data) {
-            try {
-                const dataFiltro = data || document.getElementById('filtro-data-bilhetes').value || formatarData(obterDataAtual());
-                const response = await fetch(`/admin/bilhetes/${dataFiltro}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const resultado = await response.json();
-                
-                const container = document.getElementById('admin-lista-bilhetes');
-                if (resultado.bilhetes && resultado.bilhetes.length > 0) {
-                    let html = '';
-                    
-                    resultado.bilhetes.forEach(bilhete => {
-                        html += `
-                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #6f42c1; margin-bottom: 15px;">
-                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center;">
-                                    <div>
-                                        <strong style="color: #333;">${bilhete.nome}</strong><br>
-                                        <small style="color: #666;">Tel: ${bilhete.telefone}</small><br>
-                                        <small style="color: #666;">PIX: ${bilhete.chave_pix}</small><br>
-                                        <small style="color: #666;">Payment: ${bilhete.payment_id}</small>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="color: #6f42c1; font-weight: 800; font-size: 1.2em;">${bilhete.bilhetes.join(', ')}</div>
-                                        <small style="color: #666;">Bilhetes</small>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: #666; font-size: 0.9em;">${new Date(bilhete.data_sorteio).toLocaleDateString('pt-BR')}</div>
-                                        <small style="color: #666;">Data Sorteio</small>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum bilhete encontrado para esta data</div>';
-                }
-            } catch (error) {
-                console.error('Erro ao carregar bilhetes:', error);
-                const container = document.getElementById('admin-lista-bilhetes');
-                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados dos bilhetes</div>';
-            }
-        }
-
-        function carregarBilhetesHoje() {
-            const hoje = formatarData(obterDataAtual());
-            document.getElementById('filtro-data-bilhetes').value = hoje;
-            carregarBilhetes(hoje);
-        }
-
-        async function carregarRaspadinhas(data) {
-            try {
-                const dataFiltro = data || document.getElementById('filtro-data-raspadinhas').value || formatarData(obterDataAtual());
-                const response = await fetch(`/admin/raspadinhas/${dataFiltro}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const resultado = await response.json();
-                
-                // Atualizar contadores
-                document.getElementById('admin-raspadinhas-vendidas').textContent = resultado.estatisticas?.total_vendidas || 0;
-                document.getElementById('admin-raspadinhas-usadas').textContent = resultado.estatisticas?.total_usadas || 0;
-                document.getElementById('admin-raspadinhas-pendentes').textContent = resultado.estatisticas?.total_pendentes || 0;
-                
-                const container = document.getElementById('admin-lista-raspadinhas');
-                if (resultado.vendas && resultado.vendas.length > 0) {
-                    let html = '';
-                    
-                    resultado.vendas.forEach(venda => {
-                        const progressoUso = Math.round((venda.raspadinhas_usadas / venda.quantidade) * 100);
-                        const corProgresso = progressoUso === 100 ? '#28a745' : progressoUso > 0 ? '#ffc107' : '#dc2626';
-                        
-                        html += `
-                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #00b341; margin-bottom: 15px;">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; align-items: center;">
-                                    <div>
-                                        <strong style="color: #333;">Payment: ${venda.payment_id}</strong><br>
-                                        <small style="color: #666;">IP: ${venda.ip_cliente}</small><br>
-                                        <small style="color: #666;">Valor: R$ ${venda.valor_total.toFixed(2).replace('.', ',')}</small>
-                                        ${venda.afiliado_nome ? `<br><small style="color: #ff6b35;">Afiliado: ${venda.afiliado_nome}</small>` : ''}
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="color: #00b341; font-weight: 800; font-size: 1.3em;">${venda.quantidade}</div>
-                                        <small style="color: #666;">Vendidas</small>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="color: ${corProgresso}; font-weight: 800; font-size: 1.2em;">${venda.raspadinhas_usadas}/${venda.quantidade}</div>
-                                        <div style="background: #f0f0f0; border-radius: 10px; height: 8px; margin-top: 5px;">
-                                            <div style="background: ${corProgresso}; height: 100%; border-radius: 10px; width: ${progressoUso}%;"></div>
-                                        </div>
-                                        <small style="color: #666;">${progressoUso}% usado</small>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: #666; font-size: 0.9em;">${new Date(venda.data_criacao).toLocaleDateString('pt-BR')}</div>
-                                        <div style="color: #666; font-size: 0.8em;">${new Date(venda.data_criacao).toLocaleTimeString('pt-BR')}</div>
-                                        <div style="color: ${venda.status === 'completed' ? '#28a745' : '#ffc107'}; font-weight: 600; font-size: 0.8em; margin-top: 4px;">
-                                            ${venda.status === 'completed' ? 'PAGO' : 'PENDENTE'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhuma venda encontrada para esta data</div>';
-                }
-            } catch (error) {
-                console.error('Erro ao carregar raspadinhas:', error);
-                const container = document.getElementById('admin-lista-raspadinhas');
-                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados das raspadinhas</div>';
-            }
-        }
-
-        function carregarRaspadinhasHoje() {
-            const hoje = formatarData(obterDataAtual());
-            document.getElementById('filtro-data-raspadinhas').value = hoje;
-            carregarRaspadinhas(hoje);
-        }
-
-        // Restante das funções de admin...
+        // Funções específicas do Raspa Brasil Admin
         async function verificarStatusPremioPendente() {
             try {
                 const response = await fetch('/admin/verificar_status_premio');
@@ -4944,6 +4648,7 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
+        // Funções específicas do 2 para 1000 Admin
         async function carregarStatusSorteio() {
             try {
                 const response = await fetch('/resultado_sorteio');
@@ -4997,7 +4702,7 @@ Solicito o pagamento do meu prêmio!`;
 
         async function carregarParticipantesHoje() {
             try {
-                const hoje = formatarData(obterDataAtual());
+                const hoje = obterDataHoraBrasilia().toISOString().split('T')[0];
                 const response = await fetch(`/admin/bilhetes/${hoje}`);
                 const resultado = await response.json();
                 
@@ -5103,10 +4808,308 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
+        // FUNÇÕES ADMIN PARA AFILIADOS, SAQUES, BILHETES, ETC.
+        async function carregarDadosAfiliados() {
+            try {
+                const response = await fetch('/admin/afiliados');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const resultado = await response.json();
+                
+                // Atualizar contadores
+                document.getElementById('admin-total-afiliados').textContent = resultado.afiliados?.length || 0;
+                
+                let totalVendas = 0;
+                let totalComissoes = 0;
+                let saquesPendentes = 0;
+                
+                resultado.afiliados?.forEach(afiliado => {
+                    totalVendas += afiliado.total_vendas || 0;
+                    totalComissoes += afiliado.total_comissao || 0;
+                });
+                
+                document.getElementById('admin-vendas-afiliados').textContent = totalVendas;
+                document.getElementById('admin-comissoes-pagas').textContent = `R$ ${totalComissoes.toFixed(2).replace('.', ',')}`;
+                
+                const container = document.getElementById('admin-lista-afiliados');
+                if (resultado.afiliados && resultado.afiliados.length > 0) {
+                    let html = '';
+                    
+                    resultado.afiliados.forEach((afiliado, index) => {
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #ff6b35; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center;">
+                                    <div>
+                                        <strong style="color: #333; font-size: 1.1em;">${afiliado.nome}</strong><br>
+                                        <small style="color: #666;">Código: ${afiliado.codigo}</small><br>
+                                        <small style="color: #666;">Email: ${afiliado.email}</small><br>
+                                        <small style="color: #666;">Data: ${new Date(afiliado.data_cadastro).toLocaleDateString('pt-BR')}</small>
+                                        ${afiliado.chave_pix ? `<br><small style="color: #666;">PIX: ${afiliado.tipo_chave_pix || 'cpf'} - ${afiliado.chave_pix}</small>` : ''}
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #007bff; font-weight: 800; font-size: 1.2em;">${afiliado.total_clicks || 0}</div>
+                                        <small style="color: #666;">Cliques</small><br>
+                                        <div style="color: #28a745; font-weight: 800; font-size: 1.2em;">${afiliado.total_vendas || 0}</div>
+                                        <small style="color: #666;">Vendas</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #ff6b35; font-weight: 800; font-size: 1.3em;">R$ ${(afiliado.total_comissao || 0).toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">Comissão Total</small><br>
+                                        <div style="color: #6c757d; font-weight: 600;">R$ ${(afiliado.saldo_disponivel || 0).toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">Saldo</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum afiliado encontrado</div>';
+                }
+                
+                // Carregar saques pendentes
+                try {
+                    const responseS = await fetch('/admin/saques/pendente');
+                    if (responseS.ok) {
+                        const saques = await responseS.json();
+                        document.getElementById('admin-saques-pendentes').textContent = saques.saques?.length || 0;
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar saques pendentes:', error);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar afiliados:', error);
+                const container = document.getElementById('admin-lista-afiliados');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados dos afiliados</div>';
+            }
+        }
+
+        async function carregarSaques(status) {
+            try {
+                const response = await fetch(`/admin/saques/${status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const resultado = await response.json();
+                
+                const container = document.getElementById('admin-lista-saques');
+                if (resultado.saques && resultado.saques.length > 0) {
+                    // Atualizar contadores
+                    const pendentes = resultado.saques.filter(s => s.status === 'solicitado').length;
+                    const pagos = resultado.saques.filter(s => s.status === 'pago').length;
+                    const total = resultado.saques.reduce((sum, s) => sum + s.valor, 0);
+                    
+                    document.getElementById('admin-saques-pendentes-total').textContent = pendentes;
+                    document.getElementById('admin-saques-pagos-total').textContent = pagos;
+                    document.getElementById('admin-valor-total-saques').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+                    
+                    let html = '';
+                    
+                    resultado.saques.forEach(saque => {
+                        const statusColor = saque.status === 'solicitado' ? '#ffc107' : '#28a745';
+                        const statusText = saque.status === 'solicitado' ? 'PENDENTE' : 'PAGO';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid ${statusColor}; margin-bottom: 15px;">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: center;">
+                                    <div>
+                                        <strong style="color: #333;">${saque.afiliado_nome}</strong><br>
+                                        <small style="color: #666;">PIX: ${saque.tipo_chave} - ${saque.chave_pix}</small><br>
+                                        <small style="color: #666;">Código: ${saque.afiliado_codigo}</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: ${statusColor}; font-weight: 800; font-size: 1.3em;">R$ ${saque.valor.toFixed(2).replace('.', ',')}</div>
+                                        <small style="color: #666;">Valor</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(saque.data_solicitacao).toLocaleDateString('pt-BR')}</div>
+                                        <small style="color: #666;">Data</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${statusColor}; font-weight: 600; font-size: 0.9em; padding: 6px 12px; background: ${statusColor}20; border-radius: 20px;">
+                                            ${statusText}
+                                        </div>
+                                        ${saque.status === 'solicitado' ? `<button onclick="marcarSaquePago(${saque.id})" style="margin-top: 8px; padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">Marcar Pago</button>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum saque encontrado</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar saques:', error);
+                const container = document.getElementById('admin-lista-saques');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados dos saques</div>';
+            }
+        }
+
+        async function marcarSaquePago(saqueId) {
+            try {
+                const response = await fetch('/admin/marcar_saque_pago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ saque_id: saqueId })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    carregarSaques('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Saque marcado como pago!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao marcar saque como pago:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao marcar saque como pago</p>');
+            }
+        }
+
+        async function carregarBilhetes(data) {
+            try {
+                const dataFiltro = data || document.getElementById('filtro-data-bilhetes').value || obterDataHoraBrasilia().toISOString().split('T')[0];
+                const response = await fetch(`/admin/bilhetes/${dataFiltro}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const resultado = await response.json();
+                
+                const container = document.getElementById('admin-lista-bilhetes');
+                if (resultado.bilhetes && resultado.bilhetes.length > 0) {
+                    let html = '';
+                    
+                    resultado.bilhetes.forEach(bilhete => {
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #6f42c1; margin-bottom: 15px;">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: center;">
+                                    <div>
+                                        <strong style="color: #333;">${bilhete.nome}</strong><br>
+                                        <small style="color: #666;">Tel: ${bilhete.telefone}</small><br>
+                                        <small style="color: #666;">PIX: ${bilhete.chave_pix}</small><br>
+                                        <small style="color: #666;">Payment: ${bilhete.payment_id}</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #6f42c1; font-weight: 800; font-size: 1.2em;">${bilhete.bilhetes.join(', ')}</div>
+                                        <small style="color: #666;">Bilhetes</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(bilhete.data_sorteio).toLocaleDateString('pt-BR')}</div>
+                                        <small style="color: #666;">Data Sorteio</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhum bilhete encontrado para esta data</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar bilhetes:', error);
+                const container = document.getElementById('admin-lista-bilhetes');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados dos bilhetes</div>';
+            }
+        }
+
+        function carregarBilhetesHoje() {
+            const hoje = obterDataHoraBrasilia().toISOString().split('T')[0];
+            document.getElementById('filtro-data-bilhetes').value = hoje;
+            carregarBilhetes(hoje);
+        }
+
+        async function carregarRaspadinhas(data) {
+            try {
+                const dataFiltro = data || document.getElementById('filtro-data-raspadinhas').value || obterDataHoraBrasilia().toISOString().split('T')[0];
+                const response = await fetch(`/admin/raspadinhas/${dataFiltro}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const resultado = await response.json();
+                
+                // Atualizar contadores
+                document.getElementById('admin-raspadinhas-vendidas').textContent = resultado.estatisticas?.total_vendidas || 0;
+                document.getElementById('admin-raspadinhas-usadas').textContent = resultado.estatisticas?.total_usadas || 0;
+                document.getElementById('admin-raspadinhas-pendentes').textContent = resultado.estatisticas?.total_pendentes || 0;
+                
+                const container = document.getElementById('admin-lista-raspadinhas');
+                if (resultado.vendas && resultado.vendas.length > 0) {
+                    let html = '';
+                    
+                    resultado.vendas.forEach(venda => {
+                        const progressoUso = Math.round((venda.raspadinhas_usadas / venda.quantidade) * 100);
+                        const corProgresso = progressoUso === 100 ? '#28a745' : progressoUso > 0 ? '#ffc107' : '#dc2626';
+                        
+                        html += `
+                            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #00b341; margin-bottom: 15px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; align-items: center;">
+                                    <div>
+                                        <strong style="color: #333;">Payment: ${venda.payment_id}</strong><br>
+                                        <small style="color: #666;">IP: ${venda.ip_cliente}</small><br>
+                                        <small style="color: #666;">Valor: R$ ${venda.valor_total.toFixed(2).replace('.', ',')}</small>
+                                        ${venda.afiliado_nome ? `<br><small style="color: #ff6b35;">Afiliado: ${venda.afiliado_nome}</small>` : ''}
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: #00b341; font-weight: 800; font-size: 1.3em;">${venda.quantidade}</div>
+                                        <small style="color: #666;">Vendidas</small>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="color: ${corProgresso}; font-weight: 800; font-size: 1.2em;">${venda.raspadinhas_usadas}/${venda.quantidade}</div>
+                                        <div style="background: #f0f0f0; border-radius: 10px; height: 8px; margin-top: 5px;">
+                                            <div style="background: ${corProgresso}; height: 100%; border-radius: 10px; width: ${progressoUso}%;"></div>
+                                        </div>
+                                        <small style="color: #666;">${progressoUso}% usado</small>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(venda.data_criacao).toLocaleDateString('pt-BR')}</div>
+                                        <div style="color: #666; font-size: 0.8em;">${new Date(venda.data_criacao).toLocaleTimeString('pt-BR')}</div>
+                                        <div style="color: ${venda.status === 'completed' ? '#28a745' : '#ffc107'}; font-weight: 600; font-size: 0.8em; margin-top: 4px;">
+                                            ${venda.status === 'completed' ? 'PAGO' : 'PENDENTE'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Nenhuma venda encontrada para esta data</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar raspadinhas:', error);
+                const container = document.getElementById('admin-lista-raspadinhas');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados das raspadinhas</div>';
+            }
+        }
+
+        function carregarRaspadinhasHoje() {
+            const hoje = obterDataHoraBrasilia().toISOString().split('T')[0];
+            document.getElementById('filtro-data-raspadinhas').value = hoje;
+            carregarRaspadinhas(hoje);
+        }
+
+        // FUNÇÕES DE GANHADORES CORRIGIDAS
         async function carregarGanhadores(game) {
             try {
-                const dataFiltro = document.getElementById('filtro-data-ganhadores').value;
                 let url = `/admin/ganhadores/${game}`;
+                const dataFiltro = document.getElementById('filtro-data-ganhadores').value;
                 if (dataFiltro) {
                     url += `?data=${dataFiltro}`;
                 }
@@ -5132,18 +5135,18 @@ Solicito o pagamento do meu prêmio!`;
                                 <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: center;">
                                     <div>
                                         <strong style="color: #333;">${ganhador.nome}</strong><br>
-                                        <small style="color: #666;">PIX: ${ganhador.tipo_chave || 'N/A'} - ${ganhador.chave_pix}</small><br>
-                                        <small style="color: #666;">Código: ${ganhador.codigo || 'N/A'}</small><br>
-                                        <span style="color: ${gameColor}; font-weight: 600; font-size: 0.9em;">${ganhador.jogo}</span>
-                                        ${ganhador.bilhete ? `<br><small style="color: #666;">Bilhete: ${ganhador.bilhete}</small>` : ''}
+                                        <small style="color: #666;">PIX: ${ganhador.chave_pix}</small><br>
+                                        <small style="color: #666;">Jogo: ${ganhador.jogo}</small>
+                                        ${ganhador.codigo ? `<br><small style="color: #666;">Código: ${ganhador.codigo}</small>` : ''}
+                                        ${ganhador.bilhete_ganhador ? `<br><small style="color: #666;">Bilhete: ${ganhador.bilhete_ganhador}</small>` : ''}
                                     </div>
                                     <div style="text-align: center;">
-                                        <div style="color: ${gameColor}; font-weight: 800; font-size: 1.4em;">${ganhador.valor}</div>
+                                        <div style="color: ${gameColor}; font-weight: 800; font-size: 1.3em;">${ganhador.valor}</div>
                                         <small style="color: #666;">Prêmio</small>
                                     </div>
                                     <div style="text-align: center;">
-                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data).toLocaleDateString('pt-BR')}</div>
-                                        <div style="color: #666; font-size: 0.8em;">${new Date(ganhador.data).toLocaleTimeString('pt-BR')}</div>
+                                        <div style="color: #666; font-size: 0.9em;">${new Date(ganhador.data_ganho).toLocaleDateString('pt-BR')}</div>
+                                        <small style="color: #666;">Data</small>
                                     </div>
                                     <div style="text-align: right;">
                                         <div style="color: ${statusColor}; font-weight: 600; font-size: 0.9em; padding: 6px 12px; background: ${statusColor}20; border-radius: 20px;">
@@ -5164,82 +5167,6 @@ Solicito o pagamento do meu prêmio!`;
                 console.error('Erro ao carregar ganhadores:', error);
                 const container = document.getElementById('admin-lista-ganhadores');
                 container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar dados dos ganhadores</div>';
-            }
-        }
-
-        function adicionarGanhador() {
-            document.getElementById('modal-adicionar-ganhador').style.display = 'flex';
-        }
-
-        function fecharModalAdicionarGanhador() {
-            document.getElementById('modal-adicionar-ganhador').style.display = 'none';
-            // Limpar campos
-            document.getElementById('novo-ganhador-nome').value = '';
-            document.getElementById('novo-ganhador-valor').value = '';
-            document.getElementById('novo-ganhador-pix').value = '';
-            document.getElementById('novo-ganhador-bilhete').value = '';
-            document.getElementById('novo-ganhador-jogo').value = 'raspa_brasil';
-            toggleBilheteField();
-        }
-
-        function toggleBilheteField() {
-            const jogo = document.getElementById('novo-ganhador-jogo').value;
-            const grupoBilhete = document.getElementById('grupo-bilhete-ml');
-            
-            if (jogo === '2para1000') {
-                grupoBilhete.style.display = 'block';
-            } else {
-                grupoBilhete.style.display = 'none';
-                document.getElementById('novo-ganhador-bilhete').value = '';
-            }
-        }
-
-        async function salvarNovoGanhador() {
-            const jogo = document.getElementById('novo-ganhador-jogo').value;
-            const nome = document.getElementById('novo-ganhador-nome').value.trim();
-            const valor = document.getElementById('novo-ganhador-valor').value.trim();
-            const pix = document.getElementById('novo-ganhador-pix').value.trim();
-            const bilhete = document.getElementById('novo-ganhador-bilhete').value.trim();
-            
-            if (!nome || !valor || !pix) {
-                mostrarModal('<h3>Atenção</h3><p>Preencha todos os campos obrigatórios!</p>');
-                return;
-            }
-            
-            if (jogo === '2para1000' && (!bilhete || bilhete.length !== 4)) {
-                mostrarModal('<h3>Atenção</h3><p>Digite um bilhete válido de 4 dígitos!</p>');
-                return;
-            }
-            
-            try {
-                const dados = {
-                    jogo: jogo === 'raspa_brasil' ? 'Raspa Brasil' : '2 para 1000',
-                    nome, valor, chave_pix: pix
-                };
-                
-                if (jogo === '2para1000') {
-                    dados.bilhete = bilhete;
-                }
-                
-                const response = await fetch('/admin/adicionar_ganhador', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
-                });
-                
-                const resultado = await response.json();
-                
-                if (resultado.sucesso) {
-                    fecharModalAdicionarGanhador();
-                    carregarGanhadores('todos');
-                    mostrarModal('<h3>Sucesso!</h3><p>Ganhador adicionado com sucesso!</p>');
-                } else {
-                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                }
-                
-            } catch (error) {
-                console.error('Erro ao adicionar ganhador:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao adicionar ganhador</p>');
             }
         }
 
@@ -5266,87 +5193,214 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
+        function adicionarGanhador() {
+            document.getElementById('modal-adicionar-ganhador').style.display = 'flex';
+        }
+
+        function fecharModalAdicionarGanhador() {
+            document.getElementById('modal-adicionar-ganhador').style.display = 'none';
+            
+            // Limpar campos
+            document.getElementById('novo-ganhador-nome').value = '';
+            document.getElementById('novo-ganhador-valor').value = '';
+            document.getElementById('novo-ganhador-pix').value = '';
+            document.getElementById('novo-ganhador-bilhete').value = '';
+            document.getElementById('novo-ganhador-jogo').value = 'raspa_brasil';
+            toggleBilheteField();
+        }
+
+        function toggleBilheteField() {
+            const jogo = document.getElementById('novo-ganhador-jogo').value;
+            const grupoBilhete = document.getElementById('grupo-bilhete-ml');
+            
+            if (jogo === '2para1000') {
+                grupoBilhete.style.display = 'block';
+            } else {
+                grupoBilhete.style.display = 'none';
+            }
+        }
+
+        async function salvarNovoGanhador() {
+            const jogo = document.getElementById('novo-ganhador-jogo').value;
+            const nome = document.getElementById('novo-ganhador-nome').value.trim();
+            const valor = document.getElementById('novo-ganhador-valor').value.trim();
+            const chavePix = document.getElementById('novo-ganhador-pix').value.trim();
+            const bilhete = document.getElementById('novo-ganhador-bilhete').value.trim();
+            
+            if (!nome || !valor || !chavePix) {
+                mostrarModal('<h3>Atenção</h3><p>Preencha todos os campos obrigatórios!</p>');
+                return;
+            }
+            
+            if (jogo === '2para1000' && (!bilhete || bilhete.length !== 4)) {
+                mostrarModal('<h3>Atenção</h3><p>Digite um bilhete válido (4 dígitos)!</p>');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/adicionar_ganhador', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jogo,
+                        nome,
+                        valor,
+                        chave_pix: chavePix,
+                        bilhete_ganhador: jogo === '2para1000' ? bilhete : null
+                    })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.sucesso) {
+                    fecharModalAdicionarGanhador();
+                    carregarGanhadores('todos');
+                    mostrarModal('<h3>Sucesso!</h3><p>Ganhador adicionado com sucesso!</p>');
+                } else {
+                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao adicionar ganhador:', error);
+                mostrarModal('<h3>Erro</h3><p>Erro ao adicionar ganhador</p>');
+            }
+        }
+
         function gerarListaGanhadoresDia() {
-            const hoje = formatarData(obterDataAtual());
+            const hoje = obterDataHoraBrasilia().toISOString().split('T')[0];
             document.getElementById('filtro-data-ganhadores').value = hoje;
             carregarGanhadores('todos');
         }
 
         async function gerarListaGanhadoresPDF() {
             try {
-                // Implementação básica de geração de PDF seria aqui
-                mostrarModal('<h3>Funcionalidade</h3><p>Geração de PDF em desenvolvimento</p>');
+                const dataFiltro = document.getElementById('filtro-data-ganhadores').value || obterDataHoraBrasilia().toISOString().split('T')[0];
+                const response = await fetch(`/admin/ganhadores/todos?data=${dataFiltro}`);
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar ganhadores');
+                }
+                
+                const resultado = await response.json();
+                
+                if (!resultado.ganhadores || resultado.ganhadores.length === 0) {
+                    mostrarModal('<h3>Atenção</h3><p>Nenhum ganhador encontrado para gerar PDF.</p>');
+                    return;
+                }
+                
+                // Criar PDF usando jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Título
+                doc.setFontSize(16);
+                doc.text('GANHA BRASIL - Lista de Ganhadores', 20, 20);
+                doc.setFontSize(12);
+                doc.text(`Data: ${new Date(dataFiltro).toLocaleDateString('pt-BR')}`, 20, 30);
+                
+                let y = 50;
+                
+                resultado.ganhadores.forEach((ganhador, index) => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    
+                    doc.text(`${index + 1}. ${ganhador.nome}`, 20, y);
+                    doc.text(`   Jogo: ${ganhador.jogo}`, 20, y + 7);
+                    doc.text(`   Prêmio: ${ganhador.valor}`, 20, y + 14);
+                    doc.text(`   PIX: ${ganhador.chave_pix}`, 20, y + 21);
+                    if (ganhador.bilhete_ganhador) {
+                        doc.text(`   Bilhete: ${ganhador.bilhete_ganhador}`, 20, y + 28);
+                        y += 35;
+                    } else {
+                        y += 28;
+                    }
+                    
+                    y += 5;
+                });
+                
+                doc.save(`ganhadores_${dataFiltro}.pdf`);
+                
             } catch (error) {
                 console.error('Erro ao gerar PDF:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF</p>');
+                mostrarModal('<h3>Erro</h3><p>Erro ao gerar PDF dos ganhadores</p>');
             }
         }
 
         async function carregarRelatorioVendas() {
             try {
                 const response = await fetch('/admin/relatorio_vendas');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const resultado = await response.json();
                 
                 // Atualizar contadores
                 document.getElementById('admin-vendas-rb-total').textContent = resultado.raspadinhas_vendidas || 0;
                 document.getElementById('admin-vendas-ml-total').textContent = resultado.bilhetes_vendidos || 0;
                 document.getElementById('admin-receita-total').textContent = `R$ ${(resultado.receita_total || 0).toFixed(2).replace('.', ',')}`;
-                document.getElementById('admin-vendas-hoje-total').textContent = (resultado.vendas_hoje || 0);
+                document.getElementById('admin-vendas-hoje-total').textContent = (resultado.vendas_hoje || 0) + (resultado.vendas_hoje_ml || 0);
                 
-                // Atualizar gráfico (implementação básica)
-                const graficooContainer = document.getElementById('admin-grafico-vendas');
-                if (resultado.vendas_7_dias) {
-                    let html = '<h5 style="margin-bottom: 15px;">Vendas dos Últimos 7 Dias:</h5>';
+                // Gráfico simples das vendas
+                const container = document.getElementById('admin-grafico-vendas');
+                if (resultado.vendas_ultimos_dias) {
+                    let html = '<div style="display: flex; gap: 10px; align-items: end; height: 150px; padding: 20px;">';
                     
-                    resultado.vendas_7_dias.forEach(dia => {
-                        const porcentagem = Math.min((dia.total / Math.max(...resultado.vendas_7_dias.map(d => d.total))) * 100, 100);
+                    const maxVendas = Math.max(...resultado.vendas_ultimos_dias.map(v => v.total));
+                    
+                    resultado.vendas_ultimos_dias.forEach(dia => {
+                        const altura = (dia.total / maxVendas) * 100;
                         html += `
-                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                                <div style="min-width: 80px; font-size: 0.9em;">${new Date(dia.data).toLocaleDateString('pt-BR')}</div>
-                                <div style="flex: 1; background: #f0f0f0; height: 20px; border-radius: 10px; margin: 0 10px; overflow: hidden;">
-                                    <div style="background: linear-gradient(90deg, #00b341, #007bff); height: 100%; width: ${porcentagem}%; border-radius: 10px;"></div>
+                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                <div style="background: #007bff; width: 100%; height: ${altura}%; min-height: 5px; margin-bottom: 10px; border-radius: 4px 4px 0 0;"></div>
+                                <div style="font-size: 0.8em; color: #666; text-align: center;">
+                                    ${new Date(dia.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                                 </div>
-                                <div style="min-width: 60px; font-weight: 600; text-align: right;">${dia.total}</div>
+                                <div style="font-weight: 600; color: #333; text-align: center;">
+                                    ${dia.total}
+                                </div>
                             </div>
                         `;
                     });
                     
-                    graficoContainer.innerHTML = html;
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 50px 0;">Dados de vendas não disponíveis</div>';
                 }
                 
             } catch (error) {
-                console.error('Erro ao carregar relatório:', error);
-                document.getElementById('admin-grafico-vendas').innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar relatório</div>';
+                console.error('Erro ao carregar relatório de vendas:', error);
+                const container = document.getElementById('admin-grafico-vendas');
+                container.innerHTML = '<div style="text-align: center; color: #dc2626;">Erro ao carregar relatório de vendas</div>';
             }
         }
 
-        // Verificar parâmetro de afiliado na URL
-        function verificarParametroAfiliado() {
+        // Verificar parâmetro de referência na URL
+        function verificarReferencia() {
             const urlParams = new URLSearchParams(window.location.search);
             const refCode = urlParams.get('ref');
             
             if (refCode) {
-                // Salvar o código de afiliado
                 localStorage.setItem('raspa_ref', refCode);
                 sessionStorage.setItem('raspa_ref', refCode);
                 
-                // Registrar o clique
-                fetch('/registrar_click_afiliado', {
+                // Registrar clique do afiliado
+                fetch('/registrar_clique_afiliado', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ codigo: refCode })
                 }).catch(error => console.error('Erro ao registrar clique:', error));
-                
-                // Limpar a URL
-                const newUrl = window.location.origin + window.location.pathname;
-                window.history.replaceState({}, document.title, newUrl);
             }
         }
 
         // Verificar login de afiliado salvo
-        function verificarAfiliateLogin() {
+        function verificarLoginAfiliado() {
             const cpfSalvo = localStorage.getItem('affiliate_cpf');
-            if (cpfSalvo && cpfSalvo.length === 11) {
+            if (cpfSalvo) {
                 fetch('/login_afiliado', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -5362,60 +5416,26 @@ Solicito o pagamento do meu prêmio!`;
             }
         }
 
-        // Função de inicialização
-        function init() {
-            // Verificar parâmetro de afiliado
-            verificarParametroAfiliado();
-            
-            // Verificar login do cliente
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            initBannerSlider();
+            gerarGanhadoresSlider();
+            initWinnerAlerts();
+            verificarReferencia();
             verificarLogin();
-            
-            // Verificar login de afiliado
-            verificarAfiliateLogin();
-            
-            // Atualizar displays
+            verificarLoginAfiliado();
             atualizarDisplayRB();
             atualizarDisplayML();
             
-            // Gerar ganhadores para o slider
-            gerarGanhadoresSlider();
-            
-            // Inicializar slider do banner
-            initBannerSlider();
-            
-            // Inicializar alertas de ganhadores
-            initWinnerAlerts();
-            
-            // Carregar resultado do sorteio se estivermos na página do 2para1000
-            if (document.getElementById('2para1000-home').classList.contains('active')) {
-                carregarResultadoSorteioML();
-                carregarUltimosGanhadoresML();
-            }
-        }
-
-        // Inicializar quando a página carregar
-        document.addEventListener('DOMContentLoaded', init);
-
-        // Cleanup quando sair da página
-        window.addEventListener('beforeunload', () => {
-            if (paymentCheckInterval) {
-                clearInterval(paymentCheckInterval);
-            }
-        });
-
-        // Expandir automaticamente o texto se necessário em dispositivos móveis
-        function ajustarTextosResponsivos() {
-            const elementos = document.querySelectorAll('[style*="clamp"]');
-            elementos.forEach(el => {
-                if (window.innerWidth < 768) {
-                    el.style.wordBreak = 'break-word';
-                    el.style.hyphens = 'auto';
+            // Limpar intervalos ao sair da página
+            window.addEventListener('beforeunload', function() {
+                if (paymentCheckInterval) {
+                    clearInterval(paymentCheckInterval);
                 }
             });
-        }
-
-        window.addEventListener('resize', ajustarTextosResponsivos);
-        document.addEventListener('DOMContentLoaded', ajustarTextosResponsivos);
+        });
     </script>
 </body>
 </html>
+
+
