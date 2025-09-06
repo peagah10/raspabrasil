@@ -5221,50 +5221,64 @@ Solicito o pagamento do meu prêmio!`;
         }
 
         async function salvarNovoGanhador() {
-            const jogo = document.getElementById('novo-ganhador-jogo').value;
-            const nome = document.getElementById('novo-ganhador-nome').value.trim();
-            const valor = document.getElementById('novo-ganhador-valor').value.trim();
-            const chavePix = document.getElementById('novo-ganhador-pix').value.trim();
-            const bilhete = document.getElementById('novo-ganhador-bilhete').value.trim();
-            
-            if (!nome || !valor || !chavePix) {
-                mostrarModal('<h3>Atenção</h3><p>Preencha todos os campos obrigatórios!</p>');
-                return;
-            }
-            
-            if (jogo === '2para1000' && (!bilhete || bilhete.length !== 4)) {
-                mostrarModal('<h3>Atenção</h3><p>Digite um bilhete válido (4 dígitos)!</p>');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/admin/adicionar_ganhador', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jogo,
-                        nome,
-                        valor,
-                        chave_pix: chavePix,
-                        bilhete_ganhador: jogo === '2para1000' ? bilhete : null
-                    })
-                });
-                
-                const resultado = await response.json();
-                
-                if (resultado.sucesso) {
-                    fecharModalAdicionarGanhador();
-                    carregarGanhadores('todos');
-                    mostrarModal('<h3>Sucesso!</h3><p>Ganhador adicionado com sucesso!</p>');
-                } else {
-                    mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
-                }
-                
-            } catch (error) {
-                console.error('Erro ao adicionar ganhador:', error);
-                mostrarModal('<h3>Erro</h3><p>Erro ao adicionar ganhador</p>');
-            }
+    const jogo = document.getElementById('novo-ganhador-jogo').value;
+    const nome = document.getElementById('novo-ganhador-nome').value.trim();
+    const valor = document.getElementById('novo-ganhador-valor').value.trim();
+    const chavePix = document.getElementById('novo-ganhador-pix').value.trim();
+    const bilhete = document.getElementById('novo-ganhador-bilhete').value.trim();
+    
+    console.log('📤 DADOS DO FRONTEND:', { jogo, nome, valor, chavePix, bilhete });
+    
+    if (!nome || !valor || !chavePix) {
+        mostrarModal('<h3>Atenção</h3><p>Preencha todos os campos obrigatórios!</p>');
+        return;
+    }
+    
+    if (jogo === '2para1000' && (!bilhete || bilhete.length !== 4)) {
+        mostrarModal('<h3>Atenção</h3><p>Digite um bilhete válido (4 dígitos)!</p>');
+        return;
+    }
+    
+    // ✅ CORRIGIDO: Enviar 'milhar' ao invés de 'bilhete_ganhador'
+    const dadosEnvio = {
+        jogo,
+        nome,
+        valor,
+        chave_pix: chavePix,
+        tipo_chave: 'cpf'
+    };
+    
+    // Adicionar milhar para 2para1000
+    if (jogo === '2para1000') {
+        dadosEnvio.milhar = bilhete;
+    }
+    
+    console.log('📡 ENVIANDO PARA BACKEND:', dadosEnvio);
+    
+    try {
+        const response = await fetch('/admin/adicionar_ganhador', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dadosEnvio)
+        });
+        
+        console.log('📥 STATUS RESPOSTA:', response.status);
+        const resultado = await response.json();
+        console.log('📥 RESPOSTA BACKEND:', resultado);
+        
+        if (resultado.sucesso) {
+            fecharModalAdicionarGanhador();
+            carregarGanhadores('todos');
+            mostrarModal('<h3>Sucesso!</h3><p>Ganhador adicionado com sucesso!</p>');
+        } else {
+            mostrarModal(`<h3>Erro</h3><p>${resultado.erro}</p>`);
         }
+        
+    } catch (error) {
+        console.error('Erro ao adicionar ganhador:', error);
+        mostrarModal('<h3>Erro</h3><p>Erro ao adicionar ganhador</p>');
+    }
+}
 
         function gerarListaGanhadoresDia() {
             const hoje = obterDataHoraBrasilia().toISOString().split('T')[0];
@@ -5437,5 +5451,3 @@ Solicito o pagamento do meu prêmio!`;
     </script>
 </body>
 </html>
-
-
